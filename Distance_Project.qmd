@@ -1,0 +1,164 @@
+---
+title: "Distance Project"
+author: "Nigel K Anderson"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Analysis Pipeline
+
+shared folder on mydrive in finder and copied the location url.
+
+```{r, warning = FALSE, message = FALSE}
+source("01_import_sonobat.R")
+```
+
+```{r}
+source("02_clean_data.R")
+data <- clean_data(data_raw)
+```
+
+```{r}
+source("03_extract_habitat.R")
+
+#data_env <- add_environmental_covariates(data, forest_raster)
+
+data_env <- add_habitat(
+  data,
+  forest_raster = nlcd_forest,
+  buffer = 500
+)
+
+data_env <- add_moonlight(data_env)
+```
+
+```{r}
+source("04_Occurrence_Thresholds.R")
+
+occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
+
+glimpse(occurrences)
+
+occurrences %>%
+  ggplot(aes(threshold_sec, occurrences, group = site, color = site)) + 
+  geom_line(alpha = 0.3)
+
+occurrences %>%
+  group_by(threshold_sec) %>%
+  summarise(total_occurrences = sum(occurrences))
+
+data_30 <- occurrences %>%
+  filter(threshold_sec == 30)
+
+data_60 <- occurrences %>%
+  filter(threshold_sec == 60)
+
+data_120 <- occurrences %>%
+  filter(threshold_sec == 120)
+
+data_300 <- occurrences %>%
+  filter(threshold_sec == 300)
+
+site_env <- data_env %>%
+  distinct(site, pct_forest)
+
+occurrences <- occurrences %>%
+  left_join(site_env, by = "site")
+```
+
+```{r}
+
+data_env %>%
+  count(site, species) %>%
+  arrange(desc(n)) %>%
+  head()
+
+data_env %>%
+  summarise(
+    min_time = min(time_sec),
+    max_time = max(time_sec),
+    n_unique_times = n_distinct(time_sec)
+  )
+
+data_env %>%
+  arrange(site, species, time_sec) %>%
+  group_by(site, species) %>%
+  summarise(
+    min_gap = min(diff(time_sec), na.rm = TRUE),
+    max_gap = max(diff(time_sec), na.rm = TRUE)
+  )
+```
+
+```{r}
+source("05_data_exploration.R")
+```
+
+```{r}
+source("06_run_models.R")
+models <- run_models(data_env)
+
+AIC(m0,m1,m2)
+
+anova(m0,m1)
+anova(m1,m2)
+
+sim <- simulateResiduals(m2)
+
+plot(sim)
+
+testDispersion(sim)
+
+testZeroInflation(sim)
+```
+
+```{r}
+
+library(glmmTMB)
+
+m_30 <- glmmTMB(
+  occurrences ~ 1 + (1|site),
+  data = filter(occurrences, threshold_sec == 30),
+  family = nbinom2()
+)
+
+m_60 <- glmmTMB(
+  occurrences ~ 1 + (1|site),
+  data = filter(occurrences, threshold_sec == 60),
+  family = nbinom2()
+)
+
+m_120 <- glmmTMB(
+  occurrences ~ 1 + (1|site),
+  data = filter(occurrences, threshold_sec == 120),
+  family = nbinom2()
+)
+
+m_300 <- glmmTMB(
+  occurrences ~ 1 + (1|site),
+  data = filter(occurrences, threshold_sec == 300),
+  family = nbinom2()
+)
+
+AIC(m_30, m_60, m_120, m_300)
+
+bind_rows(
+  broom.mixed::tidy(m_30) %>% mutate(threshold = 30),
+  broom.mixed::tidy(m_60) %>% mutate(threshold = 60),
+  broom.mixed::tidy(m_120) %>% mutate(threshold = 120),
+  broom.mixed::tidy(m_300) %>% mutate(threshold = 300)
+) 
+  
+  
+```
+
+At the end of every day:
+
+git add .
+
+git commit -m "updated detection pipeline"
+
+git push
