@@ -2,12 +2,12 @@ library(tidyverse)
 library(lubridate)
 library(purrr)
 
-sites <- tibble(
-  site = c("CORA1", "DALO1", "CRNR1", "NORO1", "AMLA1","SHLA1", "GSLA1"),
-  lon = c(-110.6354, -110.64717, -110.63882, -110.63902, -110.64412, -110.64197, -110.64065),
-  lat = c(43.90172, 43.90791, 43.90151, 43.90642, 43.90422, 43.90194, 43.90496)
+#sites <- tibble(
+  #site = c("CORA1", "DALO1", "CRNR1", "NORO1", "AMLA1","SHLA1", "GSLA1"),
+  #lon = c(-110.6354, -110.64717, -110.63882, -110.63902, -110.64412, -110.64197, -110.64065),
+  #lat = c(43.90172, 43.90791, 43.90151, 43.90642, 43.90422, 43.90194, 43.90496)
   
-)
+#)
 
 clean_species <- function(x) {
   x %>%
@@ -30,7 +30,7 @@ clean_data <- function(data) {
       !is.na(date),
     ) %>%
     
-    left_join(sites, by = 'site') %>%
+    #left_join(sites, by = 'site') %>%
     
     mutate(
       detections = as.numeric(detections),
@@ -41,8 +41,8 @@ clean_data <- function(data) {
     
     filter(
       !is.na(jd),
-      !is.na(lon),
-      !is.na(lat)
+      #!is.na(lon),
+      #!is.na(lat)
     ) %>%
     
     arrange(site, date, species)

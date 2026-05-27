@@ -15,13 +15,13 @@ files_all <- list.files(
   recursive = TRUE
 )
 
-excluded <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
+excluded <- files_all[grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
 
-files <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
+files <- files_all[!grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
 
 cat(
   "Found ", length(files_all), " Excel files.\n",
-  "Excluded ", length(excluded), " v430 files. \n",
+  "Excluded ", length(excluded), " v4.4.5 files. \n",
   "Importing ", length(files), " files. \n"
 )
   
@@ -102,7 +102,7 @@ process_file <- function(file) {
       
     ) %>%
     
-    group_by(site, year, date, jd, jd2, SppAccp, time_clean, datetime, time_sec) %>%
+    group_by(site, year, date, jd, jd2, SppAccp, datetime, time_sec) %>%
     
     summarise(
       
