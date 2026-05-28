@@ -99,12 +99,12 @@ source("05_data_exploration.R")
 source("06_run_models.R")
 models <- run_models(data_env)
 
-AIC(m0,m1,m2)
+AIC(models$m0,models$m1,models$m2)
 
-anova(m0,m1)
-anova(m1,m2)
+anova(models$m0,models$m1)
+anova(models$m1,models$m2)
 
-sim <- simulateResiduals(m2)
+sim <- simulateResiduals(models$m2)
 
 plot(sim)
 
