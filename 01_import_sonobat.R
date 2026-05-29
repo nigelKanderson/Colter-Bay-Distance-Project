@@ -53,6 +53,8 @@ process_file <- function(file) {
       site = 
         stringr::word(file_name_clean, 1, sep = "_"),
       
+      site = recode(site, "GRTF02" = "GRTE02"),
+      
       date_string = 
         stringr::str_extract(file_name_clean, "\\d{8}"),
       
