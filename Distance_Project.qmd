@@ -138,13 +138,13 @@ testZeroInflation(sim)
 
 simple_model1 <- glmmTMB(
     detections ~
-      color +
-      intensity +
+      color *
+      intensity *
+      mean_phase +
       pct_forest +
       jd +
       jd^2 +
       mean_moonlight +
-      mean_phase +
       (1|site) +
       (1|year),
     data = data_env,
@@ -220,6 +220,29 @@ vars <- data_env %>%
 cor_matrix <- cor(vars, use = 'complete.obs')
 
 corrplot(cor_matrix)
+```
+
+```{r}
+library(emmeans)
+
+emmeans(simple_model1, 
+        ~color * intensity)
+
+pairs(
+  emmeans(simple_model1,
+          ~ color * intensity)
+)
+```
+
+```{r}
+library(ggeffects)
+
+pred_moon <- ggpredict(
+  simple_model1,
+  terms = c("mean_phase", "intensity")
+)
+
+plot(pred_moon)
 ```
 
 ```{r}
