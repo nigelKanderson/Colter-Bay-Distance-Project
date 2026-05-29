@@ -49,6 +49,8 @@ run_models <- function(data) {
       max_moonlight +
       mean_phase +
       pct_forest +
+      color +
+      intensity +
       (1|site) +
       (1|year),
     data = model_data,

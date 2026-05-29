@@ -96,6 +96,20 @@ source("05_data_exploration.R")
 ```
 
 ```{r}
+source("07_add_light_treatment.R")
+
+data_full <- readRDS('data_full.rds')
+
+data_env <- data_env %>%
+  left_join(
+    lighting %>%
+      select(date, color, intensity),
+    by = "date"
+  )
+
+```
+
+```{r}
 source("06_run_models.R")
 models <- run_models(data_env)
 
