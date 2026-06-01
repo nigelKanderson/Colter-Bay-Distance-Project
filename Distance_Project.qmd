@@ -120,38 +120,21 @@ data_env <- data_env %>%
 source("06_run_models.R")
 models <- run_models(data_env)
 
-AIC(models$m0,models$m1,models$m2)
+AIC(models$m0,models$m1,models$m2, models$sm)
 
 anova(models$m0,models$m1)
 anova(models$m1,models$m2)
+anova(models$m1, models$sm)
 
-sim <- simulateResiduals(models$m2)
+sim <- simulateResiduals(models$sm)
 
 plot(sim)
 
 testDispersion(sim)
 
 testZeroInflation(sim)
-```
 
-```{r}
-
-simple_model1 <- glmmTMB(
-    detections ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_env,
-    family = nbinom2()
-  )
-
-summary(simple_model1)
+summary(models$sm)
 ```
 
 ```{r}
@@ -225,11 +208,11 @@ corrplot(cor_matrix)
 ```{r}
 library(emmeans)
 
-emmeans(simple_model1, 
+emmeans(models$sm, 
         ~color * intensity)
 
 pairs(
-  emmeans(simple_model1,
+  emmeans(models$sm,
           ~ color * intensity)
 )
 ```
@@ -238,7 +221,7 @@ pairs(
 library(ggeffects)
 
 pred_moon <- ggpredict(
-  simple_model1,
+  models$sm,
   terms = c("mean_phase", "intensity")
 )
 
