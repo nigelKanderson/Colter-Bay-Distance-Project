@@ -212,6 +212,61 @@ summary(data_30_model)
 ```
 
 ```{r}
+
+heat_data <- occurrences %>%
+  group_by(species, color, intensity) %>%
+  summarise(
+    mean_occurrences = mean(occurrences, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+heat_data <- heat_data %>%
+  mutate(
+    treatment = paste(color, intensity, sep = "_")
+  )
+
+ggplot(
+  heat_data,
+  aes(
+    x = treatment,
+    y = species,
+    fill = mean_occurrences
+  )
+) +
+  geom_tile() +
+  labs(
+    x = "Treatment",
+    y = "Species",
+    fill = "Mean\nOccurrences"
+  ) + 
+  theme_classic()
+```
+
+Myyu = Yuma myotis might be little brown bat or Myvo
+
+Myvo = Myotis volans \*
+
+Myth = Myotis thysanodes might by Myev
+
+Mylu = Myotis lucifugus \*
+
+Myev = Myotis evotis \*
+
+Myci = Myotis ciliolabrum
+
+Myca = Myotis californicus
+
+Lano = Euderma maculatum
+
+Laci = Lasiurus cinereus \*
+
+Euma = Euderma maculatum
+
+Epfu = Eptesicus fuscus \*
+
+Anpa = Antrozous pallidus maybe Lasionycteris noctivagans
+
+```{r}
 source("06_run_models.R")
 models <- run_models(data_env)
 
