@@ -35,9 +35,53 @@ data_env <- add_moonlight(data_env)
 ```
 
 ```{r}
+source("05_data_exploration.R")
+```
+
+```{r}
+source("07_add_light_treatment.R")
+
+data_full <- readRDS('data_full.rds')
+
+data_env <- data_env %>%
+  left_join(
+    lighting %>%
+      select(date, color, intensity),
+    by = "date"
+  )
+
+data_env <- data_env %>%
+  mutate(
+    color = factor(color),
+    site = factor(site),
+    intensity = factor(intensity)
+  )
+
+```
+
+```{r}
 source("04_Occurrence_Thresholds.R")
 
 occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
+
+env_data <- data_env %>%
+  distinct(
+    site,
+    date,
+    mean_moonlight,
+    mean_phase,
+    color,
+    intensity,
+    year,
+    jd,
+    pct_forest
+  )
+
+occurrences <- occurrences %>%
+  left_join(
+    env_data,
+    by = c('site', 'date')
+  )
 
 glimpse(occurrences)
 
@@ -70,6 +114,7 @@ occurrences <- occurrences %>%
 
 ```{r}
 
+
 data_env %>%
   count(site, species) %>%
   arrange(desc(n)) %>%
@@ -92,28 +137,78 @@ data_env %>%
 ```
 
 ```{r}
-source("05_data_exploration.R")
-```
 
-```{r}
-source("07_add_light_treatment.R")
+data_30_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_30,
+    family = nbinom2()
+)
 
-data_full <- readRDS('data_full.rds')
+data_60_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_60,
+    family = nbinom2()
+)
 
-data_env <- data_env %>%
-  left_join(
-    lighting %>%
-      select(date, color, intensity),
-    by = "date"
-  )
+data_120_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_120,
+    family = nbinom2()
+)
 
-data_env <- data_env %>%
-  mutate(
-    color = factor(color),
-    site = factor(site),
-    intensity = factor(intensity)
-  )
+data_300_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_300,
+    family = nbinom2()
+)
 
+AIC(data_30_model, data_60_model, data_120_model, data_300_model)
+
+library(ggeffects)
+
+pred <- ggpredict(
+  data_30_model,
+  terms = c("intensity", "color")
+)
+plot(pred)
+
+summary(data_30_model)
 ```
 
 ```{r}

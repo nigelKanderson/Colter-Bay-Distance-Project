@@ -1,9 +1,9 @@
 
-collapse_passes <- function(data, threshold_sec = 60) {
+collapse_passes <- function(data, threshold_sec) {
   
   data %>%
     dplyr::arrange(site, species, time_sec) %>%
-    dplyr::group_by(site, species) %>%
+    dplyr::group_by(site, species, date) %>%
     dplyr::mutate(
       
       time_diff = time_sec - dplyr::lag(time_sec),
@@ -25,8 +25,8 @@ run_thresholds <- function(data, thresholds = c(30, 60, 120, 300)) {
   purrr::map_dfr(thresholds, function(thresh) {
     
     collapse_passes(data, thresh) %>%
-      dplyr::distinct(site, species, pass_id) %>%
-      dplyr::count(site, species, name = "occurrences") %>%
+      dplyr::distinct(site, species, pass_id, date) %>%
+      dplyr::count(site, species, date, name = "occurrences") %>%
       dplyr::mutate(threshold_sec = thresh)
   })
 }
