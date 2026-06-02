@@ -290,6 +290,69 @@ summary(models$sm)
 ```{r}
 
 library(ggplot2)
+library(ggeffects)
+
+pred <- ggpredict(
+  models$sm,
+  terms = c("jd [all]", "color", "intensity")
+)
+
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~facet) +
+  labs(
+    x = "Julian Day",
+    y = "Predicted bat occurrences",
+    color = "Light color"
+  ) + 
+  theme_classic()
+
+ggplot(pred, aes(x=x, y=group, fill=predicted)) +
+  geom_tile() +
+  facet_wrap(~facet) +
+  scale_fill_viridis_c() +
+  labs(
+    x = "Julian Day",
+    y = "Light color",
+    fill = 'Predicted occurrences'
+  ) +
+  theme_classic()
+
+pred_df <- as.data.frame(pred)
+
+p1 <- ggplot(pred_df, aes(x=x, y=predicted, color=group)) +
+  geom_line(linewidth = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.15, color = NA) +
+  facet_wrap(~facet) +
+  labs(
+    x = 'Julian Day',
+    y = 'Predicted bat occurrences',
+    color = 'Light color',
+    fill = 'Light color'
+  ) +
+  theme_classic()
+
+effect_df <- pred_df %>%
+  select(x, predicted, group, facet) %>%
+  pivot_wider(
+    names_from = group,
+    values_from = predicted
+  ) %>%
+  mutate(effect = W-R)
+
+p2 <- ggplot(effect_df, aes(x = x, y = effect)) +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_line(linewidth = 1) + 
+  facet_wrap(~facet) +
+  labs(
+    x = "Julian Day",
+    y = 'Effect of White Light (White - Red)'
+  ) + 
+  theme_classic()
+
+library(patchwork)
+p1 / p2
 
 ggplot(data_env, aes(color, detections)) + 
   geom_boxplot() + 
