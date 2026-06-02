@@ -354,6 +354,43 @@ p2 <- ggplot(effect_df, aes(x = x, y = effect)) +
 library(patchwork)
 p1 / p2
 
+ggplot(data_env, aes(x=jd, y=detections, color = color)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = 'loess') +
+  facet_wrap(~ intensity) +
+  theme_classic()
+
+data_env <- data_env %>%
+  mutate(
+    treatment = paste(color, intensity, sep='_')
+  )
+
+ggplot(data_env,
+       aes(x = treatment, y = detections)) +
+  geom_boxplot() +
+  theme_classic()
+
+summary_df <- data_env %>%
+  group_by(color, intensity) %>%
+  summarise(
+    mean_occ = mean(detections),
+    se = sd(detections)/sqrt(n()),
+    .groups = "drop"
+  )
+
+ggplot(summary_df, aes(x = factor(intensity), 
+                       y = mean_occ,
+                       color = color,
+                       group=color)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_errorbar(
+    aes(ymin = mean_occ -se,
+        ymax = mean_occ +se),
+        width = 0.1
+  ) +
+    theme_classic()
+
 ggplot(data_env, aes(color, detections)) + 
   geom_boxplot() + 
   labs(
