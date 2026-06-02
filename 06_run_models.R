@@ -61,7 +61,9 @@ run_models <- function(data) {
       color *
       intensity *
       mean_phase +
-      pct_forest +
+      pct_nonforest +
+      pct_developed +
+      pct_wetland +
       jd +
       jd^2 +
       mean_moonlight +

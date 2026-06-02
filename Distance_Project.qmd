@@ -28,7 +28,7 @@ source("03_extract_habitat.R")
 data_env <- add_habitat(
   data,
   forest_raster = nlcd_forest,
-  buffer = 500
+  buffer = 100
 )
 
 data_env <- add_moonlight(data_env)
@@ -344,7 +344,8 @@ vars <- data_env %>%
   select(
     detections,
     mean_moonlight,
-    pct_forest,
+    pct_nonforest,
+    pct_wetland,
     jd,
     max_moonlight,
     mean_phase

@@ -7,7 +7,7 @@ nlcd_forest <- terra::rast('Annual_NLCD_LndCov_2021_CU_C1V1.tif')
 
 
 
-add_habitat <- function(data, forest_raster, buffer = 500) {
+add_habitat <- function(data, forest_raster, buffer = 100) {
   
   sites <- data %>%
     dplyr::group_by(site) %>%
@@ -26,13 +26,17 @@ add_habitat <- function(data, forest_raster, buffer = 500) {
   
   pts <- st_transform(pts, terra::crs(forest_raster))
   
-  pts_buf <- st_buffer(pts, dist = 500)
+  pts_buf <- st_buffer(pts, dist = 100)
   
   openness <- exact_extract(forest_raster, pts_buf, function(values, coverage_fraction) {
     
     tibble(
       pct_forest = mean(values %in% c(41,42,43), na.rm = TRUE),
-      pct_nonforest = 1 - pct_forest
+      pct_developed = mean(values %>% c(21, 22, 23, 24), na.rm = TRUE),
+      pct_water = 11,
+      pct_wetland = mean(values %in% c(90,95), na.rm = TRUE),
+      pct_shrub = mean(values %in% c(51,52,71), na.rm = TRUE),
+      pct_nonforest = 1 - pct_forest - pct_shrub
       #pct_open = mean(values %in% c(31,41,42,43,52,71,81,82), na.rm = TRUE),
       #pct_developed = mean(values %in% c(21:24), na.rm = TRUE),
     ) 
