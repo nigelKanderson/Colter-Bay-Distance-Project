@@ -58,15 +58,11 @@ run_models <- function(data) {
   
   simple_model1 <- glmmTMB(
     detections ~
-      color *
-      intensity *
+      color * intensity +
       mean_phase +
       pct_nonforest +
-      pct_developed +
-      pct_wetland +
-      jd +
       jd^2 +
-      mean_moonlight +
+      color * jd +
       (1|site) +
       (1|year),
     data = model_data,

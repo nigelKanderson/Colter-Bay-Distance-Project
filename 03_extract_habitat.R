@@ -7,7 +7,7 @@ nlcd_forest <- terra::rast('Annual_NLCD_LndCov_2021_CU_C1V1.tif')
 
 
 
-add_habitat <- function(data, forest_raster, buffer = 100) {
+add_habitat <- function(data, forest_raster, buffer = 50) {
   
   sites <- data %>%
     dplyr::group_by(site) %>%
@@ -26,7 +26,7 @@ add_habitat <- function(data, forest_raster, buffer = 100) {
   
   pts <- st_transform(pts, terra::crs(forest_raster))
   
-  pts_buf <- st_buffer(pts, dist = 100)
+  pts_buf <- st_buffer(pts, dist = 50)
   
   openness <- exact_extract(forest_raster, pts_buf, function(values, coverage_fraction) {
     

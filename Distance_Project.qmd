@@ -28,7 +28,7 @@ source("03_extract_habitat.R")
 data_env <- add_habitat(
   data,
   forest_raster = nlcd_forest,
-  buffer = 100
+  buffer = 50
 )
 
 data_env <- add_moonlight(data_env)
@@ -331,7 +331,7 @@ ggplot(summary_df, aes(intensity, mean_count, color = color, group = color))+
 library(ggeffects)
 
 pred <- ggpredict(
-  simple_model1,
+  models$sm,
   terms = c("intensity", "color")
 )
 plot(pred)
