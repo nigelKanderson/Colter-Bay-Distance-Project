@@ -479,6 +479,76 @@ pred_moon <- ggpredict(
 plot(pred_moon)
 ```
 
+```{r}
+library(sf)
+
+ref_point <- st_as_sf(
+  data.frame(
+    lon = -110.6405,
+    lat = 43.90519
+  ),
+  coords = c("lon", "lat"),
+  crs = 4326
+)
+
+sites_sf <- st_as_sf(
+  sites,
+  coords = c('lon', 'lat'),
+  crs = 4326
+)
+
+sites_sf <- st_transform(sites_sf, 32612)
+ref_point <- st_transform(ref_point, 32612)
+
+sites_sf$dist_m <- as.numeric(
+  st_distance(
+    sites_sf,
+    ref_point
+  )
+)
+
+data_env <- data_env %>%
+  left_join(
+    sites_sf,
+    by = 'site'
+  )
+
+data_env %>%
+  select(site, dist_m) %>%
+  distinct()
+
+data_env <- data_env %>%
+  mutate(
+    dist_km = dist_m / 1000
+  )
+
+ggplot(data_env,
+       aes(dist_km, detections)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth()
+
+
+hist(sites_sf$dist_m)
+```
+
+```{r}
+  simple_model1 <- glmmTMB(
+    detections ~
+      color.y * intensity.y +
+      mean_phase +
+      pct_nonforest +
+      jd^2 +
+      color.y * jd +
+      dist_km +
+      (1|site) +
+      (1|year),
+    data = data_env,
+    family = nbinom2()
+  )
+  
+summary(simple_model1)
+```
+
 At the end of every day:
 
 git add .
