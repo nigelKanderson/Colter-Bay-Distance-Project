@@ -35,10 +35,6 @@ data_env <- add_moonlight(data_env)
 ```
 
 ```{r}
-source("05_data_exploration.R")
-```
-
-```{r}
 source("07_add_light_treatment.R")
 
 data_full <- readRDS('data_full.rds')
@@ -60,211 +56,68 @@ data_env <- data_env %>%
 ```
 
 ```{r}
-source("04_Occurrence_Thresholds.R")
+library(sf)
 
-occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
+ref_point <- st_as_sf(
+  data.frame(
+    lon = -110.64153,
+    lat = 43.90109
+  ),
+  coords = c("lon", "lat"),
+  crs = 4326
+)
 
-env_data <- data_env %>%
-  distinct(
-    site,
-    date,
-    mean_moonlight,
-    mean_phase,
-    color,
-    intensity,
-    year,
-    jd,
-    pct_forest
+sites_sf <- st_as_sf(
+  sites,
+  coords = c('lon', 'lat'),
+  crs = 4326
+)
+
+sites_sf <- st_transform(sites_sf, 32612)
+ref_point <- st_transform(ref_point, 32612)
+
+sites_sf$dist_m <- as.numeric(
+  st_distance(
+    sites_sf,
+    ref_point
   )
+)
 
-occurrences <- occurrences %>%
+data_env <- data_env %>%
   left_join(
-    env_data,
-    by = c('site', 'date')
-  )
-
-glimpse(occurrences)
-
-occurrences %>%
-  ggplot(aes(threshold_sec, occurrences, group = site, color = site)) + 
-  geom_line(alpha = 0.3)
-
-occurrences %>%
-  group_by(threshold_sec) %>%
-  summarise(total_occurrences = sum(occurrences))
-
-data_30 <- occurrences %>%
-  filter(threshold_sec == 30)
-
-data_60 <- occurrences %>%
-  filter(threshold_sec == 60)
-
-data_120 <- occurrences %>%
-  filter(threshold_sec == 120)
-
-data_300 <- occurrences %>%
-  filter(threshold_sec == 300)
-
-site_env <- data_env %>%
-  distinct(site, pct_forest)
-
-occurrences <- occurrences %>%
-  left_join(site_env, by = "site")
-```
-
-```{r}
-
-
-data_env %>%
-  count(site, species) %>%
-  arrange(desc(n)) %>%
-  head()
-
-data_env %>%
-  summarise(
-    min_time = min(time_sec),
-    max_time = max(time_sec),
-    n_unique_times = n_distinct(time_sec)
+    sites_sf,
+    by = 'site'
   )
 
 data_env %>%
-  arrange(site, species, time_sec) %>%
-  group_by(site, species) %>%
-  summarise(
-    min_gap = min(diff(time_sec), na.rm = TRUE),
-    max_gap = max(diff(time_sec), na.rm = TRUE)
-  )
-```
+  select(site, dist_m) %>%
+  distinct()
 
-```{r}
-
-data_30_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_30,
-    family = nbinom2()
-)
-
-data_60_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_60,
-    family = nbinom2()
-)
-
-data_120_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_120,
-    family = nbinom2()
-)
-
-data_300_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_300,
-    family = nbinom2()
-)
-
-AIC(data_30_model, data_60_model, data_120_model, data_300_model)
-
-library(ggeffects)
-
-pred <- ggpredict(
-  data_30_model,
-  terms = c("intensity", "color")
-)
-plot(pred)
-
-summary(data_30_model)
-```
-
-```{r}
-
-heat_data <- occurrences %>%
-  group_by(species, color, intensity) %>%
-  summarise(
-    mean_occurrences = mean(occurrences, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-heat_data <- heat_data %>%
+data_env <- data_env %>%
   mutate(
-    treatment = paste(color, intensity, sep = "_")
+    dist_km = dist_m / 1000
   )
 
-ggplot(
-  heat_data,
-  aes(
-    x = treatment,
-    y = species,
-    fill = mean_occurrences
-  )
-) +
-  geom_tile() +
-  labs(
-    x = "Treatment",
-    y = "Species",
-    fill = "Mean\nOccurrences"
-  ) + 
-  theme_classic()
 ```
 
-Myyu = Yuma myotis might be little brown bat or Myvo
+```{r}
+library(glmmTMB)
 
-Myvo = Myotis volans \*
-
-Myth = Myotis thysanodes might by Myev
-
-Mylu = Myotis lucifugus \*
-
-Myev = Myotis evotis \*
-
-Myci = Myotis ciliolabrum
-
-Myca = Myotis californicus
-
-Lano = Euderma maculatum
-
-Laci = Lasiurus cinereus \*
-
-Euma = Euderma maculatum
-
-Epfu = Eptesicus fuscus \*
-
-Anpa = Antrozous pallidus maybe Lasionycteris noctivagans
+  simple_model1 <- glmmTMB(
+    detections ~
+      color * intensity +
+      mean_phase +
+      pct_nonforest +
+      jd^2 +
+      color * jd +
+      dist_km +
+      (1|site),
+    data = data_env,
+    family = nbinom2()
+  )
+  
+summary(simple_model1)
+```
 
 ```{r}
 source("06_run_models.R")
@@ -288,12 +141,11 @@ summary(models$sm)
 ```
 
 ```{r}
-
 library(ggplot2)
 library(ggeffects)
 
 pred <- ggpredict(
-  models$sm,
+  simple_model1,
   terms = c("jd [all]", "color", "intensity")
 )
 
@@ -427,11 +279,194 @@ ggplot(summary_df, aes(intensity, mean_count, color = color, group = color))+
 ```
 
 ```{r}
+source("05_data_exploration.R")
+source("04_Occurrence_Thresholds.R")
+
+occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
+
+env_data <- data_env %>%
+  distinct(
+    site,
+    date,
+    mean_moonlight,
+    mean_phase,
+    color,
+    intensity,
+    year,
+    jd,
+    pct_forest
+  )
+
+occurrences <- occurrences %>%
+  left_join(
+    env_data,
+    by = c('site', 'date')
+  )
+
+glimpse(occurrences)
+
+occurrences %>%
+  ggplot(aes(threshold_sec, occurrences, group = site, color = site)) + 
+  geom_line(alpha = 0.3)
+
+occurrences %>%
+  group_by(threshold_sec) %>%
+  summarise(total_occurrences = sum(occurrences))
+
+data_30 <- occurrences %>%
+  filter(threshold_sec == 30)
+
+data_60 <- occurrences %>%
+  filter(threshold_sec == 60)
+
+data_120 <- occurrences %>%
+  filter(threshold_sec == 120)
+
+data_300 <- occurrences %>%
+  filter(threshold_sec == 300)
+
+site_env <- data_env %>%
+  distinct(site, pct_forest)
+
+occurrences <- occurrences %>%
+  left_join(site_env, by = "site")
+```
+
+```{r}
+
+data_30_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_30,
+    family = nbinom2()
+)
+
+data_60_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_60,
+    family = nbinom2()
+)
+
+data_120_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_120,
+    family = nbinom2()
+)
+
+data_300_model <- glmmTMB(
+    occurrences ~
+      color *
+      intensity *
+      mean_phase +
+      pct_forest +
+      jd +
+      jd^2 +
+      mean_moonlight +
+      (1|site) +
+      (1|year),
+    data = data_300,
+    family = nbinom2()
+)
+
+AIC(data_30_model, data_60_model, data_120_model, data_300_model)
 
 library(ggeffects)
 
 pred <- ggpredict(
-  models$sm,
+  data_30_model,
+  terms = c("intensity", "color")
+)
+plot(pred)
+
+summary(data_30_model)
+```
+
+```{r}
+
+heat_data <- occurrences %>%
+  group_by(species, color, intensity) %>%
+  summarise(
+    mean_occurrences = mean(occurrences, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+heat_data <- heat_data %>%
+  mutate(
+    treatment = paste(color, intensity, sep = "_")
+  )
+
+ggplot(
+  heat_data,
+  aes(
+    x = treatment,
+    y = species,
+    fill = mean_occurrences
+  )
+) +
+  geom_tile() +
+  labs(
+    x = "Treatment",
+    y = "Species",
+    fill = "Mean\nOccurrences"
+  ) + 
+  theme_classic()
+```
+
+Myyu = Yuma myotis might be little brown bat or Myvo
+
+Myvo = Myotis volans \*
+
+Myth = Myotis thysanodes might by Myev
+
+Mylu = Myotis lucifugus \*
+
+Myev = Myotis evotis \*
+
+Myci = Myotis ciliolabrum
+
+Myca = Myotis californicus
+
+Lano = Euderma maculatum
+
+Laci = Lasiurus cinereus \*
+
+Euma = Euderma maculatum
+
+Epfu = Eptesicus fuscus \*
+
+Anpa = Antrozous pallidus maybe Lasionycteris noctivagans
+
+```{r}
+library(ggeffects)
+
+pred <- ggpredict(
+  simple_model1,
   terms = c("intensity", "color")
 )
 plot(pred)
@@ -477,76 +512,6 @@ pred_moon <- ggpredict(
 )
 
 plot(pred_moon)
-```
-
-```{r}
-library(sf)
-
-ref_point <- st_as_sf(
-  data.frame(
-    lon = -110.6405,
-    lat = 43.90519
-  ),
-  coords = c("lon", "lat"),
-  crs = 4326
-)
-
-sites_sf <- st_as_sf(
-  sites,
-  coords = c('lon', 'lat'),
-  crs = 4326
-)
-
-sites_sf <- st_transform(sites_sf, 32612)
-ref_point <- st_transform(ref_point, 32612)
-
-sites_sf$dist_m <- as.numeric(
-  st_distance(
-    sites_sf,
-    ref_point
-  )
-)
-
-data_env <- data_env %>%
-  left_join(
-    sites_sf,
-    by = 'site'
-  )
-
-data_env %>%
-  select(site, dist_m) %>%
-  distinct()
-
-data_env <- data_env %>%
-  mutate(
-    dist_km = dist_m / 1000
-  )
-
-ggplot(data_env,
-       aes(dist_km, detections)) +
-  geom_point(alpha = 0.2) +
-  geom_smooth()
-
-
-hist(sites_sf$dist_m)
-```
-
-```{r}
-  simple_model1 <- glmmTMB(
-    detections ~
-      color.y * intensity.y +
-      mean_phase +
-      pct_nonforest +
-      jd^2 +
-      color.y * jd +
-      dist_km +
-      (1|site) +
-      (1|year),
-    data = data_env,
-    family = nbinom2()
-  )
-  
-summary(simple_model1)
 ```
 
 At the end of every day:
