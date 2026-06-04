@@ -104,7 +104,7 @@ data_env <- data_env %>%
 library(glmmTMB)
 
   simple_model1 <- glmmTMB(
-    detections ~
+    weighted_detections ~
       color * intensity +
       mean_phase +
       pct_nonforest +
