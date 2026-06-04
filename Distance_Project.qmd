@@ -98,6 +98,14 @@ data_env <- data_env %>%
     dist_km = dist_m / 1000
   )
 
+data_env <- data_env %>%
+  mutate(
+    dist_cat = case_when(
+      dist_km < 1 ~ "Close",
+      dist_km < 2.1 ~ "Medium",
+      TRUE ~ "Far"
+    )
+  )
 ```
 
 ```{r}
@@ -110,7 +118,7 @@ library(glmmTMB)
       pct_nonforest +
       jd^2 +
       color * jd +
-      dist_km +
+      dist_cat +
       (1|site),
     data = data_env,
     family = nbinom2()
@@ -143,6 +151,27 @@ summary(models$sm)
 ```{r}
 library(ggplot2)
 library(ggeffects)
+
+ggplot(data_env,
+       aes(x = dist_km,
+           y = detections)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess") + 
+  labs(
+    x = "Distance (km)",
+    y = "Detections"
+  ) +
+  theme_classic()
+
+ggplot(data_env,
+       aes(x = dist_cat,
+           y = detections)) +
+  geom_boxplot() +
+  labs(
+    x = "Distance Category",
+    y = "Detections"
+  ) +
+  theme_classic()
 
 pred <- ggpredict(
   simple_model1,
