@@ -60,8 +60,8 @@ library(sf)
 
 ref_point <- st_as_sf(
   data.frame(
-    lon = -110.64153,
-    lat = 43.90109
+    lon = -110.645134,
+    lat = 43.904879
   ),
   coords = c("lon", "lat"),
   crs = 4326
