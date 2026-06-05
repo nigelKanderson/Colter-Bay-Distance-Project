@@ -5,6 +5,8 @@ library(tidyverse)
 
 nlcd_forest <- terra::rast('Annual_NLCD_LndCov_2021_CU_C1V1.tif')
 
+#This function takes in a raster file and buffer value and then extracts percent forest
+# and non-forest values. 
 
 
 add_habitat <- function(data, forest_raster, buffer = 50) {
@@ -56,6 +58,9 @@ add_habitat <- function(data, forest_raster, buffer = 50) {
   
   return(data_out)
 }
+
+#This funciton uses the date and time to extract the moon characteristics at the point of
+#interest.
 
 add_moonlight <- function(data,
                           timezone = "America/Denver") {

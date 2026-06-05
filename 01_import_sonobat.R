@@ -15,6 +15,9 @@ files_all <- list.files(
   recursive = TRUE
 )
 
+# I want to exclude all files that are version 4.4.5 because we want to ensure
+#that all files are the same version for sonobat for consistencey/accuracy
+
 excluded <- files_all[grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
 
 files <- files_all[!grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
@@ -26,6 +29,9 @@ cat(
 )
   
 
+#This function simply reads in a file and ensures it has the right columns. It also
+#filters based on probability of 90% or higher and extracts all of the metadata
+#from the file name. 
 
 process_file <- function(file) {
   df <- tryCatch(
