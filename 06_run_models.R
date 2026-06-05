@@ -66,6 +66,7 @@ run_models <- function(data) {
       (1|site) +
       (1|year),
     data = model_data,
+    ziformula = ~1,
     family = nbinom2()
   )
   

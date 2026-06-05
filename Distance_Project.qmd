@@ -121,6 +121,7 @@ library(glmmTMB)
       dist_cat +
       (1|site),
     data = data_env,
+    ziformula = ~1,
     family = nbinom2()
   )
   
@@ -507,12 +508,10 @@ library(corrplot)
 vars <- data_env %>%
   select(
     detections,
-    mean_moonlight,
     pct_nonforest,
-    pct_wetland,
     jd,
-    max_moonlight,
-    mean_phase
+    mean_phase,
+    dist_km
   )
 
 cor_matrix <- cor(vars, use = 'complete.obs')
