@@ -522,11 +522,11 @@ corrplot(cor_matrix)
 ```{r}
 library(emmeans)
 
-emmeans(models$sm, 
+emmeans(simple_model1, 
         ~color * intensity)
 
 pairs(
-  emmeans(models$sm,
+  emmeans(simple_model1,
           ~ color * intensity)
 )
 ```
@@ -535,7 +535,7 @@ pairs(
 library(ggeffects)
 
 pred_moon <- ggpredict(
-  models$sm,
+  simple_model1,
   terms = c("mean_phase", "intensity")
 )
 
