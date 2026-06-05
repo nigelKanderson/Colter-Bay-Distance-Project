@@ -101,8 +101,9 @@ data_env <- data_env %>%
 data_env <- data_env %>%
   mutate(
     dist_cat = case_when(
-      dist_km < 1 ~ "Close",
-      dist_km < 2.1 ~ "Medium",
+      dist_km < 0.52 ~ "Close",
+      dist_km < 1 ~ "Medium",
+      dist_km < 2.1 ~ "Further",
       TRUE ~ "Far"
     )
   )
@@ -112,11 +113,12 @@ data_env <- data_env %>%
 library(glmmTMB)
 
   simple_model1 <- glmmTMB(
-    weighted_detections ~
+    detections ~
       color * intensity +
       mean_phase +
       pct_nonforest +
       jd^2 +
+      jd +
       color * jd +
       dist_cat +
       (1|site),
@@ -124,8 +126,62 @@ library(glmmTMB)
     ziformula = ~1,
     family = nbinom2()
   )
-  
+
 summary(simple_model1)
+```
+
+```{r}
+library(ggeffects)
+library(ggplot2)
+library(dplyr)
+
+plot_df <- data_env %>%
+  group_by(dist_cat, color, intensity) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se = sd(detections, na.rm = TRUE)/sqrt(n()),
+    .groups = "drop"
+  )
+
+ggplot(plot_df,
+       aes(x = intensity,
+           y = mean_det,
+           color = color,
+           group = color)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_errorbar(
+    aes(ymin = mean_det - se,
+        ymax = mean_det + se),
+    width = 0.1
+  ) +
+  facet_wrap(~dist_cat) +
+  theme_classic() +
+  labs(
+    x = "Intensity",
+    y = "Mean Detections"
+  )
+
+ggplot(data_env,
+       aes(x = intensity,
+           y = detections,
+           fill = color)) +
+  geom_boxplot() +
+  facet_wrap(~dist_cat) +
+  labs(
+    x = "Light Intensity",
+    y = "Bat Detections",
+    fill = "Light Color"
+  ) +
+  theme_classic()
+
+
+pred <- ggpredict(
+  simple_model1,
+  terms = c("intensity", "color", "dist_cat")
+)
+
+plot(pred)
 ```
 
 ```{r}
@@ -523,11 +579,11 @@ corrplot(cor_matrix)
 library(emmeans)
 
 emmeans(simple_model1, 
-        ~color * intensity)
+        ~dist_cat)
 
 pairs(
   emmeans(simple_model1,
-          ~ color * intensity)
+          ~ dist_cat)
 )
 ```
 
