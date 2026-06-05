@@ -136,6 +136,60 @@ library(ggplot2)
 library(dplyr)
 
 plot_df <- data_env %>%
+  group_by(intensity, color, species) %>%
+  summarise(
+    detections = n(),
+    .groups = 'drop'
+  ) %>%
+  group_by(intensity, color) %>%
+  mutate(prop = detections / sum(detections))
+
+ggplot(plot_df,
+       aes(x = intensity,
+           y = prop,
+           fill = species)) +
+  geom_col(position = 'fill') +
+  facet_wrap(~ color) +
+  labs(
+    x = 'Intensity',
+    y = 'Proportion of Community'
+  ) + 
+  theme_bw()
+
+ggplot(plot_df,
+       aes(x = intensity,
+           y = detections,
+           fill = color)) +
+  geom_col(position = 'dodge') +
+  facet_wrap(~ species, scales = 'free_y') +
+  labs(
+    x = 'Intensity',
+    y = 'Detections'
+  ) +
+  theme_bw()
+
+plot_df <- data_env %>%
+  group_by(species, intensity, color) %>%
+  summarise(
+    detections = n(),
+    .groups = "drop"
+  )
+
+ggplot(plot_df,
+       aes(x = intensity,
+           y = detections,
+           fill = color)) +
+  geom_col(position = 'dodge') +
+  facet_wrap(~ species) +
+  labs(
+    x = 'Intensity',
+    y = 'Detections',
+    fill = 'Light Color'
+  ) +
+  theme_classic()
+  
+
+plot_df <- data_env %>%
   group_by(site, dist_cat) %>%
   summarise(mean_det = mean(detections), .groups = "drop")
 
@@ -200,6 +254,101 @@ pred <- ggpredict(
 )
 
 plot(pred)
+```
+
+```{r}
+library(vegan)
+library(dplyr)
+library(ggplot2)
+library(indicspecies)
+
+data_env$intensity <- as.numeric(as.character(data_env$intensity))
+
+comm_df <- data_env %>%
+  group_by(site, color, intensity, species) %>%
+  summarise(n = n(), .groups = 'drop')
+
+comm_wide <- comm_df %>%
+  tidyr::pivot_wider(
+    names_from = species,
+    values_from = n,
+    values_fill = 0
+  )
+
+meta <- comm_wide %>%
+  select(site, color, intensity)
+
+comm_matrix <- comm_wide %>%
+  select(-site, -color, intensity)
+
+set.seed(123)
+
+nmds <- metaMDS(
+  comm_matrix,
+  distance = "bray",
+  k = 2,
+  trymax = 100
+)
+
+nmds$stress
+
+sites <- as.data.frame(scores(nmds, display = 'sites'))
+sites <- cbind(sites, meta)
+
+ggplot(sites, aes(NMDS1, NMDS2, color = color)) +
+  geom_point(size = 3) +
+  theme_bw() +
+  labs(
+    title = 'NMDS of Bat Community Composition',
+    color = "Light Color"
+  )
+
+ggplot(sites, aes(NMDS1, NMDS2, color = color, shape = factor(intensity))) +
+  geom_point(size = 3) +
+  theme_bw() +
+  labs(
+    shape = "Intensity"
+  )
+
+species <- as.data.frame(scores(nmds, display = 'species'))
+species$species <- rownames(species)
+
+ggplot(sites, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = color), size =3) +
+  geom_segment(
+    data = species,
+    aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+    arrow = arrow(length = unit(0.2, "cm")),
+    inherit.aes = FALSE
+  ) +
+  geom_text(
+    data = species,
+    aes(x = NMDS1, y = NMDS2, label = species),
+    size = 3,
+    inherit.aes = FALSE
+  ) +
+  theme_bw()
+
+adonis2(
+  comm_matrix ~ color * intensity,
+  data = meta,
+  method = 'bray'
+)
+
+adonis2(
+  comm_matrix ~ color * intensity + site,
+  data = meta,
+  method = 'bray'
+)
+
+dist_mat <- vegdist(comm_matrix, method='bray')
+class(dist_mat)
+bd <- betadisper(dist_mat, meta$color)
+anova(bd)
+boxplot(bd)
+
+indval <- multipatt(comm_matrix, meta$color, control = how(nperm=999))
+summary(indval)
 ```
 
 ```{r}
