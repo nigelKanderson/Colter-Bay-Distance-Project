@@ -136,6 +136,24 @@ library(ggplot2)
 library(dplyr)
 
 plot_df <- data_env %>%
+  group_by(site, dist_cat) %>%
+  summarise(mean_det = mean(detections), .groups = "drop")
+
+ggplot(plot_df, aes(dist_cat, mean_det)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1)
+
+ggeffects::ggpredict(
+  simple_model1,
+  terms = c('jd', "color")
+)
+
+ggeffects::ggpredict(
+  simple_model1,
+  terms = c('intensity', "color")
+)
+
+plot_df <- data_env %>%
   group_by(dist_cat, color, intensity) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
