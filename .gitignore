@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
 .RData
+.RDataTmp*
 .Ruserdata
 .positai
 *.tif
@@ -8,3 +9,5 @@
 .httr-oauth
 .DS_Store
 .quarto
+Distance_Project.html
+Distance_Project_files/

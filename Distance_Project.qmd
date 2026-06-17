@@ -12,16 +12,16 @@ Quarto enables you to weave together content and executable code into a finished
 ## Analysis Pipeline
 
 ```{r, warning = FALSE, message = FALSE}
-source("01_import_sonobat.R")
+source("R/01_import_sonobat.R")
 ```
 
 ```{r}
-source("02_clean_data.R")
+source("R/02_clean_data.R")
 data <- clean_data(data_raw)
 ```
 
 ```{r}
-source("03_extract_habitat.R")
+source("R/03_extract_habitat.R")
 
 #data_env <- add_environmental_covariates(data, forest_raster)
 
@@ -35,9 +35,9 @@ data_env <- add_moonlight(data_env)
 ```
 
 ```{r}
-source("07_add_light_treatment.R")
+source("R/07_add_light_treatment.R")
 
-data_full <- readRDS('data_full.rds')
+data_full <- readRDS('data/data_full.rds')
 
 data_env <- data_env %>%
   left_join(
@@ -352,7 +352,7 @@ summary(indval)
 ```
 
 ```{r}
-source("06_run_models.R")
+source("R/06_run_models.R")
 models <- run_models(data_env)
 
 AIC(models$m0,models$m1,models$m2, models$sm)
@@ -532,8 +532,8 @@ ggplot(summary_df, aes(intensity, mean_count, color = color, group = color))+
 ```
 
 ```{r}
-source("05_data_exploration.R")
-source("04_Occurrence_Thresholds.R")
+source("R/05_data_exploration.R")
+source("R/04_Occurrence_Thresholds.R")
 
 occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
 
