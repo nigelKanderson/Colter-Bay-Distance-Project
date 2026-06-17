@@ -108,6 +108,17 @@ data_env <- data_env %>%
   )
 
 data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
+
+# Filter to focal species (matches ColterBay project)
+focal_spp <- c("Laci", "Lano", "Mylu", "Epfu", "Myev", "Myvo", "Myyu", "Myci")
+data_env  <- data_env %>% filter(species %in% focal_spp)
+
+message("Rows after species filter: ", nrow(data_env),
+        "  |  Species retained: ", n_distinct(data_env$species))
+```
+
+```{r sky_brightness, warning=FALSE, message=TRUE}
+source("R/09_add_sky_brightness.R")
 ```
 
 ## Models
@@ -120,6 +131,7 @@ simple_model1 <- glmmTMB(
     color * intensity +
     mean_phase +
     pct_nonforest +
+    brightness_dark +
     jd_c + I(jd_c^2) +
     dist_cat +
     (1 | site),

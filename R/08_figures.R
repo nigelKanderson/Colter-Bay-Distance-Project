@@ -41,6 +41,9 @@ col_white <- "#2E86AB"   # blue proxy for white light (visible on plots)
 # Distance category order
 dist_order <- c("Close", "Medium", "Further", "Far")
 
+# Species to include (matches ColterBay project)
+focal_spp <- c("Laci", "Lano", "Mylu", "Epfu", "Myev", "Myvo", "Myyu", "Myci")
+
 # Ensure jd_c exists (centered Julian day)
 if (!"jd_c" %in% names(data_env)) {
   data_env$jd_c <- data_env$jd - mean(data_env$jd, na.rm = TRUE)
@@ -158,6 +161,7 @@ fig4 <- ggplot(data_env,
 # ==============================================================================
 
 heat_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
   group_by(species, color) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
@@ -238,6 +242,7 @@ print(cor.test(site_means$dist_km, site_means$mean_det, method = "spearman"))
 # ==============================================================================
 
 spp_dist <- data_env %>%
+  filter(species %in% focal_spp) %>%
   mutate(dist_cat = factor(dist_cat, levels = dist_order)) %>%
   group_by(species, dist_cat) %>%
   summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop") %>%
