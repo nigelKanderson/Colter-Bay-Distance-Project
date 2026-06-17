@@ -94,8 +94,11 @@ ref_point <- st_transform(ref_point, 32612)
 
 sites_sf$dist_m <- as.numeric(st_distance(sites_sf, ref_point))
 
+# Pull only dist_m — avoid attaching the sf geometry class to data_env
+site_dists <- as.data.frame(sites_sf) %>% dplyr::select(site, dist_m)
+
 data_env <- data_env %>%
-  left_join(sites_sf, by = "site") %>%
+  left_join(site_dists, by = "site") %>%
   mutate(
     dist_km = dist_m / 1000,
     dist_cat = case_when(
@@ -146,69 +149,32 @@ summary(simple_model1)
 ## Community Analysis
 
 ```{r community, warning=FALSE, message=FALSE}
-library(vegan)
-library(indicspecies)
+source("R/10_community_analysis.R")
+community <- run_community_analysis(data_env, bat_theme, col_red, col_white)
+```
 
-data_env$intensity <- as.numeric(as.character(data_env$intensity))
+```{r community_results, warning=FALSE, message=FALSE}
+# NMDS stress
+cat("NMDS stress:", round(community$nmds$stress, 3), "\n")
 
-comm_df <- data_env %>%
-  group_by(site, color, intensity, species) %>%
-  summarise(n = n(), .groups = "drop")
+# PERMANOVA
+community$perm
 
-comm_wide <- comm_df %>%
-  tidyr::pivot_wider(
-    names_from  = species,
-    values_from = n,
-    values_fill = 0
-  )
+# Homogeneity of dispersion (by color)
+community$disp_test
 
-meta        <- comm_wide %>% select(site, color, intensity)
-comm_matrix <- comm_wide %>% select(-site, -color, intensity)
+# dbRDA — global and marginal tests
+community$db_global
+community$db_margin
 
-set.seed(123)
-nmds <- metaMDS(comm_matrix, distance = "bray", k = 2, trymax = 100)
-nmds$stress
+# mvabund — multivariate GLM
+community$mv_anova
+```
 
-# NMDS biplot
-nmds_sites          <- as.data.frame(scores(nmds, display = "sites"))
-nmds_sites          <- cbind(nmds_sites, meta)
-nmds_spp            <- as.data.frame(scores(nmds, display = "species"))
-nmds_spp$species    <- rownames(nmds_spp)
-
-ggplot(nmds_sites, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = color), size = 3) +
-  geom_segment(
-    data        = nmds_spp,
-    aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-    arrow       = arrow(length = unit(0.2, "cm")),
-    inherit.aes = FALSE
-  ) +
-  geom_text(
-    data        = nmds_spp,
-    aes(x = NMDS1, y = NMDS2, label = species),
-    size        = 3,
-    inherit.aes = FALSE
-  ) +
-  scale_color_manual(
-    values = c(R = col_red, W = col_white),
-    labels = c(R = "Red", W = "White"),
-    name   = "Light color"
-  ) +
-  labs(title = "NMDS: Bat Community Composition") +
-  bat_theme
-
-# Permanova
-adonis2(comm_matrix ~ color * intensity,        data = meta, method = "bray")
-adonis2(comm_matrix ~ color * intensity + site, data = meta, method = "bray")
-
-# Dispersion
-dist_mat <- vegdist(comm_matrix, method = "bray")
-bd       <- betadisper(dist_mat, meta$color)
-anova(bd)
-
-# Indicator species
-indval <- multipatt(comm_matrix, meta$color, control = how(nperm = 999))
-summary(indval)
+```{r community_figs, warning=FALSE, message=FALSE}
+community$fig_c1   # dbRDA ordination biplot
+community$fig_c2   # Species activity heatmap (color × intensity)
+community$fig_c3   # Species activity heatmap (distance)
 ```
 
 ## Model Selection
@@ -310,6 +276,19 @@ cor.test(site_means$dist_km, site_means$mean_det, method = "spearman")
 # Distance post-hoc contrasts
 emmeans(simple_model1, ~dist_cat)
 pairs(emmeans(simple_model1, ~dist_cat))
+```
+
+## Species Models
+
+```{r species_models, warning=FALSE, message=FALSE}
+source("R/11_species_models.R")
+sp_results <- run_species_models(data_env, bat_theme, col_red, col_white)
+```
+
+```{r species_figs, warning=FALSE, message=FALSE}
+sp_results$fig_s1   # Color effect by species
+sp_results$fig_s2   # Intensity slopes by species
+sp_results$fig_s3   # White:red ratio heatmap
 ```
 
 ## Figures
