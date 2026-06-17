@@ -1,6 +1,5 @@
 library(ggplot2)
 library(dplyr)
-library(ggeffects)
 library(patchwork)
 library(forcats)
 
@@ -36,52 +35,43 @@ bat_theme <- theme_classic(base_size = 12) +
   )
 
 # Color palette
-col_red    <- "#C0392B"
-col_white  <- "#2E86AB"   # blue proxy for white light (visible on plots)
-col_pts    <- "#555555"
+col_red   <- "#C0392B"
+col_white <- "#2E86AB"   # blue proxy for white light (visible on plots)
 
 # Distance category order
 dist_order <- c("Close", "Medium", "Further", "Far")
 
-# Helper: ggpredict with type="fixed" (conditional mean, bypasses ZI dominance),
-# returned as plain data frame
-gp_df <- function(model, terms, ...) {
-  as.data.frame(ggpredict(model, terms = terms, type = "fixed", ...))
+# Ensure jd_c exists (centered Julian day)
+if (!"jd_c" %in% names(data_env)) {
+  data_env$jd_c <- data_env$jd - mean(data_env$jd, na.rm = TRUE)
 }
 
 # ==============================================================================
-# ── Fig 1: Color × Intensity interaction (headline result) ────────────────────
-# Raw data means + SE — most reliable for factor × factor comparisons
+# ── Fig 1: Red vs White — headline color effect (p < 0.001) ──────────────────
 # ==============================================================================
 
-ci_summary <- data_env %>%
-  group_by(intensity, color) %>%
+color_summary <- data_env %>%
+  group_by(color) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
-  ) %>%
-  mutate(intensity = factor(intensity))
+  )
 
-fig1 <- ggplot(ci_summary,
-               aes(x = intensity, y = mean_det,
-                   color = color, group = color)) +
+fig1 <- ggplot(color_summary,
+               aes(x = color, y = mean_det, fill = color)) +
+  geom_col(width = 0.5, color = NA) +
   geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.15, linewidth = 0.8,
-                position = position_dodge(0.35)) +
-  geom_point(size = 3.5, position = position_dodge(0.35)) +
-  geom_line(position = position_dodge(0.35), linewidth = 0.9) +
-  scale_color_manual(values = c(R = col_red, W = col_white),
-                     labels = c(R = "Red", W = "White"),
-                     name   = "Light color") +
+                width = 0.12, linewidth = 0.9, color = "#333333") +
+  scale_fill_manual(values = c(R = col_red, W = col_white), guide = "none") +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
   labs(
-    title    = "Light Color × Intensity Effect on Bat Detections",
-    subtitle = "Mean ± SE",
-    x        = "Light intensity",
+    title    = "Effect of Light Color on Bat Detections",
+    subtitle = "Mean ± SE  |  White light p < 0.001",
+    x        = "Light color",
     y        = "Mean detections per night"
   ) +
-  bat_theme +
-  theme(legend.position = c(0.88, 0.88))
+  bat_theme
 
 # ==============================================================================
 # ── Fig 2: Distance from light source ─────────────────────────────────────────
@@ -111,55 +101,54 @@ fig2 <- ggplot(dist_summary,
   bat_theme
 
 # ==============================================================================
-# ── Fig 3: Distance × Treatment interaction ───────────────────────────────────
+# ── Fig 3: Color × Intensity — marginal interaction (p = 0.09) ───────────────
+# Mean ± SE at each discrete intensity level by color
 # ==============================================================================
 
-dist_treat <- data_env %>%
-  mutate(dist_cat = factor(dist_cat, levels = dist_order)) %>%
-  group_by(dist_cat, color, intensity) %>%
+intensity_summary <- data_env %>%
+  group_by(intensity, color) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
-  )
+  ) %>%
+  mutate(intensity = factor(intensity))
 
-fig3 <- ggplot(dist_treat,
-               aes(x = factor(intensity), y = mean_det,
+fig3 <- ggplot(intensity_summary,
+               aes(x = intensity, y = mean_det,
                    color = color, group = color)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2.5) +
+  geom_line(linewidth = 1.0) +
+  geom_point(size = 3.5) +
   geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.15, linewidth = 0.7) +
-  facet_wrap(~ dist_cat, nrow = 1) +
+                width = 0.15, linewidth = 0.8,
+                position = position_dodge(0.1)) +
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"),
                      name   = "Light color") +
   labs(
-    title    = "Detections by Distance, Color, and Intensity",
-    subtitle = "Mean ± SE",
-    x        = "Light intensity",
+    title    = "Light Intensity Effect by Color",
+    subtitle = "Mean ± SE at each intensity level",
+    x        = "Light intensity (%)",
     y        = "Mean detections per night"
   ) +
   bat_theme +
-  theme(legend.position = "top")
+  theme(legend.position = c(0.88, 0.88))
 
 # ==============================================================================
 # ── Fig 4: Seasonal patterns by light color ───────────────────────────────────
 # ==============================================================================
 
-pred_jd  <- gp_df(simple_model1, terms = c("jd [all]", "color"))
-
-fig4 <- ggplot(pred_jd,
-               aes(x = x, y = predicted, color = group)) +
-  geom_line(linewidth = 1.2) +
+fig4 <- ggplot(data_env,
+               aes(x = jd, y = detections, color = color)) +
+  geom_smooth(method = "loess", span = 0.4, se = FALSE, linewidth = 1.2) +
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"),
                      name   = "Light color") +
   labs(
     title    = "Seasonal Bat Activity by Light Color",
-    subtitle = "Predicted detections (conditional mean) across Julian day",
+    subtitle = "LOESS smooth across Julian day",
     x        = "Julian day",
-    y        = "Predicted detections"
+    y        = "Detections per night"
   ) +
   bat_theme +
   theme(legend.position = c(0.12, 0.88))
@@ -169,55 +158,108 @@ fig4 <- ggplot(pred_jd,
 # ==============================================================================
 
 heat_data <- data_env %>%
-  group_by(species, color, intensity) %>%
+  group_by(species, color) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
     .groups  = "drop"
   ) %>%
-  mutate(
-    treatment = paste(color, intensity, sep = "_"),
-    species   = fct_reorder(species, mean_det, .fun = sum)
-  )
+  mutate(species = fct_reorder(species, mean_det, .fun = sum))
 
 fig5 <- ggplot(heat_data,
-               aes(x = treatment, y = species, fill = mean_det)) +
+               aes(x = color, y = species, fill = mean_det)) +
   geom_tile(color = "white", linewidth = 0.4) +
   scale_fill_gradient(low = "#F7FBFF", high = "#08519C",
                       name = "Mean\ndetections") +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
   labs(
-    title    = "Bat Community Response to Light Treatment",
-    subtitle = "Mean detections per species × treatment combination",
-    x        = "Treatment (color_intensity)",
+    title    = "Bat Community Response by Light Color",
+    subtitle = "Mean detections per species",
+    x        = "Light color",
     y        = NULL
   ) +
   bat_theme +
   theme(
-    axis.text.x  = element_text(angle = 35, hjust = 1),
-    axis.line    = element_blank(),
-    axis.ticks   = element_blank(),
-    panel.grid   = element_blank()
+    axis.line  = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
   )
 
 # ==============================================================================
-# ── Fig 6: Moon phase effect ──────────────────────────────────────────────────
+# ── Fig 6: Moon phase effect by color (mean_phase p = 0.008) ─────────────────
 # ==============================================================================
 
-pred_moon <- gp_df(simple_model1, terms = c("mean_phase [all]", "intensity"))
-
-fig6 <- ggplot(pred_moon,
-               aes(x = x, y = predicted, color = group)) +
-  geom_line(linewidth = 1.1) +
-  scale_x_continuous(breaks = seq(0, 1, by = 0.25),
+fig6 <- ggplot(data_env %>% filter(!is.na(mean_phase)),
+               aes(x = mean_phase, y = detections, color = color)) +
+  geom_smooth(method = "loess", span = 0.8, se = FALSE, linewidth = 1.2) +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
                      labels = c("New", "1st Q", "Full", "3rd Q", "New")) +
-  scale_color_brewer(palette = "Dark2", name = "Intensity") +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"),
+                     name   = "Light color") +
   labs(
     title    = "Effect of Moon Phase on Bat Detections",
-    subtitle = "Predicted detections (conditional mean) by intensity level",
+    subtitle = "LOESS smooth by light color (p = 0.008)",
     x        = "Moon phase",
-    y        = "Predicted detections"
+    y        = "Detections per night"
   ) +
   bat_theme +
-  theme(legend.position = "right")
+  theme(legend.position = c(0.12, 0.88))
+
+# ==============================================================================
+# ── Fig 7: Detections vs continuous distance (site-level means) ───────────────
+# ==============================================================================
+
+library(ggrepel)
+
+site_means <- data_env %>%
+  group_by(site, dist_km) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+
+fig7 <- ggplot(site_means, aes(x = dist_km, y = mean_det)) +
+  geom_smooth(method = "lm", se = TRUE,
+              color = "#2E86AB", fill = "#DDEAF5", linewidth = 1) +
+  geom_point(size = 3.5, color = "#333333") +
+  geom_text_repel(aes(label = site), size = 3, color = "#666666",
+                  box.padding = 0.4) +
+  labs(
+    title    = "Bat Detections vs Distance from Light Source",
+    subtitle = "Site-level means with linear trend (Spearman correlation)",
+    x        = "Distance from light (km)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme
+
+# Print correlation in console for reference
+message("Distance-detection Spearman correlation:")
+print(cor.test(site_means$dist_km, site_means$mean_det, method = "spearman"))
+
+# ==============================================================================
+# ── Fig 8: Species × Distance — community heatmap ────────────────────────────
+# ==============================================================================
+
+spp_dist <- data_env %>%
+  mutate(dist_cat = factor(dist_cat, levels = dist_order)) %>%
+  group_by(species, dist_cat) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop") %>%
+  mutate(species = fct_reorder(species, mean_det, .fun = sum))
+
+fig8 <- ggplot(spp_dist,
+               aes(x = dist_cat, y = species, fill = mean_det)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_gradient(low = "#F7FBFF", high = "#08519C",
+                      name = "Mean\ndetections") +
+  labs(
+    title    = "Species Detections by Distance from Light Source",
+    subtitle = "Mean detections per species × distance category",
+    x        = "Distance category",
+    y        = NULL
+  ) +
+  bat_theme +
+  theme(
+    axis.line  = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
 
 # ==============================================================================
 # ── Save figures ──────────────────────────────────────────────────────────────
@@ -225,11 +267,13 @@ fig6 <- ggplot(pred_moon,
 
 dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
 
-ggsave("output/figures/fig1_color_intensity.png",    fig1, width = 7,  height = 5,   dpi = 300)
+ggsave("output/figures/fig1_color_effect.png",       fig1, width = 5,  height = 5,   dpi = 300)
 ggsave("output/figures/fig2_distance_effect.png",    fig2, width = 6,  height = 5,   dpi = 300)
-ggsave("output/figures/fig3_distance_treatment.png", fig3, width = 10, height = 4.5, dpi = 300)
+ggsave("output/figures/fig3_color_intensity.png",    fig3, width = 7,  height = 5,   dpi = 300)
 ggsave("output/figures/fig4_seasonal.png",           fig4, width = 9,  height = 5,   dpi = 300)
-ggsave("output/figures/fig5_community_heatmap.png",  fig5, width = 8,  height = 5.5, dpi = 300)
+ggsave("output/figures/fig5_community_heatmap.png",  fig5, width = 5,  height = 5.5, dpi = 300)
 ggsave("output/figures/fig6_moon_phase.png",         fig6, width = 7,  height = 5,   dpi = 300)
+ggsave("output/figures/fig7_distance_gradient.png",  fig7, width = 7,  height = 5.5, dpi = 300)
+ggsave("output/figures/fig8_species_distance.png",   fig8, width = 9,  height = 6,   dpi = 300)
 
 message("All figures saved to output/figures/")

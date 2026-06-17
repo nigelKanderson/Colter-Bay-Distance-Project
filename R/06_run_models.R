@@ -61,10 +61,8 @@ run_models <- function(data) {
       color * intensity +
       mean_phase +
       pct_nonforest +
-      jd^2 +
-      color * jd +
-      (1|site) +
-      (1|year),
+      I(jd^2) +
+      (1|site),
     data = model_data,
     ziformula = ~1,
     family = nbinom2()

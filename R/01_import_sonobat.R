@@ -15,18 +15,13 @@ files_all <- list.files(
   recursive = TRUE
 )
 
-# I want to exclude all files that are version 4.4.5 because we want to ensure
-#that all files are the same version for sonobat for consistencey/accuracy
+# Use only v430 files to ensure all files are the same SonoBat version
 
-excluded <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
+files    <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
+excluded <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
 
-files <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
-
-cat(
-  "Found ", length(files_all), " Excel files.\n",
-  "Excluded ", length(excluded), " v430 files. \n",
-  "Importing ", length(files), " files. \n"
-)
+message("Found ", length(files_all), " total .xlsx files. Using ", length(files),
+        " v430 file(s). Excluded ", length(excluded), " non-v430 files.")
   
 
 #This function simply reads in a file and ensures it has the right columns. It also

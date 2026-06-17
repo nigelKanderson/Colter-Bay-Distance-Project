@@ -41,7 +41,7 @@ col_white <- "#2E86AB"
 
 ## Data Pipeline
 
-```{r import, warning=FALSE, message=FALSE}
+```{r import, warning=FALSE, message=TRUE}
 source("R/01_import_sonobat.R")
 ```
 
@@ -103,7 +103,8 @@ data_env <- data_env %>%
       dist_km < 1    ~ "Medium",
       dist_km < 2.1  ~ "Further",
       TRUE           ~ "Far"
-    )
+    ),
+    jd_c = jd - mean(jd, na.rm = TRUE)   # centered Julian day
   )
 
 data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
@@ -119,8 +120,7 @@ simple_model1 <- glmmTMB(
     color * intensity +
     mean_phase +
     pct_nonforest +
-    I(jd^2) +
-    jd +
+    jd_c + I(jd_c^2) +
     dist_cat +
     (1 | site),
   data      = data_env,
@@ -272,6 +272,29 @@ vars <- data_env %>%
   select(detections, pct_nonforest, jd, mean_phase, dist_km)
 corrplot(cor(vars, use = "complete.obs"))
 
+# Site-level means
+site_means <- data_env %>%
+  group_by(site, dist_km) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+
+# Scatter with smooth
+ggplot(site_means, aes(x = dist_km, y = mean_det)) +
+  geom_smooth(method = "lm", se = TRUE, color = "#2E86AB",
+              fill = "#DDEAF5", linewidth = 1) +
+  geom_point(size = 3.5, color = "#333333") +
+  ggrepel::geom_text_repel(aes(label = site), size = 3, color = "#666666") +
+  labs(
+    title    = "Bat Detections vs Distance from Light Source",
+    subtitle = "Site-level means with linear trend",
+    x        = "Distance from light (km)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme
+
+# Correlation test
+cor.test(site_means$dist_km, site_means$mean_det, method = "spearman")
+
+
 # Distance post-hoc contrasts
 emmeans(simple_model1, ~dist_cat)
 pairs(emmeans(simple_model1, ~dist_cat))
@@ -282,7 +305,7 @@ pairs(emmeans(simple_model1, ~dist_cat))
 ```{r figures, message=FALSE, warning=FALSE}
 source("R/08_figures.R")
 
-fig1; fig2; fig3; fig4; fig5; fig6
+fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8
 ```
 
 ## Species Key
