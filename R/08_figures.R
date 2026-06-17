@@ -38,36 +38,50 @@ bat_theme <- theme_classic(base_size = 12) +
 # Color palette
 col_red    <- "#C0392B"
 col_white  <- "#2E86AB"   # blue proxy for white light (visible on plots)
-col_ribbon <- 0.15
 col_pts    <- "#555555"
 
 # Distance category order
 dist_order <- c("Close", "Medium", "Further", "Far")
 
+# Helper: ggpredict with type="fixed" (conditional mean, bypasses ZI dominance),
+# returned as plain data frame
+gp_df <- function(model, terms, ...) {
+  as.data.frame(ggpredict(model, terms = terms, type = "fixed", ...))
+}
+
 # ==============================================================================
 # ── Fig 1: Color × Intensity interaction (headline result) ────────────────────
+# Raw data means + SE — most reliable for factor × factor comparisons
 # ==============================================================================
 
-pred_ci <- ggpredict(simple_model1, terms = c("intensity [all]", "color"))
+ci_summary <- data_env %>%
+  group_by(intensity, color) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) %>%
+  mutate(intensity = factor(intensity))
 
-fig1 <- ggplot(pred_ci, aes(x = x, y = predicted,
-                              color = group, fill = group)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              alpha = col_ribbon, color = NA) +
-  geom_line(linewidth = 1.2) +
+fig1 <- ggplot(ci_summary,
+               aes(x = intensity, y = mean_det,
+                   color = color, group = color)) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                width = 0.15, linewidth = 0.8,
+                position = position_dodge(0.35)) +
+  geom_point(size = 3.5, position = position_dodge(0.35)) +
+  geom_line(position = position_dodge(0.35), linewidth = 0.9) +
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"),
                      name   = "Light color") +
-  scale_fill_manual(values  = c(R = col_red, W = col_white),
-                    guide   = "none") +
   labs(
     title    = "Light Color × Intensity Effect on Bat Detections",
-    subtitle = "Predicted detections from GLMM with 95% CI",
+    subtitle = "Mean ± SE",
     x        = "Light intensity",
-    y        = "Predicted detections"
+    y        = "Mean detections per night"
   ) +
   bat_theme +
-  theme(legend.position = c(0.12, 0.88))
+  theme(legend.position = c(0.88, 0.88))
 
 # ==============================================================================
 # ── Fig 2: Distance from light source ─────────────────────────────────────────
@@ -133,29 +147,22 @@ fig3 <- ggplot(dist_treat,
 # ── Fig 4: Seasonal patterns by light color ───────────────────────────────────
 # ==============================================================================
 
-pred_jd <- ggpredict(simple_model1,
-                     terms = c("jd [all]", "color"))
+pred_jd  <- gp_df(simple_model1, terms = c("jd [all]", "color"))
 
 fig4 <- ggplot(pred_jd,
-               aes(x = x, y = predicted,
-                   color = group, fill = group)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              alpha = col_ribbon, color = NA) +
+               aes(x = x, y = predicted, color = group)) +
   geom_line(linewidth = 1.2) +
-  facet_wrap(~ facet) +
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"),
                      name   = "Light color") +
-  scale_fill_manual(values  = c(R = col_red, W = col_white),
-                    guide   = "none") +
   labs(
-    title    = "Seasonal Bat Activity by Light Color and Intensity",
-    subtitle = "Predicted detections across Julian day",
+    title    = "Seasonal Bat Activity by Light Color",
+    subtitle = "Predicted detections (conditional mean) across Julian day",
     x        = "Julian day",
     y        = "Predicted detections"
   ) +
   bat_theme +
-  theme(legend.position = "top")
+  theme(legend.position = c(0.12, 0.88))
 
 # ==============================================================================
 # ── Fig 5: Species community heatmap by treatment ─────────────────────────────
@@ -195,22 +202,17 @@ fig5 <- ggplot(heat_data,
 # ── Fig 6: Moon phase effect ──────────────────────────────────────────────────
 # ==============================================================================
 
-pred_moon <- ggpredict(simple_model1,
-                       terms = c("mean_phase [all]", "intensity"))
+pred_moon <- gp_df(simple_model1, terms = c("mean_phase [all]", "intensity"))
 
 fig6 <- ggplot(pred_moon,
-               aes(x = x, y = predicted,
-                   color = group, fill = group)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              alpha = 0.12, color = NA) +
+               aes(x = x, y = predicted, color = group)) +
   geom_line(linewidth = 1.1) +
   scale_x_continuous(breaks = seq(0, 1, by = 0.25),
                      labels = c("New", "1st Q", "Full", "3rd Q", "New")) +
   scale_color_brewer(palette = "Dark2", name = "Intensity") +
-  scale_fill_brewer(palette  = "Dark2", guide = "none") +
   labs(
     title    = "Effect of Moon Phase on Bat Detections",
-    subtitle = "Predicted detections by intensity level",
+    subtitle = "Predicted detections (conditional mean) by intensity level",
     x        = "Moon phase",
     y        = "Predicted detections"
   ) +
@@ -223,11 +225,11 @@ fig6 <- ggplot(pred_moon,
 
 dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
 
-ggsave("output/figures/fig1_color_intensity.png",   fig1, width = 7, height = 5, dpi = 300)
-ggsave("output/figures/fig2_distance_effect.png",   fig2, width = 6, height = 5, dpi = 300)
+ggsave("output/figures/fig1_color_intensity.png",    fig1, width = 7,  height = 5,   dpi = 300)
+ggsave("output/figures/fig2_distance_effect.png",    fig2, width = 6,  height = 5,   dpi = 300)
 ggsave("output/figures/fig3_distance_treatment.png", fig3, width = 10, height = 4.5, dpi = 300)
-ggsave("output/figures/fig4_seasonal.png",           fig4, width = 9, height = 5, dpi = 300)
-ggsave("output/figures/fig5_community_heatmap.png", fig5, width = 8, height = 5.5, dpi = 300)
-ggsave("output/figures/fig6_moon_phase.png",         fig6, width = 7, height = 5, dpi = 300)
+ggsave("output/figures/fig4_seasonal.png",           fig4, width = 9,  height = 5,   dpi = 300)
+ggsave("output/figures/fig5_community_heatmap.png",  fig5, width = 8,  height = 5.5, dpi = 300)
+ggsave("output/figures/fig6_moon_phase.png",         fig6, width = 7,  height = 5,   dpi = 300)
 
-message("✓ All figures saved to output/figures/")
+message("All figures saved to output/figures/")

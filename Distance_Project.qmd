@@ -119,9 +119,8 @@ simple_model1 <- glmmTMB(
     color * intensity +
     mean_phase +
     pct_nonforest +
-    jd^2 +
+    I(jd^2) +
     jd +
-    color * jd +
     dist_cat +
     (1 | site),
   data      = data_env,
