@@ -1,0 +1,502 @@
+% ============================================================
+%  Distance Project — Research Storyboard / Results Summary
+%  Compile: pdflatex storyboard.tex  (twice for TOC/refs)
+% ============================================================
+\documentclass[11pt, letterpaper]{article}
+
+% ── Layout ───────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Fonts & encoding ─────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage{lmodern}
+
+% ── Colour ───────────────────────────────────────────────────
+\usepackage[dvipsnames]{xcolor}
+\definecolor{colRed}{HTML}{C0392B}
+\definecolor{colBlue}{HTML}{2E86AB}
+\definecolor{colGrey}{HTML}{555555}
+\definecolor{colLight}{HTML}{F4F6F7}
+\definecolor{colRule}{HTML}{CCCCCC}
+
+% ── Tables ───────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+
+% ── Section styling ──────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}
+  {\large\bfseries\color{black}}
+  {\thesection.}{0.6em}{}
+  [\vspace{-0.3em}\color{colRule}\rule{\linewidth}{0.6pt}]
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{colGrey}}
+  {\thesubsection}{0.6em}{}
+
+% ── Callout boxes ────────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\tcbset{
+  finding/.style={
+    enhanced, breakable,
+    colback=colLight, colframe=colRed,
+    fonttitle=\bfseries\small,
+    title={Key Finding},
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+    boxrule=1pt, arc=3pt
+  },
+  note/.style={
+    enhanced, breakable,
+    colback=colLight, colframe=colBlue,
+    fonttitle=\bfseries\small,
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+    boxrule=0.8pt, arc=3pt
+  }
+}
+
+% ── Misc ─────────────────────────────────────────────────────
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=colBlue, urlcolor=colBlue}
+
+% ── Helpers ──────────────────────────────────────────────────
+\newcommand{\red}[1]{{\color{colRed}\textbf{#1}}}
+\newcommand{\wht}[1]{{\color{colBlue}\textbf{#1}}}
+\newcommand{\sig}[1]{{\color{colRed}#1}}
+\newcommand{\ns}[1]{{\color{colGrey}#1}}
+\newcommand{\pval}[1]{\textit{p}\,$=$\,#1}
+\newcommand{\figbox}[1]{%
+  \begin{tcolorbox}[note, title=Figure placeholder]
+    \small\color{colGrey} #1
+  \end{tcolorbox}}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ── Title ────────────────────────────────────────────────────
+\begin{center}
+  {\LARGE\bfseries Artificial Light at Night and Bat Activity\\[0.3em]
+   Along a Distance Gradient}\\[0.8em]
+  {\large Grand Teton National Park, 2022}\\[0.5em]
+  {\normalsize Nigel K.\ Anderson \quad $\cdot$ \quad
+   American Museum of Natural History}\\[0.3em]
+  {\small\color{colGrey}\today}
+\end{center}
+
+\vspace{0.5em}
+\noindent\color{colRule}\rule{\linewidth}{1pt}
+\vspace{0.5em}
+
+% ── Abstract / Overview ──────────────────────────────────────
+\noindent\textbf{Overview.}
+Most research on artificial light at night (ALAN) compares light versus dark.
+This study asked a more nuanced question: does the \textit{colour} of light
+matter for bats, and does that depend on \textit{how bright} it is or
+\textit{how far away} you are from the source?
+We monitored acoustic bat activity at 14 sites along a distance gradient
+in Grand Teton National Park, crossing \red{red} versus \wht{white} light
+at five intensity levels (10, 30, 50, 70, 100\,\%).
+The results reveal a strong colour $\times$ intensity interaction,
+a near-complete collapse of bat activity close to the light source,
+and a clear separation between the drivers of total activity
+(colour $\times$ intensity) and community composition (distance, habitat).
+
+\tableofcontents
+\vspace{1em}
+
+% ============================================================
+\section{Study Design and Statistical Approach}
+% ============================================================
+
+Fourteen acoustic monitoring stations were deployed across a distance
+gradient ranging from $<$0.52\,km (\textit{Close}) to $>$2.1\,km
+(\textit{Far}) from a central experimental light source.
+Nightly detection data were collected across the 2022 survey season.
+Eight focal bat species were retained for analysis:
+\textit{Epfu}, \textit{Laci}, \textit{Lano}, \textit{Myev},
+\textit{Mylu}, \textit{Myvo}, \textit{Myyu}, and \textit{Myci}.
+
+The primary statistical model was a zero-inflated negative binomial GLMM
+(glmmTMB) with a random intercept for site:
+
+\begin{center}
+\texttt{detections $\sim$ color $\times$ intensity + moon\_phase +
+\%nonforest + sky\_brightness$_\text{dark}$ + jd$_c$ + jd$_c^2$ +
+dist\_cat + (1\,|\,site)}
+\end{center}
+
+Julian day was mean-centred (\texttt{jd}$_c$) to avoid collinearity
+in the quadratic term.
+Post-hoc contrasts (emmeans, Holm-corrected) were computed on the
+response scale (detections per night).
+Community-level analyses used NMDS, PERMANOVA, distance-based redundancy
+analysis (dbRDA), and multivariate GLMs (mvabund).
+
+% ============================================================
+\section{Overall Model Fit}
+% ============================================================
+
+The model converged with AIC\,$=$\,24{,}276 on 3,457 observations across
+14 sites ($n_\text{groups}$\,=\,14, $\sigma_\text{site}$\,=\,0.55).
+The negative binomial dispersion parameter was 0.603, consistent with
+overdispersion in count data. Table~\ref{tab:model} summarises all
+fixed-effect estimates.
+
+\begin{table}[h]
+\centering
+\caption{Fixed-effect estimates from the zero-inflated negative binomial
+GLMM. Reference levels: \texttt{color} = Red, \texttt{intensity} = 10\,\%,
+\texttt{dist\_cat} = Close.}
+\label{tab:model}
+\smallskip
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Term} & \textbf{Estimate} & \textbf{SE} & \textbf{\textit{z}} & \textbf{\textit{p}} \\
+\midrule
+(Intercept)          &  1.286 & 0.608 &  2.12 & 0.034\,* \\
+colorW               &  0.011 & 0.092 &  0.12 & \ns{0.908} \\
+intensity30          &  0.596 & 0.137 &  4.37 & \sig{$<$0.001\,***} \\
+intensity50          &  0.354 & 0.143 &  2.48 & \sig{0.013\,*} \\
+intensity70          &  0.354 & 0.093 &  3.79 & \sig{$<$0.001\,***} \\
+intensity100         & $-$0.000 & 0.116 & $-$0.00 & \ns{0.998} \\
+moon phase           &  0.215 & 0.116 &  1.86 & \ns{0.063\,.} \\
+\%\,nonforest        &  2.130 & 1.133 &  1.88 & \ns{0.060\,.} \\
+sky brightness (dark)& $-$0.026 & 0.034 & $-$0.78 & \ns{0.438} \\
+jd$_c$               & $-$0.007 & 0.002 & $-$4.25 & \sig{$<$0.001\,***} \\
+jd$_c^2$             & $-$0.000 & 0.000 & $-$1.70 & \ns{0.088\,.} \\
+dist\_cat: Far       &  0.990 & 0.482 &  2.06 & \sig{0.040\,*} \\
+dist\_cat: Further   &  1.208 & 0.599 &  2.02 & \sig{0.044\,*} \\
+dist\_cat: Medium    &  1.196 & 0.676 &  1.77 & \ns{0.077\,.} \\
+\midrule
+colorW:intensity30   & $-$0.728 & 0.171 & $-$4.26 & \sig{$<$0.001\,***} \\
+colorW:intensity50   & $-$0.497 & 0.146 & $-$3.42 & \sig{$<$0.001\,***} \\
+colorW:intensity70   & $-$0.123 & 0.136 & $-$0.90 & \ns{0.368} \\
+colorW:intensity100  &  0.089 & 0.134 &  0.67 & \ns{0.505} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Colour and Intensity Effects}
+% ============================================================
+
+\subsection{Main effect of colour}
+
+Averaged across all intensity levels and distance categories, \red{red}
+and \wht{white} light produced statistically identical bat activity
+($\beta_\text{white}$\,=\,0.011, \pval{0.91}).
+The headline result is not about colour per se --- it emerges only in
+interaction with intensity.
+
+\subsection{The colour $\times$ intensity interaction}
+
+\begin{tcolorbox}[finding]
+  At 30\,\% intensity, red light produced \textbf{2.05$\times$ more}
+  bat detections than white light (\pval{$<$0.0001}).
+  At 50\,\%, the ratio was 1.63$\times$ (\pval{$<$0.0001}).
+  At 70\,\% and 100\,\%, colours were statistically indistinguishable.
+  \textbf{White light produced the same activity level regardless of intensity.}
+\end{tcolorbox}
+
+Table~\ref{tab:emm} presents the emmeans-estimated marginal means and
+pairwise colour contrasts on the response scale.
+
+\begin{table}[h]
+\centering
+\caption{Estimated marginal means (detections/night) by colour and
+intensity, with Holm-corrected pairwise contrasts.
+Averaged over distance categories.}
+\label{tab:emm}
+\smallskip
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Intensity} & \red{Red} & \wht{White}
+                   & \textbf{95\,\% CI (Red)} & \textbf{Ratio R/W}
+                   & \textbf{\textit{p}} \\
+\midrule
+10\,\% & 13.1 & 13.3 & [9.4,\;18.4]  & 0.99 & \ns{0.908} \\
+30\,\% & \textbf{23.8} & \textbf{11.6} & [16.3,\;34.7] & \textbf{2.05} & \sig{$<$0.001} \\
+50\,\% & \textbf{18.7} & \textbf{11.5} & [12.5,\;27.8] & \textbf{1.63} & \sig{$<$0.001} \\
+70\,\% & 18.7 & 16.7 & [13.3,\;26.2] & 1.12 & \ns{0.257} \\
+100\,\%& 13.1 & 14.5 & [9.2,\;18.7]  & 0.91 & \ns{0.317} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\figbox{Fig.\ 3 --- Connected dot plot: mean detections by colour at each
+intensity level with 95\,\% CI.
+Red line peaks at 30\,\% and converges with white at high intensity.}
+
+\subsection{Intensity within each colour}
+
+Within \red{red} light, 30\,\% intensity was the peak activity condition
+(23.8 det/night), significantly exceeding near-dark (10\,\%) by 82\,\%
+(\pval{0.0001}) and 100\,\% intensity by 82\,\% (\pval{$<$0.001}).
+The 30\,\%, 50\,\%, and 70\,\% levels did not differ significantly from
+each other.
+
+Within \wht{white} light, \textbf{no intensity level differed from any
+other} (all Holm-corrected $p \geq 0.18$).
+White light consistently produced $\approx$11--17 detections per night
+regardless of brightness.
+
+\begin{tcolorbox}[note]
+\textbf{Interpretation.}
+Moderate red light likely attracts insects, and bats follow.
+White light suppresses this insect-mediated effect at any intensity.
+At maximum intensity (100\,\%), both colours return to near-dark baseline ---
+likely because bats abandon the area entirely rather than adjusting their
+foraging behaviour.
+\end{tcolorbox}
+
+\figbox{Fig.\ 1 --- Bar chart: mean $\pm$ SE detections by colour
+(averaged across intensities). Red $\approx$ White when collapsed.}
+
+% ============================================================
+\section{Distance Effects}
+% ============================================================
+
+Sites close to the light source ($<$0.52\,km) had markedly fewer bat
+detections than all other distance categories
+(dist\_cat: Far $\beta = 0.99$, \pval{0.040};
+Further $\beta = 1.21$, \pval{0.044};
+Table~\ref{tab:dist}).
+The community-level analysis confirmed distance as the strongest single
+predictor of community composition (dbRDA $F = 8.03$, \pval{$<$0.001}).
+
+\begin{table}[h]
+\centering
+\caption{Emmeans-estimated marginal means by distance category
+(averaged over colour and intensity).
+Pairwise contrasts are Holm-corrected; none survive correction,
+but the magnitude of the Close vs.\ all-other difference is
+biologically substantial.}
+\label{tab:dist}
+\smallskip
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Category} & \textbf{Range (km)} & \textbf{Det/night}
+                  & \textbf{95\,\% CI} & \textbf{vs.\ Close (ratio)} \\
+\midrule
+Close   & $<$0.52   & \red{6.5}  & [2.9,\;14.2] & --- \\
+Medium  & 0.52--1.0 & 21.4 & [9.0,\;50.5] & 3.30$\times$ \\
+Further & 1.0--2.1  & 21.6 & [11.7,\;40.0] & 3.34$\times$ \\
+Far     & $>$2.1    & 17.4 & [8.8,\;34.2] & 2.69$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[finding]
+Sites within 0.52\,km of the light source had $\approx$\textbf{3$\times$
+fewer bat detections} than all other distances.
+Medium, Further, and Far sites were indistinguishable from each other,
+suggesting near-complete recovery of bat activity beyond 0.5\,km.
+\end{tcolorbox}
+
+The Holm correction is conservative given the small number of sites and
+resulting low power; the main model and dbRDA both confirm the distance
+effect independently. Pairwise contrasts should be interpreted alongside
+the descriptive means rather than relied on exclusively.
+
+\figbox{Fig.\ 2 --- Bar chart: mean $\pm$ SE detections by dist\_cat.\\
+Fig.\ 7 --- Site-level scatter: dist\_km vs.\ mean detections with
+linear trend and Spearman $\rho$.}
+
+% ============================================================
+\section{Seasonal and Environmental Covariates}
+% ============================================================
+
+Bat activity declined significantly through the survey season
+(jd$_c$: $\beta = -0.007$, \pval{$<$0.001}), with a marginal
+quadratic term suggesting the decline was somewhat non-linear
+(\pval{0.088}).
+Moon phase was marginally positive ($\beta = 0.215$, \pval{0.063}),
+possibly reflecting insect availability rather than direct bat behaviour.
+Neither sky brightness nor percent non-forest reached significance in
+the main model (both $p > 0.05$), though both were significant
+community-level predictors (see Section~\ref{sec:community}).
+
+\figbox{Fig.\ 4 --- Seasonal LOESS by colour.
+Red/white separation persists across the survey period.\\
+Fig.\ 6 --- Moon phase LOESS by colour.
+No evident colour $\times$ moon interaction.}
+
+% ============================================================
+\section{Community Composition}
+\label{sec:community}
+% ============================================================
+
+The PERMANOVA explained 25.6\,\% of variance in community composition
+($R^2 = 0.256$, $F = 3.75$, \pval{$<$0.001}).
+The dispersion test was non-significant (\pval{0.938}), confirming that
+communities are equally variable between colour treatments ---
+the PERMANOVA result reflects genuine compositional shifts in location,
+not differences in spread.
+
+\begin{table}[h]
+\centering
+\caption{Marginal effects on bat community composition from dbRDA and
+mvabund multivariate GLM. Significant predictors ($p < 0.05$)
+in bold.}
+\label{tab:community}
+\smallskip
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Predictor} & \textbf{dbRDA $F$} & \textbf{dbRDA \textit{p}}
+                   & \textbf{mvabund Dev} & \textbf{mvabund \textit{p}} \\
+\midrule
+colour               & 1.45 & \ns{0.196}          &   9.2 & \ns{0.394} \\
+intensity            & 1.69 & \sig{0.046*}         &  83.5 & \sig{0.002**} \\
+\textbf{dist\_cat}   & \textbf{8.03} & \sig{$<$0.001***} & \textbf{311.9} & \sig{$<$0.001***} \\
+moon phase           & 0.86 & \ns{0.488}          &  13.2 & \ns{0.197} \\
+\textbf{\%\,nonforest}& \textbf{7.53} & \sig{$<$0.001***} & \textbf{42.2} & \sig{$<$0.001***} \\
+\textbf{sky brightness}& \textbf{4.20} & \sig{0.003**} & \textbf{57.4} & \sig{$<$0.001***} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[finding]
+  \textbf{Colour does not restructure bat community composition.}
+  Distance does --- by a wide margin.
+  Intensity shifts composition weakly.
+  Habitat openness and sky darkness independently shape who is present,
+  independent of the experimental light treatment.
+\end{tcolorbox}
+
+\figbox{Fig.\ C1 --- dbRDA biplot. Distance arrows should dominate;
+colour arrow should be short.\\
+Fig.\ C2 --- Species activity heatmap: colour $\times$ intensity.\\
+Fig.\ C3 --- Species activity heatmap: distance categories.}
+
+% ============================================================
+\section{Species-Level Responses}
+% ============================================================
+
+\subsection{Univariate community responses}
+
+Table~\ref{tab:species} summarises species-level p-values from the
+mvabund univariate tests (adjusted for multiple comparisons).
+
+\begin{table}[h]
+\centering
+\caption{Univariate mvabund test results by species. Adjusted
+\textit{p}-values; \sig{***}\,$<$\,0.001, \sig{**}\,$<$\,0.01,
+\sig{*}\,$<$\,0.05, \ns{ns}\,$\geq$\,0.05.}
+\label{tab:species}
+\smallskip
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Species} & \textbf{Colour} & \textbf{Intensity}
+                 & \textbf{Distance} & \textbf{\%\,nonforest}
+                 & \textbf{Sky brightness} \\
+\midrule
+\textit{Epfu} & \ns{ns} & \sig{***} & \sig{***} & \ns{ns}    & \ns{ns} \\
+\textit{Laci} & \ns{ns} & \ns{.}    & \sig{**}  & \ns{ns}    & \ns{ns} \\
+\textit{Lano} & \ns{ns} & \ns{ns}   & \sig{**}  & \ns{ns}    & \ns{ns} \\
+\textit{Myev} & \ns{ns} & \ns{ns}   & \sig{***} & \ns{.}     & \ns{ns} \\
+\textit{Mylu} & \ns{ns} & \ns{ns}   & \sig{**}  & \sig{***}  & \ns{ns} \\
+\textit{Myvo} & \ns{ns} & \ns{ns}   & \sig{***} & \ns{ns}    & \sig{***} \\
+\textit{Myyu} & \ns{ns} & \ns{ns}   & \ns{ns}   & \ns{ns}    & \ns{ns} \\
+\textit{Myci} & \ns{ns} & \ns{ns}   & \ns{ns}   & \ns{ns}    & \ns{ns} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Epfu} is the most treatment-sensitive species, responding to
+both intensity and distance.
+\textit{Mylu} tracks habitat openness; \textit{Myvo} tracks sky darkness.
+\textit{Myyu} and \textit{Myci} did not respond significantly to any
+measured predictor.
+
+\subsection{Per-species GLMMs}
+
+Per-species zero-inflated negative binomial models were fit for each
+focal species with sufficient data ($\geq$30 detections, $\geq$20 nights).
+Results include emmeans contrasts of \red{red} vs.\ \wht{white} at each
+intensity level and pairwise intensity comparisons within each colour.
+
+\figbox{Fig.\ S1 --- Marginal means $\pm$ 95\,\% CI: colour effect ranked by species.\\
+Fig.\ S2 --- White/red ratio by intensity level, per species.\\
+Fig.\ S3 --- Log$_2$ ratio heatmap: White\,/\,Red across species and intensity.\\
+Fig.\ 5  --- Species $\times$ colour heatmap (z-scored activity).\\
+Fig.\ 8  --- Species $\times$ distance heatmap.}
+
+% ============================================================
+\section{Synthesis and Management Implications}
+% ============================================================
+
+These results support three separable conclusions.
+
+\textbf{1. Colour matters, but only at moderate intensity.}
+Red light at 30--50\,\% intensity generated substantially more bat
+detections than white light at the same intensity, most likely through
+insect-mediated attraction.
+The suppression of this effect by white light was strong and consistent
+across species.
+At maximum intensity (100\,\%), both colours converged to near-dark
+baseline levels, suggesting complete behavioural exclusion at that threshold.
+
+\textbf{2. Distance is the primary driver of community structure.}
+Light colour and intensity affect how many bats are detected, but do not
+selectively filter species.
+Distance does: sites within 0.52\,km of the light source had 3$\times$
+fewer detections and a measurably different community composition.
+Recovery to ambient activity levels appeared to occur between the Close
+and Medium categories, suggesting a practical buffer distance of
+$\approx$0.5--1.0\,km.
+
+\textbf{3. Habitat and sky darkness independently structure the community.}
+Percent non-forest and natural sky brightness were significant community-level
+predictors independent of the experimental treatment.
+This means the impact of a given light installation will depend strongly
+on where it is placed --- open habitat near naturally dark skies will
+be more severely affected than forested or already-lit areas.
+
+\bigskip
+\begin{tcolorbox}[note, title={Management Recommendations}]
+\begin{enumerate}\setlength\itemsep{0.4em}
+  \item Use \red{red} light only where insect-mediated bat attraction is
+        acceptable or desirable; use \wht{white} where suppression of bat
+        activity is needed.
+  \item Keep artificial light sources \textbf{$>$0.5\,km from core bat
+        foraging and commuting habitat}.
+  \item Avoid 30--50\,\% intensity red light near sensitive sites (roosts,
+        water, edge habitat) --- this is the highest-impact combination.
+  \item Monitor \textit{Epfu} as a sentinel species: it responds to both
+        intensity and proximity and may serve as an early indicator of
+        community-level ALAN impacts.
+  \item Site new infrastructure with reference to natural sky brightness
+        and habitat openness, not light treatment alone.
+\end{enumerate}
+\end{tcolorbox}
+
+% ============================================================
+\section*{Species Key}
+% ============================================================
+\addcontentsline{toc}{section}{Species Key}
+
+\begin{tabular}{ll}
+\toprule
+\textbf{Code} & \textbf{Species} \\
+\midrule
+\textit{Epfu} & \textit{Eptesicus fuscus} (big brown bat) \\
+\textit{Laci} & \textit{Lasiurus cinereus} (hoary bat) \\
+\textit{Lano} & \textit{Lasionycteris noctivagans} (silver-haired bat) \\
+\textit{Myci} & \textit{Myotis ciliolabrum} (western small-footed myotis) \\
+\textit{Myev} & \textit{Myotis evotis} (long-eared myotis) \\
+\textit{Mylu} & \textit{Myotis lucifugus} (little brown myotis) \\
+\textit{Myvo} & \textit{Myotis volans} (long-legged myotis) \\
+\textit{Myyu} & \textit{Myotis yumanensis} (Yuma myotis) \\
+\bottomrule
+\end{tabular}
+
+\end{document}

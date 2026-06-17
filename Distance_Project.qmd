@@ -273,9 +273,39 @@ ggplot(site_means, aes(x = dist_km, y = mean_det)) +
 cor.test(site_means$dist_km, site_means$mean_det, method = "spearman")
 
 
-# Distance post-hoc contrasts
-emmeans(simple_model1, ~dist_cat)
-pairs(emmeans(simple_model1, ~dist_cat))
+# (Distance post-hoc contrasts moved to posthoc chunk below)
+```
+
+## Post-hoc Contrasts
+
+```{r posthoc, warning=FALSE, message=FALSE}
+library(emmeans)
+
+# ── 1. Color × Intensity simple effects ───────────────────────────────────────
+# Red vs. White at each intensity level (the key interaction question)
+em_color_int <- emmeans(simple_model1, ~ color | intensity, type = "response")
+
+cat("=== Estimated marginal means: color at each intensity ===\n")
+em_color_int
+
+cat("\n=== Red vs. White contrast at each intensity (Holm-corrected) ===\n")
+pairs(em_color_int, adjust = "holm")
+
+# ── 2. Intensity simple effects within each color ─────────────────────────────
+# Which intensity levels differ from each other, separately for red and white?
+em_int_color <- emmeans(simple_model1, ~ intensity | color, type = "response")
+
+cat("\n=== Intensity pairwise contrasts within Red (Holm-corrected) ===\n")
+pairs(em_int_color, adjust = "holm")
+
+# ── 3. Distance pairwise contrasts ────────────────────────────────────────────
+em_dist <- emmeans(simple_model1, ~ dist_cat, type = "response")
+
+cat("\n=== Estimated marginal means: distance categories ===\n")
+em_dist
+
+cat("\n=== Distance pairwise contrasts (Holm-corrected) ===\n")
+pairs(em_dist, adjust = "holm")
 ```
 
 ## Species Models
