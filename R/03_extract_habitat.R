@@ -3,7 +3,7 @@ library(terra)
 library(exactextractr)
 library(tidyverse)
 
-nlcd_forest <- terra::rast('Annual_NLCD_LndCov_2021_CU_C1V1.tif')
+nlcd_forest <- terra::rast('data/Annual_NLCD_LndCov_2021_CU_C1V1.tif')
 
 #This function takes in a raster file and buffer value and then extracts percent forest
 # and non-forest values. 
@@ -54,7 +54,7 @@ add_habitat <- function(data, forest_raster, buffer = 50) {
   data_out <- data %>%
     left_join(sites_env, by = "site")
   
-  saveRDS(data_out, "data_out.rds")
+  saveRDS(data_out, "data/data_out.rds")
   
   return(data_out)
 }

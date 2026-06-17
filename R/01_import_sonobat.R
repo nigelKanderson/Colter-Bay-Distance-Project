@@ -140,6 +140,6 @@ data_raw <- map_dfr(files, process_file)
 
 write_csv(
   all_counts,
-  "glmm_ready_data.csv"
+  "data/glmm_ready_data.csv"
 )
 

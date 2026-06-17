@@ -5,25 +5,53 @@ format: html
 editor: visual
 ---
 
-## Quarto
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+# Shared theme + palette (matches ColterBay style)
+bat_theme <- theme_classic(base_size = 12) +
+  theme(
+    plot.background    = element_rect(fill = "white", color = NA),
+    panel.background   = element_rect(fill = "white", color = NA),
+    panel.grid.major.y = element_line(color = "#EBEBEB", linewidth = 0.4),
+    panel.grid.major.x = element_blank(),
+    axis.line          = element_line(color = "#444444", linewidth = 0.5),
+    axis.ticks         = element_line(color = "#444444"),
+    axis.text          = element_text(color = "#333333", size = 10),
+    axis.title         = element_text(color = "#222222", size = 11),
+    plot.title         = element_text(color = "#111111", size = 13,
+                                      face = "bold", margin = margin(b = 3)),
+    plot.subtitle      = element_text(color = "#666666", size = 9,
+                                      margin = margin(b = 8)),
+    legend.background  = element_rect(fill = "white", color = NA),
+    legend.key         = element_rect(fill = "white", color = NA),
+    legend.text        = element_text(color = "#333333", size = 10),
+    legend.title       = element_text(color = "#444444", size = 9, face = "bold"),
+    strip.background   = element_rect(fill = "#F2F2F2", color = NA),
+    strip.text         = element_text(color = "#222222", face = "bold", size = 10),
+    plot.caption       = element_text(color = "#999999", size = 8,
+                                      hjust = 0, margin = margin(t = 8)),
+    plot.margin        = margin(12, 14, 10, 12)
+  )
 
-## Analysis Pipeline
+col_red   <- "#C0392B"
+col_white <- "#2E86AB"
+```
 
-```{r, warning = FALSE, message = FALSE}
+## Data Pipeline
+
+```{r import, warning=FALSE, message=FALSE}
 source("R/01_import_sonobat.R")
 ```
 
-```{r}
+```{r clean, warning=FALSE, message=FALSE}
 source("R/02_clean_data.R")
 data <- clean_data(data_raw)
 ```
 
-```{r}
+```{r habitat, warning=FALSE, message=FALSE}
 source("R/03_extract_habitat.R")
-
-#data_env <- add_environmental_covariates(data, forest_raster)
 
 data_env <- add_habitat(
   data,
@@ -34,741 +62,253 @@ data_env <- add_habitat(
 data_env <- add_moonlight(data_env)
 ```
 
-```{r}
+```{r treatment, warning=FALSE, message=FALSE}
 source("R/07_add_light_treatment.R")
 
-data_full <- readRDS('data/data_full.rds')
+data_full <- readRDS("data/data_full.rds")
 
 data_env <- data_env %>%
   left_join(
-    lighting %>%
-      select(date, color, intensity),
+    lighting %>% select(date, color, intensity),
     by = "date"
-  )
-
-data_env <- data_env %>%
+  ) %>%
   mutate(
-    color = factor(color),
-    site = factor(site),
+    color     = factor(color),
+    site      = factor(site),
     intensity = factor(intensity)
   )
-
 ```
 
-```{r}
+```{r distance, warning=FALSE, message=FALSE}
 library(sf)
 
 ref_point <- st_as_sf(
-  data.frame(
-    lon = -110.645134,
-    lat = 43.904879
-  ),
+  data.frame(lon = -110.645134, lat = 43.904879),
   coords = c("lon", "lat"),
   crs = 4326
 )
 
-sites_sf <- st_as_sf(
-  sites,
-  coords = c('lon', 'lat'),
-  crs = 4326
-)
-
+sites_sf <- st_as_sf(sites, coords = c("lon", "lat"), crs = 4326)
 sites_sf <- st_transform(sites_sf, 32612)
 ref_point <- st_transform(ref_point, 32612)
 
-sites_sf$dist_m <- as.numeric(
-  st_distance(
-    sites_sf,
-    ref_point
-  )
-)
+sites_sf$dist_m <- as.numeric(st_distance(sites_sf, ref_point))
 
 data_env <- data_env %>%
-  left_join(
-    sites_sf,
-    by = 'site'
-  )
-
-data_env %>%
-  select(site, dist_m) %>%
-  distinct()
-
-data_env <- data_env %>%
+  left_join(sites_sf, by = "site") %>%
   mutate(
-    dist_km = dist_m / 1000
-  )
-
-data_env <- data_env %>%
-  mutate(
+    dist_km = dist_m / 1000,
     dist_cat = case_when(
       dist_km < 0.52 ~ "Close",
-      dist_km < 1 ~ "Medium",
-      dist_km < 2.1 ~ "Further",
-      TRUE ~ "Far"
+      dist_km < 1    ~ "Medium",
+      dist_km < 2.1  ~ "Further",
+      TRUE           ~ "Far"
     )
   )
+
+data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
 ```
 
-```{r}
+## Models
+
+```{r simple_model, warning=FALSE, message=FALSE}
 library(glmmTMB)
 
-  simple_model1 <- glmmTMB(
-    detections ~
-      color * intensity +
-      mean_phase +
-      pct_nonforest +
-      jd^2 +
-      jd +
-      color * jd +
-      dist_cat +
-      (1|site),
-    data = data_env,
-    ziformula = ~1,
-    family = nbinom2()
-  )
+simple_model1 <- glmmTMB(
+  detections ~
+    color * intensity +
+    mean_phase +
+    pct_nonforest +
+    jd^2 +
+    jd +
+    color * jd +
+    dist_cat +
+    (1 | site),
+  data      = data_env,
+  ziformula = ~1,
+  family    = nbinom2()
+)
 
 summary(simple_model1)
 ```
 
-```{r}
-library(ggeffects)
-library(ggplot2)
-library(dplyr)
+## Community Analysis
 
-plot_df <- data_env %>%
-  group_by(intensity, color, species) %>%
-  summarise(
-    detections = n(),
-    .groups = 'drop'
-  ) %>%
-  group_by(intensity, color) %>%
-  mutate(prop = detections / sum(detections))
-
-ggplot(plot_df,
-       aes(x = intensity,
-           y = prop,
-           fill = species)) +
-  geom_col(position = 'fill') +
-  facet_wrap(~ color) +
-  labs(
-    x = 'Intensity',
-    y = 'Proportion of Community'
-  ) + 
-  theme_bw()
-
-ggplot(plot_df,
-       aes(x = intensity,
-           y = detections,
-           fill = color)) +
-  geom_col(position = 'dodge') +
-  facet_wrap(~ species, scales = 'free_y') +
-  labs(
-    x = 'Intensity',
-    y = 'Detections'
-  ) +
-  theme_bw()
-
-plot_df <- data_env %>%
-  group_by(species, intensity, color) %>%
-  summarise(
-    detections = n(),
-    .groups = "drop"
-  )
-
-ggplot(plot_df,
-       aes(x = intensity,
-           y = detections,
-           fill = color)) +
-  geom_col(position = 'dodge') +
-  facet_wrap(~ species) +
-  labs(
-    x = 'Intensity',
-    y = 'Detections',
-    fill = 'Light Color'
-  ) +
-  theme_classic()
-  
-
-plot_df <- data_env %>%
-  group_by(site, dist_cat) %>%
-  summarise(mean_det = mean(detections), .groups = "drop")
-
-ggplot(plot_df, aes(dist_cat, mean_det)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.1)
-
-ggeffects::ggpredict(
-  simple_model1,
-  terms = c('jd', "color")
-)
-
-ggeffects::ggpredict(
-  simple_model1,
-  terms = c('intensity', "color")
-)
-
-plot_df <- data_env %>%
-  group_by(dist_cat, color, intensity) %>%
-  summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se = sd(detections, na.rm = TRUE)/sqrt(n()),
-    .groups = "drop"
-  )
-
-ggplot(plot_df,
-       aes(x = intensity,
-           y = mean_det,
-           color = color,
-           group = color)) +
-  geom_point(size = 3) +
-  geom_line() +
-  geom_errorbar(
-    aes(ymin = mean_det - se,
-        ymax = mean_det + se),
-    width = 0.1
-  ) +
-  facet_wrap(~dist_cat) +
-  theme_classic() +
-  labs(
-    x = "Intensity",
-    y = "Mean Detections"
-  )
-
-ggplot(data_env,
-       aes(x = intensity,
-           y = detections,
-           fill = color)) +
-  geom_boxplot() +
-  facet_wrap(~dist_cat) +
-  labs(
-    x = "Light Intensity",
-    y = "Bat Detections",
-    fill = "Light Color"
-  ) +
-  theme_classic()
-
-
-pred <- ggpredict(
-  simple_model1,
-  terms = c("intensity", "color", "dist_cat")
-)
-
-plot(pred)
-```
-
-```{r}
+```{r community, warning=FALSE, message=FALSE}
 library(vegan)
-library(dplyr)
-library(ggplot2)
 library(indicspecies)
 
 data_env$intensity <- as.numeric(as.character(data_env$intensity))
 
 comm_df <- data_env %>%
   group_by(site, color, intensity, species) %>%
-  summarise(n = n(), .groups = 'drop')
+  summarise(n = n(), .groups = "drop")
 
 comm_wide <- comm_df %>%
   tidyr::pivot_wider(
-    names_from = species,
+    names_from  = species,
     values_from = n,
     values_fill = 0
   )
 
-meta <- comm_wide %>%
-  select(site, color, intensity)
-
-comm_matrix <- comm_wide %>%
-  select(-site, -color, intensity)
+meta        <- comm_wide %>% select(site, color, intensity)
+comm_matrix <- comm_wide %>% select(-site, -color, intensity)
 
 set.seed(123)
-
-nmds <- metaMDS(
-  comm_matrix,
-  distance = "bray",
-  k = 2,
-  trymax = 100
-)
-
+nmds <- metaMDS(comm_matrix, distance = "bray", k = 2, trymax = 100)
 nmds$stress
 
-sites <- as.data.frame(scores(nmds, display = 'sites'))
-sites <- cbind(sites, meta)
+# NMDS biplot
+nmds_sites          <- as.data.frame(scores(nmds, display = "sites"))
+nmds_sites          <- cbind(nmds_sites, meta)
+nmds_spp            <- as.data.frame(scores(nmds, display = "species"))
+nmds_spp$species    <- rownames(nmds_spp)
 
-ggplot(sites, aes(NMDS1, NMDS2, color = color)) +
-  geom_point(size = 3) +
-  theme_bw() +
-  labs(
-    title = 'NMDS of Bat Community Composition',
-    color = "Light Color"
-  )
-
-ggplot(sites, aes(NMDS1, NMDS2, color = color, shape = factor(intensity))) +
-  geom_point(size = 3) +
-  theme_bw() +
-  labs(
-    shape = "Intensity"
-  )
-
-species <- as.data.frame(scores(nmds, display = 'species'))
-species$species <- rownames(species)
-
-ggplot(sites, aes(NMDS1, NMDS2)) +
-  geom_point(aes(color = color), size =3) +
+ggplot(nmds_sites, aes(NMDS1, NMDS2)) +
+  geom_point(aes(color = color), size = 3) +
   geom_segment(
-    data = species,
+    data        = nmds_spp,
     aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
-    arrow = arrow(length = unit(0.2, "cm")),
+    arrow       = arrow(length = unit(0.2, "cm")),
     inherit.aes = FALSE
   ) +
   geom_text(
-    data = species,
+    data        = nmds_spp,
     aes(x = NMDS1, y = NMDS2, label = species),
-    size = 3,
+    size        = 3,
     inherit.aes = FALSE
   ) +
-  theme_bw()
+  scale_color_manual(
+    values = c(R = col_red, W = col_white),
+    labels = c(R = "Red", W = "White"),
+    name   = "Light color"
+  ) +
+  labs(title = "NMDS: Bat Community Composition") +
+  bat_theme
 
-adonis2(
-  comm_matrix ~ color * intensity,
-  data = meta,
-  method = 'bray'
-)
+# Permanova
+adonis2(comm_matrix ~ color * intensity,        data = meta, method = "bray")
+adonis2(comm_matrix ~ color * intensity + site, data = meta, method = "bray")
 
-adonis2(
-  comm_matrix ~ color * intensity + site,
-  data = meta,
-  method = 'bray'
-)
-
-dist_mat <- vegdist(comm_matrix, method='bray')
-class(dist_mat)
-bd <- betadisper(dist_mat, meta$color)
+# Dispersion
+dist_mat <- vegdist(comm_matrix, method = "bray")
+bd       <- betadisper(dist_mat, meta$color)
 anova(bd)
-boxplot(bd)
 
-indval <- multipatt(comm_matrix, meta$color, control = how(nperm=999))
+# Indicator species
+indval <- multipatt(comm_matrix, meta$color, control = how(nperm = 999))
 summary(indval)
 ```
 
-```{r}
+## Model Selection
+
+```{r model_comparison, warning=FALSE, message=FALSE}
 source("R/06_run_models.R")
 models <- run_models(data_env)
 
-AIC(models$m0,models$m1,models$m2, models$sm)
+AIC(models$m0, models$m1, models$m2, models$sm)
 
-anova(models$m0,models$m1)
-anova(models$m1,models$m2)
+anova(models$m0, models$m1)
+anova(models$m1, models$m2)
 anova(models$m1, models$sm)
 
 sim <- simulateResiduals(models$sm)
-
 plot(sim)
-
 testDispersion(sim)
-
 testZeroInflation(sim)
 
 summary(models$sm)
 ```
 
-```{r}
-library(ggplot2)
-library(ggeffects)
+## Occurrence Thresholds
 
-ggplot(data_env,
-       aes(x = dist_km,
-           y = detections)) +
-  geom_point(alpha = 0.4) +
-  geom_smooth(method = "loess") + 
-  labs(
-    x = "Distance (km)",
-    y = "Detections"
-  ) +
-  theme_classic()
-
-ggplot(data_env,
-       aes(x = dist_cat,
-           y = detections)) +
-  geom_boxplot() +
-  labs(
-    x = "Distance Category",
-    y = "Detections"
-  ) +
-  theme_classic()
-
-pred <- ggpredict(
-  simple_model1,
-  terms = c("jd [all]", "color", "intensity")
-)
-
-ggplot(pred, aes(x = x, y = predicted, color = group)) +
-  geom_line(linewidth = 1) +
-  facet_wrap(~facet) +
-  labs(
-    x = "Julian Day",
-    y = "Predicted bat occurrences",
-    color = "Light color"
-  ) + 
-  theme_classic()
-
-ggplot(pred, aes(x=x, y=group, fill=predicted)) +
-  geom_tile() +
-  facet_wrap(~facet) +
-  scale_fill_viridis_c() +
-  labs(
-    x = "Julian Day",
-    y = "Light color",
-    fill = 'Predicted occurrences'
-  ) +
-  theme_classic()
-
-pred_df <- as.data.frame(pred)
-
-p1 <- ggplot(pred_df, aes(x=x, y=predicted, color=group)) +
-  geom_line(linewidth = 1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
-              alpha = 0.15, color = NA) +
-  facet_wrap(~facet) +
-  labs(
-    x = 'Julian Day',
-    y = 'Predicted bat occurrences',
-    color = 'Light color',
-    fill = 'Light color'
-  ) +
-  theme_classic()
-
-effect_df <- pred_df %>%
-  select(x, predicted, group, facet) %>%
-  pivot_wider(
-    names_from = group,
-    values_from = predicted
-  ) %>%
-  mutate(effect = W-R)
-
-p2 <- ggplot(effect_df, aes(x = x, y = effect)) +
-  geom_hline(yintercept = 0, linetype = 'dashed') +
-  geom_line(linewidth = 1) + 
-  facet_wrap(~facet) +
-  labs(
-    x = "Julian Day",
-    y = 'Effect of White Light (White - Red)'
-  ) + 
-  theme_classic()
-
-library(patchwork)
-p1 / p2
-
-ggplot(data_env, aes(x=jd, y=detections, color = color)) +
-  geom_point(alpha = 0.4) +
-  geom_smooth(method = 'loess') +
-  facet_wrap(~ intensity) +
-  theme_classic()
-
-data_env <- data_env %>%
-  mutate(
-    treatment = paste(color, intensity, sep='_')
-  )
-
-ggplot(data_env,
-       aes(x = treatment, y = detections)) +
-  geom_boxplot() +
-  theme_classic()
-
-summary_df <- data_env %>%
-  group_by(color, intensity) %>%
-  summarise(
-    mean_occ = mean(detections),
-    se = sd(detections)/sqrt(n()),
-    .groups = "drop"
-  )
-
-ggplot(summary_df, aes(x = factor(intensity), 
-                       y = mean_occ,
-                       color = color,
-                       group=color)) +
-  geom_point(size = 3) +
-  geom_line() +
-  geom_errorbar(
-    aes(ymin = mean_occ -se,
-        ymax = mean_occ +se),
-        width = 0.1
-  ) +
-    theme_classic()
-
-ggplot(data_env, aes(color, detections)) + 
-  geom_boxplot() + 
-  labs(
-    x = "Light color",
-    y = "Bat count"
-  )
-
-ggplot(data_env, aes(intensity, detections, color = color)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = 'lm') +
-  labs(
-    x = "Light intensity",
-    y = "Bat count"
-  )
-
-summary_df <- data_env %>%
-  group_by(color, intensity) %>%
-  summarise(
-    mean_count = mean(detections, na.rm = TRUE),
-    se = sd(detections, na.rm = TRUE) / sqrt(n()),
-    .groups = "drop"
-  )
-
-ggplot(summary_df, aes(intensity, mean_count, color = color, group = color))+
-  geom_line() +
-  geom_point(size=3) +
-  geom_errorbar(
-    aes(
-      ymin = mean_count - se,
-      ymax = mean_count + se
-    ),
-    width = 0.1
-  )
-```
-
-```{r}
+```{r thresholds, warning=FALSE, message=FALSE}
 source("R/05_data_exploration.R")
 source("R/04_Occurrence_Thresholds.R")
 
 occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
 
 env_data <- data_env %>%
-  distinct(
-    site,
-    date,
-    mean_moonlight,
-    mean_phase,
-    color,
-    intensity,
-    year,
-    jd,
-    pct_forest
-  )
+  distinct(site, date, mean_moonlight, mean_phase,
+           color, intensity, year, jd, pct_forest)
 
 occurrences <- occurrences %>%
-  left_join(
-    env_data,
-    by = c('site', 'date')
-  )
+  left_join(env_data, by = c("site", "date")) %>%
+  left_join(data_env %>% distinct(site, pct_forest), by = "site")
 
-glimpse(occurrences)
-
-occurrences %>%
-  ggplot(aes(threshold_sec, occurrences, group = site, color = site)) + 
-  geom_line(alpha = 0.3)
-
-occurrences %>%
-  group_by(threshold_sec) %>%
-  summarise(total_occurrences = sum(occurrences))
-
-data_30 <- occurrences %>%
-  filter(threshold_sec == 30)
-
-data_60 <- occurrences %>%
-  filter(threshold_sec == 60)
-
-data_120 <- occurrences %>%
-  filter(threshold_sec == 120)
-
-data_300 <- occurrences %>%
-  filter(threshold_sec == 300)
-
-site_env <- data_env %>%
-  distinct(site, pct_forest)
-
-occurrences <- occurrences %>%
-  left_join(site_env, by = "site")
+data_30  <- occurrences %>% filter(threshold_sec == 30)
+data_60  <- occurrences %>% filter(threshold_sec == 60)
+data_120 <- occurrences %>% filter(threshold_sec == 120)
+data_300 <- occurrences %>% filter(threshold_sec == 300)
 ```
 
-```{r}
+```{r threshold_models, warning=FALSE, message=FALSE}
+threshold_formula <- occurrences ~
+  color * intensity * mean_phase +
+  pct_forest +
+  jd +
+  jd^2 +
+  mean_moonlight +
+  (1 | site) +
+  (1 | year)
 
-data_30_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_30,
-    family = nbinom2()
-)
-
-data_60_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_60,
-    family = nbinom2()
-)
-
-data_120_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_120,
-    family = nbinom2()
-)
-
-data_300_model <- glmmTMB(
-    occurrences ~
-      color *
-      intensity *
-      mean_phase +
-      pct_forest +
-      jd +
-      jd^2 +
-      mean_moonlight +
-      (1|site) +
-      (1|year),
-    data = data_300,
-    family = nbinom2()
-)
+data_30_model  <- glmmTMB(threshold_formula, data = data_30,  family = nbinom2())
+data_60_model  <- glmmTMB(threshold_formula, data = data_60,  family = nbinom2())
+data_120_model <- glmmTMB(threshold_formula, data = data_120, family = nbinom2())
+data_300_model <- glmmTMB(threshold_formula, data = data_300, family = nbinom2())
 
 AIC(data_30_model, data_60_model, data_120_model, data_300_model)
-
-library(ggeffects)
-
-pred <- ggpredict(
-  data_30_model,
-  terms = c("intensity", "color")
-)
-plot(pred)
 
 summary(data_30_model)
 ```
 
-```{r}
+## Diagnostics
 
-heat_data <- occurrences %>%
-  group_by(species, color, intensity) %>%
-  summarise(
-    mean_occurrences = mean(occurrences, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-heat_data <- heat_data %>%
-  mutate(
-    treatment = paste(color, intensity, sep = "_")
-  )
-
-ggplot(
-  heat_data,
-  aes(
-    x = treatment,
-    y = species,
-    fill = mean_occurrences
-  )
-) +
-  geom_tile() +
-  labs(
-    x = "Treatment",
-    y = "Species",
-    fill = "Mean\nOccurrences"
-  ) + 
-  theme_classic()
-```
-
-Myyu = Yuma myotis might be little brown bat or Myvo
-
-Myvo = Myotis volans \*
-
-Myth = Myotis thysanodes might by Myev
-
-Mylu = Myotis lucifugus \*
-
-Myev = Myotis evotis \*
-
-Myci = Myotis ciliolabrum
-
-Myca = Myotis californicus
-
-Lano = Euderma maculatum
-
-Laci = Lasiurus cinereus \*
-
-Euma = Euderma maculatum
-
-Epfu = Eptesicus fuscus \*
-
-Anpa = Antrozous pallidus maybe Lasionycteris noctivagans
-
-```{r}
-library(ggeffects)
-
-pred <- ggpredict(
-  simple_model1,
-  terms = c("intensity", "color")
-)
-plot(pred)
-```
-
-```{r}
+```{r diagnostics, warning=FALSE, message=FALSE}
 library(corrplot)
-
-vars <- data_env %>%
-  select(
-    detections,
-    pct_nonforest,
-    jd,
-    mean_phase,
-    dist_km
-  )
-
-cor_matrix <- cor(vars, use = 'complete.obs')
-
-corrplot(cor_matrix)
-```
-
-```{r}
 library(emmeans)
 
-emmeans(simple_model1, 
-        ~dist_cat)
+# Covariate correlation matrix
+vars <- data_env %>%
+  select(detections, pct_nonforest, jd, mean_phase, dist_km)
+corrplot(cor(vars, use = "complete.obs"))
 
-pairs(
-  emmeans(simple_model1,
-          ~ dist_cat)
-)
+# Distance post-hoc contrasts
+emmeans(simple_model1, ~dist_cat)
+pairs(emmeans(simple_model1, ~dist_cat))
 ```
 
-```{r}
-library(ggeffects)
+## Figures
 
-pred_moon <- ggpredict(
-  simple_model1,
-  terms = c("mean_phase", "intensity")
-)
+```{r figures, message=FALSE, warning=FALSE}
+source("R/08_figures.R")
 
-plot(pred_moon)
+fig1; fig2; fig3; fig4; fig5; fig6
 ```
 
-At the end of every day:
+## Species Key
 
+| Code | Species                                          |
+|------|--------------------------------------------------|
+| Myyu | Yuma myotis (possibly Myvo)                      |
+| Myvo | *Myotis volans* \*                               |
+| Myth | *Myotis thysanodes* (possibly Myev)              |
+| Mylu | *Myotis lucifugus* \*                            |
+| Myev | *Myotis evotis* \*                               |
+| Myci | *Myotis ciliolabrum*                             |
+| Myca | *Myotis californicus*                            |
+| Lano | *Euderma maculatum*                              |
+| Laci | *Lasiurus cinereus* \*                           |
+| Euma | *Euderma maculatum*                              |
+| Epfu | *Eptesicus fuscus* \*                            |
+| Anpa | *Antrozous pallidus* (possibly *L. noctivagans*) |
+
+------------------------------------------------------------------------
+
+*At the end of every day:*
+
+```         
 git add .
-
 git commit -m "updated detection pipeline"
-
 git push
+```

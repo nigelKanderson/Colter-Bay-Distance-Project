@@ -10,4 +10,4 @@ names(lighting)
 lighting <- lighting %>%
   mutate(date = as.Date(date))
 
-saveRDS(lighting, "data_full.rds")
+saveRDS(lighting, "data/data_full.rds")

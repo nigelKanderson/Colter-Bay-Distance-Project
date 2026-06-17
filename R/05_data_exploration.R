@@ -2,7 +2,7 @@ library(tidyverse)
 library(janitor)
 library(ggplot2)
 
-data <- readRDS('data_out.rds')
+data <- readRDS('data/data_out.rds')
 
 glimpse(data)
 summary(data)

@@ -3,7 +3,7 @@ library(glmmTMB)
 library(DHARMa)
 library(performance)
 
-#data <- readRDS("data_out.rds")
+#data <- readRDS("data/data_out.rds")
 
 #glimpse(data)
 
