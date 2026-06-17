@@ -9,7 +9,7 @@ library(purrr)
 library(stringr)
 
 files_all <- list.files(
-  path = "/Users/nanderson/Library/CloudStorage/GoogleDrive-nigel_anderson@brown.edu/.shortcut-targets-by-id/1sSdpOAdUOgAVbJGpTKgB3-CJAfnjsvKJ/grandteton_distanceproject",
+  path = "/Users/nanderson/Library/CloudStorage/GoogleDrive-nigel_anderson@brown.edu/.shortcut-targets-by-id/1sSdpOAdUOgAVbJGpTKgB3-CJAfnjsvKJ/grandteton_distanceproject/grte_distance_v4.3",
   pattern = "\\.xlsx$",
   full.names = TRUE,
   recursive = TRUE
@@ -18,13 +18,13 @@ files_all <- list.files(
 # I want to exclude all files that are version 4.4.5 because we want to ensure
 #that all files are the same version for sonobat for consistencey/accuracy
 
-excluded <- files_all[grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
+excluded <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
 
-files <- files_all[!grepl('v4.4.5', basename(files_all), ignore.case = TRUE)]
+files <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
 
 cat(
   "Found ", length(files_all), " Excel files.\n",
-  "Excluded ", length(excluded), " v4.4.5 files. \n",
+  "Excluded ", length(excluded), " v430 files. \n",
   "Importing ", length(files), " files. \n"
 )
   
