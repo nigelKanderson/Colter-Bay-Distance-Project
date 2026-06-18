@@ -229,7 +229,7 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
     geom_tile(color = "white", linewidth = 0.4) +
     scale_fill_gradient2(
       low      = col_red,
-      mid      = "#F5F5F5",
+      mid      = "#F5F0E3",
       high     = col_white,
       midpoint = 0,
       name     = "Relative\nactivity (z)"
@@ -262,7 +262,7 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
     geom_tile(color = "white", linewidth = 0.4) +
     scale_fill_gradient2(
       low      = col_red,
-      mid      = "#F5F5F5",
+      mid      = "#F5F0E3",
       high     = col_white,
       midpoint = 0,
       name     = "Relative\nactivity (z)"

@@ -171,7 +171,10 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
     geom_errorbar(aes(xmin = lower_CL, xmax = upper_CL),
                   position = position_dodge(0.6),
                   width = 0.35, linewidth = 0.7) +
-    scale_color_viridis_d(name = "Intensity", option = "C", end = 0.85) +
+    scale_color_manual(values = c("10" = "#F5F0E3", "30" = "#C9A84C",
+                                   "50" = "#4A1259", "70" = "#7A1C2E",
+                                   "100" = "#1B2A4A"),
+                       name = "Intensity") +
     labs(
       title    = "White vs. Red Light — Detection Ratio by Species & Intensity",
       subtitle = "Ratio > 1 = more detections under white; < 1 = more under red",
@@ -206,7 +209,7 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
     geom_text(aes(label = round(log2_ratio, 2)),
               color = "white", size = 3.2, fontface = "bold") +
     scale_fill_gradient2(low      = col_red,
-                         mid      = "#F5F5F5",
+                         mid      = "#F5F0E3",
                          high     = col_white,
                          midpoint = 0,
                          name     = "log₂(White/Red)") +

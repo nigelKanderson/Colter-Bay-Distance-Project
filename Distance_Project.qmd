@@ -34,8 +34,19 @@ bat_theme <- theme_classic(base_size = 12) +
     plot.margin        = margin(12, 14, 10, 12)
   )
 
-col_red   <- "#C0392B"
-col_white <- "#A67C1E"
+# Catholic-inspired palette
+col_red    <- "#7A1C2E"   # cardinal crimson
+col_white  <- "#C9A84C"   # gilded gold
+col_navy   <- "#1B2A4A"   # nave navy
+col_purple <- "#4A1259"   # papal purple
+col_ivory  <- "#F5F0E3"   # illuminated manuscript ivory
+
+# Intensity gradient: ivory → gold → purple → crimson → navy
+intensity_pal <- c("10"  = col_ivory,
+                   "30"  = col_white,
+                   "50"  = col_purple,
+                   "70"  = col_red,
+                   "100" = col_navy)
 ```
 
 ## Data Pipeline
@@ -342,8 +353,8 @@ ggplot(pred_df, aes(x = dist_km, y = response,
                     color = factor(intensity), fill = factor(intensity))) +
   geom_ribbon(aes(ymin = lower_CL, ymax = upper_CL), alpha = 0.12, color = NA) +
   geom_line(linewidth = 1.1) +
-  scale_color_viridis_d(name = "Intensity (%)", option = "C", end = 0.85) +
-  scale_fill_viridis_d(name  = "Intensity (%)", option = "C", end = 0.85) +
+  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
+  scale_fill_manual(values  = intensity_pal, name = "Intensity (%)") +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +
   labs(
     title    = "Predicted Bat Detections by Distance and Light Intensity",
@@ -354,6 +365,9 @@ ggplot(pred_df, aes(x = dist_km, y = response,
   ) +
   bat_theme +
   theme(legend.position = "right")
+
+ggsave("output/figures/fig9_dist_intensity.png",
+       last_plot(), width = 8, height = 5, dpi = 300, bg = "white")
 ```
 
 ## Species Models

@@ -34,9 +34,18 @@ bat_theme <- theme_classic(base_size = 12) +
     plot.margin        = margin(12, 14, 10, 12)
   )
 
-# Color palette
-col_red   <- "#C0392B"
-col_white <- "#2E86AB"   # blue proxy for white light (visible on plots)
+# Catholic-inspired palette
+col_red    <- "#7A1C2E"   # cardinal crimson
+col_white  <- "#C9A84C"   # gilded gold
+col_navy   <- "#1B2A4A"   # nave navy
+col_purple <- "#4A1259"   # papal purple
+col_ivory  <- "#F5F0E3"   # illuminated manuscript ivory
+
+intensity_pal <- c("10"  = col_ivory,
+                   "30"  = col_white,
+                   "50"  = col_purple,
+                   "70"  = col_red,
+                   "100" = col_navy)
 
 # Distance category order
 dist_order <- c("Close", "Medium", "Further", "Far")
@@ -91,10 +100,10 @@ dist_summary <- data_env %>%
 
 fig2 <- ggplot(dist_summary,
                aes(x = dist_cat, y = mean_det)) +
-  geom_col(fill = "#DDEAF5", color = "#2E86AB",
+  geom_col(fill = col_ivory, color = col_navy,
            linewidth = 0.6, width = 0.55) +
   geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.18, linewidth = 0.9, color = "#1A5276") +
+                width = 0.18, linewidth = 0.9, color = col_navy) +
   labs(
     title    = "Bat Detections by Distance from Light Source",
     subtitle = "Mean ± SE across all treatments",
@@ -172,7 +181,7 @@ heat_data <- data_env %>%
 fig5 <- ggplot(heat_data,
                aes(x = color, y = species, fill = mean_det)) +
   geom_tile(color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#F7FBFF", high = "#08519C",
+  scale_fill_gradient(low = col_ivory, high = col_navy,
                       name = "Mean\ndetections") +
   scale_x_discrete(labels = c(R = "Red", W = "White")) +
   labs(
@@ -221,9 +230,9 @@ site_means <- data_env %>%
 
 fig7 <- ggplot(site_means, aes(x = dist_km, y = mean_det)) +
   geom_smooth(method = "lm", se = TRUE,
-              color = "#2E86AB", fill = "#DDEAF5", linewidth = 1) +
-  geom_point(size = 3.5, color = "#333333") +
-  geom_text_repel(aes(label = site), size = 3, color = "#666666",
+              color = col_navy, fill = col_ivory, linewidth = 1) +
+  geom_point(size = 3.5, color = col_red) +
+  geom_text_repel(aes(label = site), size = 3, color = "#555555",
                   box.padding = 0.4) +
   labs(
     title    = "Bat Detections vs Distance from Light Source",
@@ -251,7 +260,7 @@ spp_dist <- data_env %>%
 fig8 <- ggplot(spp_dist,
                aes(x = dist_cat, y = species, fill = mean_det)) +
   geom_tile(color = "white", linewidth = 0.4) +
-  scale_fill_gradient(low = "#F7FBFF", high = "#08519C",
+  scale_fill_gradient(low = col_ivory, high = col_navy,
                       name = "Mean\ndetections") +
   labs(
     title    = "Species Detections by Distance from Light Source",
