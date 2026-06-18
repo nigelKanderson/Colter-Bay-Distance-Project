@@ -7,7 +7,6 @@ editor: visual
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(ggplot2)
 
 # Shared theme + palette (matches ColterBay style)
 bat_theme <- theme_classic(base_size = 12) +
@@ -36,7 +35,7 @@ bat_theme <- theme_classic(base_size = 12) +
   )
 
 col_red   <- "#C0392B"
-col_white <- "#2E86AB"
+col_white <- "#A67C1E"
 ```
 
 ## Data Pipeline
@@ -65,8 +64,6 @@ data_env <- add_moonlight(data_env)
 ```{r treatment, warning=FALSE, message=FALSE}
 source("R/07_add_light_treatment.R")
 
-data_full <- readRDS("data/data_full.rds")
-
 data_env <- data_env %>%
   left_join(
     lighting %>% select(date, color, intensity),
@@ -77,6 +74,7 @@ data_env <- data_env %>%
     site      = factor(site),
     intensity = factor(intensity)
   )
+
 ```
 
 ```{r distance, warning=FALSE, message=FALSE}
@@ -110,6 +108,8 @@ data_env <- data_env %>%
     jd_c = jd - mean(jd, na.rm = TRUE)   # centered Julian day
   )
 
+data_env <- data_env %>% filter(!is.na(dist_km))
+
 data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
 
 # Filter to focal species (matches ColterBay project)
@@ -132,11 +132,11 @@ library(glmmTMB)
 simple_model1 <- glmmTMB(
   detections ~
     color * intensity +
+    color * dist_km +
     mean_phase +
     pct_nonforest +
     brightness_dark +
     jd_c + I(jd_c^2) +
-    dist_cat +
     (1 | site),
   data      = data_env,
   ziformula = ~1,
@@ -224,7 +224,7 @@ threshold_formula <- occurrences ~
   color * intensity * mean_phase +
   pct_forest +
   jd +
-  jd^2 +
+  I(jd^2) +
   mean_moonlight +
   (1 | site) +
   (1 | year)
@@ -243,7 +243,6 @@ summary(data_30_model)
 
 ```{r diagnostics, warning=FALSE, message=FALSE}
 library(corrplot)
-library(emmeans)
 
 # Covariate correlation matrix
 vars <- data_env %>%
@@ -298,14 +297,55 @@ em_int_color <- emmeans(simple_model1, ~ intensity | color, type = "response")
 cat("\n=== Intensity pairwise contrasts within Red (Holm-corrected) ===\n")
 pairs(em_int_color, adjust = "holm")
 
-# ── 3. Distance pairwise contrasts ────────────────────────────────────────────
-em_dist <- emmeans(simple_model1, ~ dist_cat, type = "response")
+# ── 3. Color × Distance interaction test ──────────────────────────────────────
+em_dist_trend <- emtrends(simple_model1, ~ color,
+                           var = "dist_km", type = "response")
 
-cat("\n=== Estimated marginal means: distance categories ===\n")
-em_dist
+cat("\n=== Distance slope (km) by color ===\n")
+em_dist_trend
 
-cat("\n=== Distance pairwise contrasts (Holm-corrected) ===\n")
-pairs(em_dist, adjust = "holm")
+cat("\n=== Red vs. White distance slope contrast ===\n")
+pairs(em_dist_trend)
+```
+
+## Distance × Color Figure
+
+```{r dist_color_fig, warning=FALSE, message=FALSE}
+library(emmeans)
+
+# Predicted detections across the observed distance gradient, by color
+dist_range <- range(data_env$dist_km, na.rm = TRUE)
+dist_grid  <- seq(dist_range[1], dist_range[2], length.out = 60)
+
+em_dist_color <- emmeans(
+  simple_model1,
+  ~ color | dist_km,
+  at      = list(dist_km = dist_grid),
+  type    = "response"
+)
+
+pred_df <- as.data.frame(em_dist_color) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+ggplot(pred_df, aes(x = dist_km, y = response, color = color, fill = color)) +
+  geom_ribbon(aes(ymin = lower_CL, ymax = upper_CL), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1.1) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"),
+                     name   = "Light color") +
+  scale_fill_manual(values  = c(R = col_red, W = col_white),
+                    labels  = c(R = "Red", W = "White"),
+                    name    = "Light color") +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  labs(
+    title    = "Predicted Bat Detections by Distance and Light Color",
+    subtitle = "Marginal means ± 95% CI from negative binomial GLMM",
+    x        = "Distance from light source (km)",
+    y        = "Predicted detections per night",
+    caption  = "Other covariates held at their means"
+  ) +
+  bat_theme +
+  theme(legend.position = "top")
 ```
 
 ## Species Models
@@ -340,18 +380,10 @@ fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8
 | Myev | *Myotis evotis* \*                               |
 | Myci | *Myotis ciliolabrum*                             |
 | Myca | *Myotis californicus*                            |
-| Lano | *Euderma maculatum*                              |
+| Lano | *Lasionycteris noctivagans*                      |
 | Laci | *Lasiurus cinereus* \*                           |
 | Euma | *Euderma maculatum*                              |
 | Epfu | *Eptesicus fuscus* \*                            |
 | Anpa | *Antrozous pallidus* (possibly *L. noctivagans*) |
 
 ------------------------------------------------------------------------
-
-*At the end of every day:*
-
-```         
-git add .
-git commit -m "updated detection pipeline"
-git push
-```

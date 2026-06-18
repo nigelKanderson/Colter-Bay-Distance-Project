@@ -17,7 +17,8 @@ run_models <- function(data) {
     filter(
       !is.na(detections),
       !is.na(jd),
-      !is.na(pct_forest)
+      !is.na(pct_forest),
+      !is.na(dist_km)
     )
   
   m0 <- glmmTMB(
@@ -50,6 +51,7 @@ run_models <- function(data) {
       mean_phase +
       pct_forest +
       color * intensity +
+      color * dist_km +
       (1|site) +
       (1|year),
     data = model_data,
@@ -59,6 +61,7 @@ run_models <- function(data) {
   simple_model1 <- glmmTMB(
     detections ~
       color * intensity +
+      color * dist_km +
       mean_phase +
       pct_nonforest +
       I(jd^2) +

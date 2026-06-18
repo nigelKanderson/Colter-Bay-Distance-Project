@@ -28,6 +28,8 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
          if (length(near)) paste0("  Similar columns found: ", paste(near, collapse=", "), "\n"))
   }
 
+  data_env <- data_env %>% filter(!is.na(dist_km))
+
   cat("Community analysis: ", nrow(data_env), "rows,",
       n_distinct(data_env$species), "species\n")
 
@@ -61,10 +63,9 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
         env_sum <- data_env %>%
           group_by(across(all_of(grp_vars))) %>%
           summarise(
-            mean_phase    = mean(mean_phase,    na.rm = TRUE),
-            pct_nonforest = first(pct_nonforest),
-            dist_cat      = first(dist_cat),
-            dist_km       = first(dist_km),
+            mean_phase       = mean(mean_phase,    na.rm = TRUE),
+            pct_nonforest    = first(pct_nonforest),
+            dist_km          = first(dist_km[!is.na(dist_km)]),
             .groups = "drop"
           )
         if (has_brightness)
@@ -79,16 +80,22 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
       by = grp_vars
     )
 
-  env_meta_cols <- c(grp_vars, "mean_phase", "pct_nonforest", "dist_cat", "dist_km",
+  env_meta_cols <- c(grp_vars, "mean_phase", "pct_nonforest", "dist_km",
                      if (has_brightness) "brightness_dark")
   species_cols  <- setdiff(names(community_matrix), env_meta_cols)
 
-  comm <- community_matrix %>% select(all_of(species_cols))
-  env  <- community_matrix %>%
+  comm_full <- community_matrix %>% select(all_of(species_cols))
+  env_full  <- community_matrix %>%
     select(all_of(env_meta_cols)) %>%
-    mutate(color    = factor(color),
-           dist_cat = factor(dist_cat,
-                             levels = c("Close", "Medium", "Further", "Far")))
+    mutate(color = factor(color))
+
+  # Drop rows with any NA in env covariates (keeps comm and env aligned)
+  complete_rows <- complete.cases(env_full)
+  if (any(!complete_rows)) {
+    cat("  Dropping", sum(!complete_rows), "rows with NA covariates from ordination\n")
+  }
+  comm <- comm_full[complete_rows, , drop = FALSE]
+  env  <- env_full[complete_rows,  , drop = FALSE]
 
   # ── NMDS ──────────────────────────────────────────────────────────────────
   cat("Running NMDS...\n")
@@ -99,7 +106,7 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
 
   # Build covariate terms string (add brightness_dark only if available)
   cov_terms <- paste(
-    c("color", "intensity", "dist_cat", "mean_phase", "pct_nonforest",
+    c("color", "intensity", "dist_km", "mean_phase", "pct_nonforest",
       if (has_brightness) "brightness_dark"),
     collapse = " + "
   )
@@ -158,14 +165,12 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
     mutate(
       variable = rownames(bp_mat),
       variable = dplyr::recode(variable,
-        colorW          = "White light",
-        intensity       = "Intensity",
-        mean_phase      = "Moon phase",
-        pct_nonforest   = "% Non-forest",
-        brightness_dark = "Sky brightness",
-        dist_catMedium  = "Distance: Medium",
-        dist_catFurther = "Distance: Further",
-        dist_catFar     = "Distance: Far"
+        colorW            = "White light",
+        intensity         = "Intensity",
+        mean_phase        = "Moon phase",
+        pct_nonforest     = "% Non-forest",
+        brightness_dark   = "Sky brightness",
+        dist_km           = "Distance (km)"
       )
     ) %>%
     filter(dbRDA1^2 + dbRDA2^2 > 1e-8)   # drop zero-length arrows
