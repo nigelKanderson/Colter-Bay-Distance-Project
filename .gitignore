@@ -11,3 +11,13 @@
 .quarto
 Distance_Project.html
 Distance_Project_files/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+
+# Storyboard compiled outputs (regenerated from storyboard.qmd)
+storyboard.pdf
+storyboard.html
