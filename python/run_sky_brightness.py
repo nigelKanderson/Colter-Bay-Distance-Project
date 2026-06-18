@@ -174,15 +174,30 @@ def main():
     df_by_cond = (
         df_img
         .groupby(["site", "condition"], as_index=False)
-        .agg(mean_dsu=("mean_dsu", "mean"), n_images=("filename", "count"))
+        .agg(
+            mean_dsu=("mean_dsu",    "mean"),
+            median_dsu=("median_dsu", "mean"),   # avg of per-image medians across p1/p2/p3
+            n_images=("filename",    "count"),
+        )
     )
 
-    df_sites = df_by_cond.pivot(index="site", columns="condition", values="mean_dsu")
-    df_sites.columns.name = None
-    df_sites = df_sites.reset_index().rename(columns={
+    # Mean DSU pivot
+    df_mean = df_by_cond.pivot(index="site", columns="condition", values="mean_dsu")
+    df_mean.columns.name = None
+    df_mean = df_mean.reset_index().rename(columns={
         "dark":     "brightness_dark",
         "white100": "brightness_white100",
     })
+
+    # Median DSU pivot
+    df_med = df_by_cond.pivot(index="site", columns="condition", values="median_dsu")
+    df_med.columns.name = None
+    df_med = df_med.reset_index().rename(columns={
+        "dark":     "brightness_dark_median",
+        "white100": "brightness_white100_median",
+    })
+
+    df_sites = df_mean.merge(df_med, on="site", how="left")
 
     site_csv = OUT_DIR / "sky_brightness_measurements.csv"
     df_sites.to_csv(site_csv, index=False)
