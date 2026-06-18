@@ -81,51 +81,53 @@ Eight focal species: Epfu, Laci, Lano, Myev, Mylu, Myvo, Myyu, Myci.
 
 \begin{verbatim}
 Family:      nbinom2  ( log )
-Formula:     detections ~ color * intensity + mean_phase +
-             pct_nonforest + brightness_dark + jd_c +
-             I(jd_c^2) + dist_cat + (1 | site)
+Formula:     detections ~ color * intensity + intensity * dist_km +
+             mean_phase + pct_nonforest + brightness_dark +
+             jd_c + I(jd_c^2) + (1 | site)
 Zero infl:   ~1
 Data:        data_env
 
       AIC       BIC    logLik  -2*log(L)  df.resid
-  24276.0   24405.1  -12117.0   24234.0      3436
+  24256.7   24398.1  -12105.4   24210.7      3434
 
 Random effects:
  Groups  Name         Variance  Std.Dev.
- site    (Intercept)  0.301     0.5486
+ site    (Intercept)  0.3728    0.6106
 Number of obs: 3457, groups: site, 14
 
-Dispersion parameter for nbinom2 family (): 0.603
+Dispersion parameter for nbinom2 family (): 0.607
 
 Conditional model:
-                     Estimate   Std.Err  z value  Pr(>|z|)
-(Intercept)          1.2861400  0.6075  2.117    0.034264  *
-colorW               0.0107081  0.0923  0.116    0.907680
-intensity30          0.5958819  0.1365  4.365    1.27e-05  ***
-intensity50          0.3537144  0.1427  2.480    0.013156  *
-intensity70          0.3537966  0.0933  3.794    0.000148  ***
-intensity100        -0.0002213  0.1159 -0.002    0.998477
-mean_phase           0.2150853  0.1159  1.856    0.063473  .
-pct_nonforest        2.1297329  1.1333  1.879    0.060206  .
-brightness_dark     -0.0262685  0.0339 -0.776    0.437882
-jd_c                -0.0071307  0.0017 -4.254    2.10e-05  ***
-I(jd_c^2)          -0.0002928  0.0002 -1.704    0.088464  .
-dist_catFar          0.9896498  0.4815  2.055    0.039849  *
-dist_catFurther      1.2080207  0.5988  2.017    0.043648  *
-dist_catMedium       1.1962086  0.6759  1.770    0.076774  .
-colorW:intensity30  -0.7281190  0.1710 -4.258    2.06e-05  ***
-colorW:intensity50  -0.4971992  0.1455 -3.417    0.000634  ***
-colorW:intensity70  -0.1228107  0.1363 -0.901    0.367657
-colorW:intensity100  0.0893243  0.1339  0.667    0.504684
----
-Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+                       Estimate   Std.Err  z value  Pr(>|z|)
+(Intercept)           2.1920095  0.3045    7.199   6.05e-13  ***
+colorW                0.0499199  0.0931    0.536   0.5917
+intensity30           0.7155529  0.1476    4.849   1.24e-06  ***
+intensity50           0.4606876  0.1569    2.936   0.0033    **
+intensity70           0.6229863  0.1099    5.671   1.42e-08  ***
+intensity100          0.2331022  0.1331    1.752   0.0798    .
+dist_km               0.1375974  0.0675    2.040   0.0414    *
+mean_phase            0.1992094  0.1171    1.701   0.0889    .
+pct_nonforest         0.5326479  0.8559    0.622   0.5337
+brightness_dark      -0.0262336  0.0376   -0.698   0.4854
+jd_c                 -0.0073183  0.0017   -4.287   1.81e-05  ***
+I(jd_c^2)            -0.0003733  0.0002   -2.150   0.0315    *
+colorW:intensity30   -0.7703147  0.1751   -4.399   1.09e-05  ***
+colorW:intensity50   -0.5357506  0.1459   -3.672   0.0002    ***
+colorW:intensity70   -0.1550017  0.1366   -1.135   0.2565
+colorW:intensity100   0.0172641  0.1353    0.128   0.8985
+intensity30:dist_km  -0.0501091  0.0319   -1.572   0.1159
+intensity50:dist_km  -0.0364428  0.0294   -1.239   0.2153
+intensity70:dist_km  -0.1275481  0.0272   -4.687   2.77e-06  ***
+intensity100:dist_km -0.0897028  0.0269   -3.335   0.0009    ***
 
 Zero-inflation model:
-             Estimate  Std.Err  z value  Pr(>|z|)
-(Intercept)   -21.66   858.41   -0.025    0.98
+            Estimate  Std.Err  z value  Pr(>|z|)
+(Intercept)   -21.53   805.37   -0.027    0.979
 \end{verbatim}
 
-Reference levels: color = R (red), intensity = 10\%, dist\_cat = Close.
+Reference levels: color = R (red), intensity = 10\%.
+Distance entered as continuous raw km (dist\_km).
+Two 2-way interactions: color $\times$ intensity, intensity $\times$ dist\_km.
 
 % ============================================================
 \section{Post-hoc: Colour x Intensity}
@@ -135,48 +137,48 @@ Estimated marginal means on the response scale (detections/night),
 averaged over distance. Holm-corrected pairwise contrasts.
 
 \begin{verbatim}
-=== color | intensity  (response scale) ===
+=== Estimated marginal means: color at each intensity (response scale) ===
 
 intensity = 10:
- color  response   SE    df  asymp.LCL  asymp.UCL
- R        13.1    2.3  Inf      9.4       18.4
- W        13.3    2.3  Inf      9.5       18.6
+ color  response   SE   df  asymp.LCL  asymp.UCL
+ R        12.7   2.29  Inf     8.93      18.1
+ W        13.4   2.42  Inf     9.37      19.0
 
 intensity = 30:
- color  response   SE    df  asymp.LCL  asymp.UCL
- R        23.8    4.5  Inf     16.3       34.7
- W        11.6    2.1  Inf      8.1       16.7
+ color  response   SE   df  asymp.LCL  asymp.UCL
+ R        23.2   4.64  Inf    15.70      34.3
+ W        11.3   2.31  Inf     7.57      16.9
 
 intensity = 50:
- color  response   SE    df  asymp.LCL  asymp.UCL
- R        18.7    3.3  Inf     12.5       27.8
- W        11.5    2.0  Inf      8.0       16.5
+ color  response   SE   df  asymp.LCL  asymp.UCL
+ R        18.6   3.90  Inf    12.30      28.0
+ W        11.4   2.45  Inf     7.49      17.4
 
 intensity = 70:
- color  response   SE    df  asymp.LCL  asymp.UCL
- R        18.7    3.0  Inf     13.3       26.2
- W        16.7    2.7  Inf     11.9       23.4
+ color  response   SE   df  asymp.LCL  asymp.UCL
+ R        17.8   3.21  Inf    12.49      25.4
+ W        16.0   2.97  Inf    11.14      23.0
 
 intensity = 100:
- color  response   SE    df  asymp.LCL  asymp.UCL
- R        13.1    2.3  Inf      9.2       18.7
- W        14.5    2.4  Inf     10.3       20.4
+ color  response   SE   df  asymp.LCL  asymp.UCL
+ R        13.1   2.48  Inf     9.05      19.0
+ W        14.0   2.51  Inf     9.87      19.9
 
 === Red vs. White contrast at each intensity (Holm-corrected) ===
 
- intensity  ratio   SE    df  null  z.ratio  p.value
- 10         0.985  0.129  Inf   1    -0.116   0.9077
- 30         2.052  0.350  Inf   1     4.258   <.0001  ***
- 50         1.630  0.237  Inf   1     3.417   0.0019  **
- 70         1.120  0.153  Inf   1     0.833   0.6112
- 100        0.914  0.122  Inf   1    -0.667   0.6112
+ intensity  ratio    SE   df  z.ratio  p.value
+ 10         0.951  0.089  Inf   -0.536   0.5917
+ 30         2.055  0.299  Inf    4.946  <0.0001  ***
+ 50         1.626  0.182  Inf    4.345  <0.0001  ***
+ 70         1.111  0.109  Inf    1.067   0.2860
+ 100        0.935  0.095  Inf   -0.665   0.5062
 
 Ratio = R / W (ratio > 1 = more detections under red)
 \end{verbatim}
 
-At 30\% intensity, red light produced 2.05x more detections than white
-(p < 0.0001). At 50\%, 1.63x (p = 0.002). At 70\% and 100\%, no
-significant difference.
+At 30\% intensity, red light produced 2.06x more detections than white
+(p $<$ 0.0001). At 50\%, 1.63x (p $<$ 0.0001). At 70\% and 100\%, no
+significant difference. White and red converge above 50\% intensity.
 
 \begin{figure}[H]
   \centering
@@ -207,31 +209,33 @@ significant difference.
 \begin{verbatim}
 === Intensity pairwise contrasts within Red (Holm-corrected) ===
 
- contrast      ratio    SE    df  z.ratio  p.value
- 30 / 10       1.815  0.248  Inf   4.365   <.0001  ***
- 50 / 10       1.427  0.204  Inf   2.480   0.0590
- 70 / 10       1.425  0.133  Inf   3.794   0.0011  **
- 100 / 10      0.999  0.116  Inf  -0.002   1.0000
- 50 / 30       0.786  0.107  Inf  -1.788   0.3700
- 70 / 30       0.785  0.107  Inf  -1.770   0.3700
- 100 / 30      0.550  0.076  Inf  -4.362   <.0001  ***
- 70 / 50       0.999  0.096  Inf  -0.012   1.0000
- 100 / 50      0.700  0.101  Inf  -2.480   0.0590
- 100 / 70      0.701  0.081  Inf  -3.026   0.0148  *
+ contrast         ratio    SE   df  z.ratio  p.value
+ 10 / 30          0.547  0.075  Inf   -4.406  0.0001  ***
+ 10 / 50          0.685  0.098  Inf   -2.654  0.0478  *
+ 10 / 70          0.714  0.066  Inf   -3.619  0.0024  **
+ 10 / 100         0.969  0.113  Inf   -0.272  1.0000
+ 30 / 50          1.251  0.192  Inf    1.457  0.4350
+ 30 / 70          1.305  0.182  Inf    1.912  0.2237
+ 30 / 100         1.771  0.231  Inf    4.387  0.0001  ***
+ 50 / 70          1.043  0.148  Inf    0.298  1.0000
+ 50 / 100         1.415  0.171  Inf    2.880  0.0278  *
+ 70 / 100         1.356  0.163  Inf    2.539  0.0556  .
 
 === Intensity pairwise contrasts within White (Holm-corrected) ===
 
- contrast      ratio    SE    df  z.ratio  p.value
- 30 / 10       0.880  0.081  Inf  -1.396   1.0000
- 50 / 10       0.873  0.080  Inf  -1.467   1.0000
- 70 / 10       1.260  0.117  Inf   2.495   0.1266
- 100 / 10      1.097  0.101  Inf   1.006   1.0000
- [all remaining contrasts: p >= 0.18]
+ contrast         ratio    SE   df  z.ratio  p.value
+ 10 / 30          1.182  0.177  Inf    1.119  1.0000
+ 10 / 50          1.170  0.184  Inf    0.999  1.0000
+ 10 / 70          0.834  0.085  Inf   -1.778  0.6033
+ 10 / 100         0.952  0.096  Inf   -0.484  1.0000
+ [all remaining contrasts: p >= 0.14]
 \end{verbatim}
 
-Red peaks at 30\% (1.82x above 10\%; p < 0.0001) and collapses at 100\%
-(0.55x relative to 30\%; p < 0.0001). White is flat across all intensities
-(no pairwise contrast survives Holm correction).
+Under red light, activity peaks at 30\% (10/30 ratio = 0.547, i.e.\
+30\% produces 1.83x more than 10\%; p $<$ 0.0001) and collapses at
+100\% (30/100 ratio = 1.77; p $<$ 0.0001). 50\% and 70\% are
+intermediate and not distinguishable from 30\%. White is flat across
+all intensities --- no pairwise contrast survives Holm correction.
 
 \begin{figure}[H]
   \centering
@@ -249,39 +253,61 @@ Red peaks at 30\% (1.82x above 10\%; p < 0.0001) and collapses at 100\%
 \end{figure}
 
 % ============================================================
-\section{Post-hoc: Distance}
+\section{Post-hoc: Intensity $\times$ Distance}
 % ============================================================
 
+Distance entered as continuous raw km. Interaction tests whether the
+effect of intensity on detections changes with distance from the source
+--- motivated by physical attenuation of light with distance.
+
 \begin{verbatim}
-=== Estimated marginal means: distance categories ===
+=== Distance slope (km) by intensity level (emtrends) ===
 
- dist_cat  response   SE    df  asymp.LCL  asymp.UCL
- Close        6.5    2.8  Inf      2.9       14.2
- Medium      21.4    9.9  Inf      9.0       50.5
- Further     21.6    7.0  Inf     11.7       40.0
- Far         17.4    6.2  Inf      8.8       34.2
+ intensity  dist_km.trend    SE   df  asymp.LCL  asymp.UCL
+ 10              0.1376  0.0675  Inf    0.005      0.270  *
+ 30              0.0875  0.0689  Inf   -0.047      0.222
+ 50              0.1012  0.0676  Inf   -0.031      0.234
+ 70              0.0100  0.0670  Inf   -0.121      0.141
+ 100             0.0479  0.0669  Inf   -0.083      0.179
 
-=== Distance pairwise contrasts (Holm-corrected) ===
+Slopes averaged over color levels. Positive = more detections farther
+from source (recovery with distance). Only intensity 10 slope differs
+from zero (95% CI excludes 0).
 
- contrast            ratio    SE    df  z.ratio  p.value
- Medium / Close      3.296  2.097  Inf   1.876   0.4833
- Further / Close     3.336  1.725  Inf   2.330   0.2967
- Far / Close         2.686  1.503  Inf   1.761   0.4833
- Further / Medium    1.012  0.590  Inf   0.020   1.0000
- Far / Medium        0.815  0.462  Inf  -0.364   1.0000
- Far / Further       0.806  0.424  Inf  -0.415   1.0000
+=== Pairwise distance-slope contrasts (Holm-corrected) ===
+
+ contrast              estimate    SE   df  z.ratio  p.value
+ intensity10 - 70       0.1275  0.027  Inf    4.687  <0.0001  ***
+ intensity10 - 100      0.0897  0.027  Inf    3.335   0.0077  **
+ intensity50 - 70       0.0911  0.028  Inf    3.222   0.0102  *
+ [all other contrasts: p >= 0.085]
+
+=== Intensity contrasts at ecologically meaningful distances ===
+
+dist_km = 0.3 km (Close):
+ contrast          ratio    SE   df  z.ratio  p.value
+ intensity10 / 70  0.602  0.051  Inf   -6.043  <0.0001  ***
+ intensity70 / 100 1.340  0.133  Inf    2.944   0.0292  *
+ [all other contrasts: p >= 0.10]
+
+dist_km = 0.7 km (Medium):
+ contrast          ratio    SE   df  z.ratio  p.value
+ intensity10 / 70  0.634  0.050  Inf   -5.822  <0.0001  ***
+ intensity70 / 100 1.320  0.125  Inf    2.938   0.0297  *
+ [all other contrasts: p >= 0.13]
+
+dist_km = 2.0 km (Far):
+ contrast          ratio    SE   df  z.ratio  p.value
+ intensity10 / 70  0.748  0.052  Inf   -4.176   0.0003  ***
+ [all other contrasts: p >= 0.07]
 \end{verbatim}
 
-Close sites had 3x fewer detections than all other categories. Medium,
-Further, and Far were indistinguishable. No pairwise contrast survives
-Holm correction (low power with n=14 sites), but the main model confirms
-the distance effect (dist\_catFar: p = 0.040, dist\_catFurther: p = 0.044).
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig2_distance_effect.png}
-  \caption{Mean detections per night by distance category. Error bars = SE.}
-\end{figure}
+The intensity $\times$ distance interaction is driven by 70\% and 100\%:
+their distance slopes are significantly shallower than 10\% (i.e.\ high
+intensities suppress bats uniformly across distance, not just close in).
+At 0.3 km, 70\% produces 1.66x more detections than 10\% (ratio = 0.602
+inverted); this gap narrows but persists at 2.0 km (ratio = 0.748,
+p $=$ 0.0003). 70\% and 100\% converge only at far distances.
 
 \begin{figure}[H]
   \centering
@@ -304,46 +330,47 @@ the distance effect (dist\_catFar: p = 0.040, dist\_catFurther: p = 0.044).
 === NMDS ===
 Stress: 0.207  (k = 2, Bray-Curtis, trymax = 100)
 
+=== NMDS ===
+Stress: 0.207  (k = 2, Bray-Curtis, trymax = 100)
+
 === PERMANOVA (adonis2) ===
-              Df   SumOfSqs     R2       F       Pr(>F)
-color          1     0.357    0.013    0.657    0.196
-intensity      1     0.920    0.033    1.693    0.046   *
-dist_cat       3     4.366    0.157    2.678    <0.001  ***
-mean_phase     1     0.468    0.017    0.861    0.488
-pct_nonforest  1     4.087    0.147    7.527    <0.001  ***
-brightness_d   1     2.281    0.082    4.199    0.003   **
-Residual      38    20.648    0.744
-Total         46    27.807    1.000
-R-squared (total model): 0.256
+          Df  SumOfSqs     R2      F     Pr(>F)
+Model      9    3.8338  0.156  2.507   <0.001  ***
+Residual 122   20.7295  0.844
+Total    131   24.5633  1.000
 
 === Homogeneity of dispersion (by color) ===
-          Df  Sum Sq  Mean Sq  F value  Pr(>F)
-Groups     1  0.0007  0.00071  0.00629  0.938
-Residuals 45  5.0815  0.11292
+           Df   Sum Sq   Mean Sq  F value  Pr(>F)
+Groups      1  0.00014  0.000145   0.0061  0.938
+Residuals 130  3.07863  0.023682
 
 === dbRDA marginal tests ===
-              F      Pr(>F)
-color         1.45   0.196
-intensity     1.69   0.046   *
-dist_cat      8.03   <0.001  ***
-mean_phase    0.86   0.488
-pct_nonforest 7.53   <0.001  ***
-brightness_d  4.20   0.003   **
+                Df  SumOfSqs     F    Pr(>F)
+color            1    0.2421  1.425   0.193
+intensity        4    1.1300  1.663   0.048  *
+dist_km          1    1.2271  7.222  <0.001  ***
+mean_phase       1    0.2509  1.477   0.184
+pct_nonforest    1    0.6241  3.673   0.007  **
+brightness_dark  1    0.5661  3.332   0.012  *
+Residual       122   20.7295
 
 === mvabund — multivariate GLM (nBoot = 9999) ===
-              Dev    Df  p.uni (adjusted)
-color          9.2    1   0.394
-intensity     83.5    4   0.002   **
-dist_cat     311.9    3   <0.001  ***
-mean_phase    13.2    1   0.197
-pct_nonforest 42.2    1   <0.001  ***
-brightness_d  57.4    1   <0.001  ***
+                Dev   Df  Pr(>Dev)
+color           9.22   1   0.415
+intensity      83.52   4   0.002   **
+dist_km       142.57   1  <2e-16   ***
+mean_phase     24.59   1   0.016   *
+pct_nonforest  40.16   1   0.001   ***
+brightness_d   54.29   1  <2e-16   ***
 \end{verbatim}
 
-Colour does not restructure community composition. Distance does (R2
-contribution largest single predictor). Dispersion homogeneous between
-colour treatments (p = 0.938) — PERMANOVA result reflects location, not
-spread.
+Colour does not restructure community composition (dbRDA p = 0.193,
+mvabund p = 0.415). Distance is the dominant structuring variable
+(dbRDA F = 7.22, p $<$ 0.001; mvabund Dev = 142.6, p $<$ 0.001).
+Intensity marginally significant in both analyses. Habitat and sky
+brightness also contribute. Dispersion homogeneous between colour
+treatments (p = 0.938) --- PERMANOVA result reflects centroid location,
+not spread.
 
 \begin{figure}[H]
   \centering
@@ -357,22 +384,23 @@ spread.
 % ============================================================
 
 \begin{verbatim}
-=== mvabund univariate p-values (adjusted) ===
+=== mvabund univariate p-values (adjusted, PIT-trap 9999 iter) ===
 
-Species   Colour  Intensity  Distance  %nonforest  brightness
-Epfu      ns      ***        ***       ns          ns
-Laci      ns      .          **        ns          ns
-Lano      ns      ns         **        ns          ns
-Myev      ns      ns         ***       .           ns
-Mylu      ns      ns         **        ***         ns
-Myvo      ns      ns         ***       ns          ***
-Myyu      ns      ns         ns        ns          ns
-Myci      ns      ns         ns        ns          ns
+Species  Colour  Intensity  Distance  Moon phase  %nonforest  brightness
+Epfu     ns      ***        **        *           ns          ns
+Laci     ns      ns         **        ns          ns          ns
+Lano     ns      ns         **        ns          ns          ns
+Myev     ns      ns         ***       ns          **          ns
+Mylu     ns      ns         *         ns          ns          ns
+Myvo     ns      ns         ***       ns          *           ***
+Myyu     ns      ns         ns        ns          ns          ns
+Myci     ns      ns         ns        ns          ns          ns
 \end{verbatim}
 
-Epfu: most treatment-sensitive; responds to both intensity and distance.
-Mylu: tracks habitat (pct\_nonforest). Myvo: tracks sky darkness.
-Myyu, Myci: no significant response to any measured predictor.
+Epfu: most treatment-sensitive; responds to intensity, distance, and moon
+phase. Myev: tracks habitat (pct\_nonforest) and distance. Myvo: strongly
+tracks sky brightness and distance. Myyu, Myci: no significant response
+to any measured predictor. Colour is non-significant for all species.
 
 \begin{figure}[H]
   \centering
@@ -399,19 +427,23 @@ Myyu, Myci: no significant response to any measured predictor.
 \section{Summary}
 % ============================================================
 
-1. Colour x intensity interaction: red light at 30-50\% produced 1.6-2.1x
-   more detections than white. At 70\% and 100\%, colours converge.
-   White light is flat at all intensities.
+1. Colour $\times$ intensity interaction: red light at 30--50\% produced
+   1.6--2.1$\times$ more detections than white. At 70\% and 100\%,
+   colours converge. White light is flat across all intensities.
 
-2. Distance: sites within 0.5 km had 3x fewer detections. Recovery
-   appears complete by 0.5-1.0 km.
+2. Intensity $\times$ distance interaction: 70\% and 100\% intensities
+   show significant negative distance slopes (intensity70:dist\_km
+   $\beta$ = $-$0.128, p $<$ 0.001; intensity100:dist\_km $\beta$ =
+   $-$0.090, p = 0.001), meaning detections under high intensity
+   increase with distance from source. 30\% and 50\% slopes are
+   non-significant --- low intensities are distance-invariant.
 
-3. Community composition is driven by distance, habitat, and sky
-   darkness — not by light colour.
+3. Community composition is driven by distance, habitat (pct\_nonforest),
+   and sky darkness --- not by light colour.
 
-4. Management implication: red light at 30-50\% intensity, sited >0.5 km
-   from sensitive habitat, maximises bat detections. White light
-   suppresses activity at any intensity.
+4. Management implication: red light at 30--50\% intensity minimises
+   suppression of bat activity. At high intensities, siting lights
+   $>$0.5--1.0 km from sensitive habitat is critical to reduce impact.
 
 % ============================================================
 \section{Species Key}
