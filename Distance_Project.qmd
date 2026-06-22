@@ -388,7 +388,7 @@ sp_results$fig_s3   # White:red ratio heatmap
 ```{r figures, message=FALSE, warning=FALSE}
 source("R/08_figures.R")
 
-fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8
+fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12
 ```
 
 ## Species Key

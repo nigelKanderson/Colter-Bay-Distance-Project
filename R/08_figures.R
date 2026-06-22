@@ -90,27 +90,31 @@ fig1 <- ggplot(color_summary,
 # ==============================================================================
 
 dist_summary <- data_env %>%
-  mutate(dist_cat = factor(dist_cat, levels = dist_order)) %>%
-  group_by(dist_cat) %>%
+  group_by(site, dist_km) %>%
   summarise(
     mean_det = mean(detections, na.rm = TRUE),
     se       = sd(detections, na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
-  )
+  ) %>%
+  arrange(dist_km) %>%
+  mutate(site = fct_reorder(site, dist_km))
 
 fig2 <- ggplot(dist_summary,
-               aes(x = dist_cat, y = mean_det)) +
+               aes(x = site, y = mean_det)) +
   geom_col(fill = col_ivory, color = col_navy,
-           linewidth = 0.6, width = 0.55) +
+           linewidth = 0.6, width = 0.7) +
   geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.18, linewidth = 0.9, color = col_navy) +
+                width = 0.2, linewidth = 0.8, color = col_navy) +
+  geom_text(aes(label = round(dist_km, 2), y = -0.4),
+            size = 2.8, color = "#666666", vjust = 1) +
   labs(
     title    = "Bat Detections by Distance from Light Source",
-    subtitle = "Mean ± SE across all treatments",
-    x        = "Distance category",
+    subtitle = "Site-level means ± SE, ordered by increasing distance (km shown below bars)",
+    x        = "Site",
     y        = "Mean detections per night"
   ) +
-  bat_theme
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # ==============================================================================
 # ── Fig 3: Color × Intensity — marginal interaction (p = 0.09) ───────────────
@@ -276,6 +280,155 @@ fig8 <- ggplot(spp_dist,
   )
 
 # ==============================================================================
+# ── Fig 9: Species × Site heatmap (z-scored within species) ──────────────────
+# ==============================================================================
+
+# Site order by increasing distance
+site_order <- data_env %>%
+  distinct(site, dist_km) %>%
+  arrange(dist_km) %>%
+  pull(site)
+
+spp_site <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  group_by(species, site) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop") %>%
+  group_by(species) %>%
+  mutate(mean_det_z = as.numeric(scale(mean_det))) %>%
+  ungroup() %>%
+  mutate(
+    site    = factor(site,    levels = site_order),
+    species = fct_reorder(species, mean_det, .fun = sum)
+  )
+
+dist_labels <- data_env %>%
+  distinct(site, dist_km) %>%
+  arrange(dist_km) %>%
+  mutate(site  = factor(site, levels = site_order),
+         label = paste0(round(dist_km, 2), " km"))
+
+fig9 <- ggplot(spp_site, aes(x = site, y = species, fill = mean_det_z)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  scale_fill_gradient2(
+    low      = col_red,
+    mid      = col_ivory,
+    high     = col_navy,
+    midpoint = 0,
+    name     = "Relative\nactivity (z)"
+  ) +
+  scale_x_discrete(labels = setNames(dist_labels$label, dist_labels$site)) +
+  labs(
+    title    = "Species Activity by Site",
+    subtitle = "Z-scored within species · sites ordered by increasing distance from light source",
+    x        = "Distance from light source",
+    y        = NULL
+  ) +
+  bat_theme +
+  theme(
+    axis.text.x  = element_text(angle = 45, hjust = 1, size = 9),
+    panel.grid   = element_blank(),
+    axis.line    = element_blank(),
+    axis.ticks   = element_blank(),
+    legend.position = "right"
+  )
+
+# ==============================================================================
+# ── Fig 10: Mean detections by intensity level ────────────────────────────────
+# ==============================================================================
+
+intensity_bar <- data_env %>%
+  group_by(intensity) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+fig10 <- ggplot(intensity_bar, aes(x = intensity, y = mean_det,
+                                    fill = intensity)) +
+  geom_col(width = 0.6, color = NA) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                width = 0.18, linewidth = 0.8, color = "#333333") +
+  scale_fill_manual(values = intensity_pal, guide = "none") +
+  labs(
+    title    = "Bat Detections by Light Intensity",
+    subtitle = "Mean ± SE across all sites and colours",
+    x        = "Light intensity (%)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme
+
+# ==============================================================================
+# ── Fig 11: Mean detections by intensity × color (grouped bar) ───────────────
+# ==============================================================================
+
+int_color_bar <- data_env %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
+  group_by(intensity, color, site, dist_km) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) %>%
+  mutate(site_label = paste0(site, "\n(", round(dist_km, 2), " km)"),
+         site_label = fct_reorder(site_label, dist_km))
+
+fig11 <- ggplot(int_color_bar,
+                aes(x = intensity, y = mean_det, fill = color)) +
+  geom_col(position = position_dodge(0.7), width = 0.6, color = NA) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                position = position_dodge(0.7),
+                width = 0.18, linewidth = 0.7, color = "#333333") +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels  = c(R = "Red", W = "White"),
+                    name    = "Light color") +
+  facet_wrap(~ site_label, nrow = 2) +
+  labs(
+    title    = "Bat Detections by Intensity and Light Color at Each Site",
+    subtitle = "Mean ± SE · sites ordered by increasing distance from light source",
+    x        = "Light intensity (%)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top",
+        strip.text      = element_text(size = 8))
+
+# ==============================================================================
+# ── Fig 12: Detections by color × intensity, faceted by species ───────────────
+# ==============================================================================
+
+spp_int_color <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
+  group_by(species, intensity, color) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  )
+
+fig12 <- ggplot(spp_int_color,
+                aes(x = intensity, y = mean_det, fill = color)) +
+  geom_col(position = position_dodge(0.7), width = 0.6, color = NA) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                position = position_dodge(0.7),
+                width = 0.18, linewidth = 0.6, color = "#333333") +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels  = c(R = "Red", W = "White"),
+                    name    = "Light color") +
+  facet_wrap(~ species, nrow = 2, scales = "free_y") +
+  labs(
+    title    = "Bat Detections by Light Color and Intensity per Species",
+    subtitle = "Mean ± SE · y-axes free within species",
+    x        = "Light intensity (%)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top",
+        strip.text      = element_text(size = 9, face = "bold"))
+
+# ==============================================================================
 # ── Save figures ──────────────────────────────────────────────────────────────
 # ==============================================================================
 
@@ -289,5 +442,9 @@ ggsave("output/figures/fig5_community_heatmap.png",  fig5, width = 5,  height = 
 ggsave("output/figures/fig6_moon_phase.png",         fig6, width = 7,  height = 5,   dpi = 300)
 ggsave("output/figures/fig7_distance_gradient.png",  fig7, width = 7,  height = 5.5, dpi = 300)
 ggsave("output/figures/fig8_species_distance.png",   fig8, width = 9,  height = 6,   dpi = 300)
+ggsave("output/figures/fig9_species_site.png",       fig9,  width = 11, height = 6,   dpi = 300)
+ggsave("output/figures/fig10_intensity_bar.png",     fig10, width = 6,  height = 5,   dpi = 300)
+ggsave("output/figures/fig11_intensity_color_bar.png", fig11, width = 16, height = 8,  dpi = 300)
+ggsave("output/figures/fig12_species_intensity_color.png", fig12, width = 14, height = 7, dpi = 300)
 
 message("All figures saved to output/figures/")
