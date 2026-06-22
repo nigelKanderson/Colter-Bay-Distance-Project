@@ -429,8 +429,68 @@ fig12 <- ggplot(spp_int_color,
         strip.text      = element_text(size = 9, face = "bold"))
 
 # ==============================================================================
-# ── Save figures ──────────────────────────────────────────────────────────────
+# ── Fig 13: Detections vs pct_nonforest (site-level means) ───────────────────
 # ==============================================================================
+
+nonforest_means <- data_env %>%
+  group_by(site, pct_nonforest) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+
+fig13 <- ggplot(nonforest_means,
+                aes(x = pct_nonforest, y = mean_det)) +
+  geom_smooth(method = "lm", se = TRUE,
+              color = col_navy, fill = col_ivory, linewidth = 1) +
+  geom_point(size = 3.5, color = col_red) +
+  geom_text_repel(aes(label = site), size = 3, color = "#555555",
+                  box.padding = 0.4) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  labs(
+    title    = "Bat Detections vs. Non-forest Cover",
+    subtitle = "Site-level means with linear trend",
+    x        = "Non-forest cover within 50 m buffer (%)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme
+
+# ==============================================================================
+# ── Fig 14: Predicted detections ~ distance by intensity (ggpredict) ──────────
+# ==============================================================================
+
+library(emmeans)
+
+dist_grid <- seq(0, 2, by = 0.05)
+
+pred_dist <- emmeans(
+  simple_model1,
+  ~ intensity | dist_km,
+  at   = list(dist_km = dist_grid),
+  type = "response"
+) %>%
+  as.data.frame() %>%
+  rename(conf.low  = asymp.LCL,
+         conf.high = asymp.UCL) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+fig14 <- ggplot(pred_dist, aes(x = dist_km, y = response,
+                                color = intensity, fill = intensity)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              alpha = 0.12, color = NA) +
+  geom_line(linewidth = 1.2) +
+  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
+  scale_fill_manual(values  = intensity_pal, guide = "none") +
+  scale_x_continuous(breaks = c(0, 0.3, 0.7, 1.0, 1.5, 2.0),
+                     name   = "Distance from light (km)") +
+  geom_vline(xintercept = c(0.3, 0.7, 2.0),
+             linetype = "dashed", color = "#BBBBBB", linewidth = 0.4) +
+  labs(
+    title    = "Bat Activity vs. Distance from Light by Intensity",
+    subtitle = "Marginal predictions ± 95% CI · dashed lines = distances tested in contrasts",
+    x        = "Distance from light (km)",
+    y        = "Predicted detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "right")
+
 
 dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
 
@@ -446,5 +506,7 @@ ggsave("output/figures/fig9_species_site.png",       fig9,  width = 11, height =
 ggsave("output/figures/fig10_intensity_bar.png",     fig10, width = 6,  height = 5,   dpi = 300)
 ggsave("output/figures/fig11_intensity_color_bar.png", fig11, width = 16, height = 8,  dpi = 300)
 ggsave("output/figures/fig12_species_intensity_color.png", fig12, width = 14, height = 7, dpi = 300)
+ggsave("output/figures/fig13_nonforest_detections.png",   fig13, width = 7,  height = 5,  dpi = 300)
+ggsave("output/figures/fig14_dist_intensity_pred.png",    fig14, width = 10, height = 6,  dpi = 300, bg = "white")
 
 message("All figures saved to output/figures/")
