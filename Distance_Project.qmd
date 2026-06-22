@@ -359,7 +359,7 @@ ggplot(pred_df, aes(x = dist_km, y = response,
   labs(
     title    = "Predicted Bat Detections by Distance and Light Intensity",
     subtitle = "Marginal means ± 95% CI from negative binomial GLMM",
-    x        = "Distance from light source (km)",
+    x        = "Distance from Colter Bay parking lot (km)",
     y        = "Predicted detections per night",
     caption  = "Other covariates held at their means"
   ) +
