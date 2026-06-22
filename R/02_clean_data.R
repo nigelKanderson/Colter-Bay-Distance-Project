@@ -47,8 +47,8 @@ clean_data <- function(data) {
     
     filter(
       !is.na(jd),
-      #!is.na(lon),
-      #!is.na(lat)
+      !is.na(lon),
+      !is.na(lat)
     ) %>%
     
     arrange(site, date, species)
@@ -56,4 +56,3 @@ clean_data <- function(data) {
   return(data_clean)
 }
 
-#saveRDS(data_clean, "data_clean.rds")

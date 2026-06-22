@@ -39,8 +39,6 @@ add_habitat <- function(data, forest_raster, buffer = 50) {
       pct_wetland = mean(values %in% c(90,95), na.rm = TRUE),
       pct_shrub = mean(values %in% c(51,52,71), na.rm = TRUE),
       pct_nonforest = 1 - pct_forest - pct_shrub
-      #pct_open = mean(values %in% c(31,41,42,43,52,71,81,82), na.rm = TRUE),
-      #pct_developed = mean(values %in% c(21:24), na.rm = TRUE),
     ) 
     
   })
