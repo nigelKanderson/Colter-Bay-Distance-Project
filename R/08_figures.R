@@ -573,4 +573,36 @@ fig16 <- ggplot(fig16_data,
 ggsave("output/figures/fig15_species_color_by_site.png",  fig15, width = 14, height = 8,  dpi = 300, bg = "white")
 ggsave("output/figures/fig16_species_intensity_dist.png", fig16, width = 14, height = 8,  dpi = 300, bg = "white")
 
+# ==============================================================================
+# ── Fig 17: Total detections by species ───────────────────────────────────────
+# ==============================================================================
+
+fig17_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  group_by(species) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) %>%
+  mutate(species = fct_reorder(species, mean_det))
+
+fig17 <- ggplot(fig17_data,
+                aes(x = mean_det, y = species, fill = species)) +
+  geom_col(width = 0.65, color = NA) +
+  geom_errorbar(aes(xmin = mean_det - se, xmax = mean_det + se),
+                height = 0.25, linewidth = 0.7, color = "#333333") +
+  scale_fill_manual(values = colorRampPalette(c(col_ivory, col_navy))(length(focal_spp)),
+                    guide  = "none") +
+  labs(
+    title    = "Mean Bat Detections by Species",
+    subtitle = "Mean ± SE across all sites, nights, and treatments",
+    x        = "Mean detections per night",
+    y        = NULL
+  ) +
+  bat_theme
+
+ggsave("output/figures/fig17_species_detections.png",
+       fig17, width = 7, height = 5, dpi = 300, bg = "white")
+
 message("All figures saved to output/figures/")
