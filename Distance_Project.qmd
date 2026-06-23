@@ -135,6 +135,24 @@ message("Rows after species filter: ", nrow(data_env),
 source("R/09_add_sky_brightness.R")
 ```
 
+```{r guild, warning=FALSE, message=FALSE}
+guild_map <- tribble(
+  ~species, ~guild,
+  "Laci",   "Open-air",
+  "Lano",   "Edge",
+  "Epfu",   "Edge",
+  "Mylu",   "Clutter",
+  "Myev",   "Clutter",
+  "Myvo",   "Clutter",
+  "Myyu",   "Clutter",
+  "Myci",   "Clutter"
+)
+
+data_env <- data_env %>%
+  left_join(guild_map, by = "species") %>%
+  mutate(guild = factor(guild, levels = c("Open-air", "Edge", "Clutter")))
+```
+
 ## Models
 
 ```{r simple_model, warning=FALSE, message=FALSE}
@@ -370,6 +388,106 @@ ggsave("output/figures/fig9_dist_intensity.png",
        last_plot(), width = 8, height = 5, dpi = 300, bg = "white")
 ```
 
+## Guild Analysis
+
+```{r guild_model, warning=FALSE, message=FALSE}
+guild_model <- glmmTMB(
+  detections ~
+    guild * color +
+    guild * dist_km +
+    mean_phase +
+    pct_nonforest +
+    jd_c + I(jd_c^2) +
+    (1 | site),
+  data      = data_env,
+  ziformula = ~1,
+  family    = nbinom2()
+)
+
+summary(guild_model)
+```
+
+```{r guild_posthoc, warning=FALSE, message=FALSE}
+# Color effect by guild
+em_guild_color <- emmeans(guild_model, ~ color | guild, type = "response")
+cat("=== Color effect within each guild ===\n")
+pairs(em_guild_color, adjust = "holm")
+
+# Distance slope by guild
+em_guild_dist <- emtrends(guild_model, ~ guild, var = "dist_km", type = "response")
+cat("\n=== Distance slope by guild ===\n")
+em_guild_dist
+pairs(em_guild_dist, adjust = "holm")
+```
+
+```{r guild_figs, warning=FALSE, message=FALSE}
+# Fig A: color effect by guild
+em_guild_color_df <- as.data.frame(em_guild_color) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+fig_guild_color <- ggplot(em_guild_color_df,
+                          aes(x = guild, y = response,
+                              color = color, group = color)) +
+  geom_line(linewidth = 0.8, position = position_dodge(0.3)) +
+  geom_point(size = 3.5, position = position_dodge(0.3)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.7,
+                position = position_dodge(0.3)) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels  = c(R = "Red", W = "White"),
+                     name    = "Light color") +
+  labs(
+    title    = "Light Color Effect by Foraging Guild",
+    subtitle = "Marginal means ± 95% CI from guild × color model",
+    x        = "Foraging guild",
+    y        = "Predicted detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top")
+
+# Fig B: distance trend by guild
+dist_grid_guild <- seq(min(data_env$dist_km, na.rm = TRUE),
+                       max(data_env$dist_km, na.rm = TRUE),
+                       length.out = 60)
+
+em_guild_dist_df <- emmeans(guild_model, ~ guild + dist_km,
+                             at   = list(dist_km = dist_grid_guild),
+                             type = "response") %>%
+  as.data.frame() %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+fig_guild_dist <- ggplot(em_guild_dist_df,
+                         aes(x = dist_km, y = response,
+                             color = guild, fill = guild)) +
+  geom_ribbon(aes(ymin = lower_CL, ymax = upper_CL),
+              alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1.1) +
+  scale_color_manual(values = c("Open-air" = col_navy,
+                                 "Edge"     = col_red,
+                                 "Clutter"  = col_purple),
+                     name = "Guild") +
+  scale_fill_manual(values  = c("Open-air" = col_navy,
+                                 "Edge"     = col_red,
+                                 "Clutter"  = col_purple),
+                    guide   = "none") +
+  labs(
+    title    = "Bat Activity Across Distance Gradient by Foraging Guild",
+    subtitle = "Marginal predictions ± 95% CI · averaged over light color",
+    x        = "Distance from light source (km)",
+    y        = "Predicted detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top")
+
+fig_guild_color
+fig_guild_dist
+
+ggsave("output/figures/fig_guild_color.png",
+       fig_guild_color, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("output/figures/fig_guild_dist.png",
+       fig_guild_dist,  width = 8, height = 5, dpi = 300, bg = "white")
+```
+
 ## Species Models
 
 ```{r species_models, warning=FALSE, message=FALSE}
@@ -460,6 +578,98 @@ ggplot(em_opt, aes(x = combo, y = fct_rev(site), fill = response_scaled)) +
 
 ggsave("output/figures/fig_optimal_treatment.png",
        last_plot(), width = 10, height = 5, dpi = 300, bg = "white")
+```
+
+```{r close_vs_far, warning=FALSE, message=FALSE}
+# Define distance zones by site groupings
+zone_sites <- list(
+  Close  = c("GRTE17","GRTE16","GRTE05","GRTE01","GRTE06","GRTE02"),
+  Medium = c("GRTE08","GRTE03","GRTE09","GRTE11","GRTE10"),
+  Far    = c("GRTE15","GRTE14","GRTE13")
+)
+
+zone_km <- map_dbl(zone_sites, ~ mean(site_dists$dist_km[site_dists$site %in% .x], na.rm = TRUE))
+cat("Mean dist_km per zone:\n"); print(round(zone_km, 2))
+
+df_close_far <- map2_dfr(sp_results$sp_models, names(sp_results$sp_models),
+  function(mod, sp) {
+    tryCatch({
+      emmeans(mod, ~ color * intensity + dist_km,
+              at   = list(dist_km = unname(zone_km)),
+              type = "response") %>%
+        as.data.frame() %>%
+        rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+        mutate(
+          species       = sp,
+          distance_zone = case_when(
+            dist_km == zone_km["Close"]  ~ paste0("Close (", round(zone_km["Close"],  2), " km)"),
+            dist_km == zone_km["Medium"] ~ paste0("Medium (", round(zone_km["Medium"], 2), " km)"),
+            dist_km == zone_km["Far"]    ~ paste0("Far (", round(zone_km["Far"],    2), " km)")
+          ),
+          distance_zone = factor(distance_zone,
+                                 levels = c(paste0("Close (", round(zone_km["Close"], 2), " km)"),
+                                            paste0("Medium (", round(zone_km["Medium"], 2), " km)"),
+                                            paste0("Far (", round(zone_km["Far"], 2), " km)"))),
+          combo = paste0(ifelse(color == "R", "Red", "White"), " / ", intensity, "%"),
+          combo = factor(combo, levels = combo_order)
+        )
+    }, error = function(e) {
+      cat("Skipping", sp, ":", conditionMessage(e), "\n"); NULL
+    })
+  })
+
+# Best combo per species × zone for annotation
+best_close_far <- df_close_far %>%
+  group_by(species, distance_zone) %>%
+  slice_max(response, n = 1) %>%
+  ungroup()
+
+cat("=== Best treatment per species at close vs. far distance ===\n")
+best_close_far %>%
+  select(species, distance_zone, combo, response, lower_CL, upper_CL) %>%
+  arrange(species, distance_zone) %>%
+  print(n = Inf)
+
+treatment_pal <- c(
+  "Red / 10%"    = "#7A1C2E", "Red / 30%"    = "#A84050",
+  "Red / 50%"    = "#C96070", "Red / 70%"    = "#E08090",
+  "Red / 100%"   = "#F0B0BA", "White / 10%"  = "#F5F0E3",
+  "White / 30%"  = "#C9A84C", "White / 50%"  = "#A08030",
+  "White / 70%"  = "#706020", "White / 100%" = "#4A1259"
+)
+
+sp_zone_figs <- map(unique(df_close_far$species), function(sp) {
+  dat      <- filter(df_close_far, species == sp)
+  dat_best <- filter(best_close_far, species == sp)
+
+  ggplot(dat, aes(x = response, y = combo, color = combo)) +
+    geom_linerange(aes(xmin = lower_CL, xmax = upper_CL),
+                   linewidth = 0.6, alpha = 0.6) +
+    geom_point(size = 3) +
+    geom_point(data = dat_best, size = 5, shape = 21,
+               fill = NA, stroke = 1.3, color = "#111111") +
+    scale_color_manual(values = treatment_pal, guide = "none") +
+    facet_wrap(~ distance_zone, nrow = 1, scales = "free_x") +
+    labs(
+      title    = sp,
+      subtitle = "Circle outline = best treatment · bars = 95% CI",
+      x        = "Predicted detections per night",
+      y        = NULL
+    ) +
+    bat_theme +
+    theme(strip.text = element_text(size = 9, face = "bold"))
+})
+names(sp_zone_figs) <- unique(df_close_far$species)
+
+# Display each figure
+walk(sp_zone_figs, print)
+
+# Save individually
+dir.create("output/figures/species_zone", recursive = TRUE, showWarnings = FALSE)
+iwalk(sp_zone_figs, ~ ggsave(
+  paste0("output/figures/species_zone/", .y, "_zone_treatment.png"),
+  .x, width = 10, height = 5, dpi = 300, bg = "white"
+))
 ```
 
 ```{r optimal_by_species, warning=FALSE, message=FALSE}
