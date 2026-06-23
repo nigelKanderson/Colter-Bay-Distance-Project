@@ -393,7 +393,7 @@ ggsave("output/figures/fig9_dist_intensity.png",
 ```{r guild_model, warning=FALSE, message=FALSE}
 guild_model <- glmmTMB(
   detections ~
-    guild * color +
+    guild * intensity +
     guild * dist_km +
     mean_phase +
     pct_nonforest +
@@ -408,10 +408,11 @@ summary(guild_model)
 ```
 
 ```{r guild_posthoc, warning=FALSE, message=FALSE}
-# Color effect by guild
-em_guild_color <- emmeans(guild_model, ~ color | guild, type = "response")
-cat("=== Color effect within each guild ===\n")
-pairs(em_guild_color, adjust = "holm")
+# Intensity effect by guild
+em_guild_intensity <- emmeans(guild_model, ~ intensity | guild, type = "response")
+cat("=== Intensity effect within each guild ===\n")
+em_guild_intensity
+pairs(em_guild_intensity, adjust = "holm")
 
 # Distance slope by guild
 em_guild_dist <- emtrends(guild_model, ~ guild, var = "dist_km", type = "response")
@@ -421,24 +422,23 @@ pairs(em_guild_dist, adjust = "holm")
 ```
 
 ```{r guild_figs, warning=FALSE, message=FALSE}
-# Fig A: color effect by guild
-em_guild_color_df <- as.data.frame(em_guild_color) %>%
-  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+# Fig A: intensity effect by guild
+em_guild_intensity_df <- as.data.frame(em_guild_intensity) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
 
-fig_guild_color <- ggplot(em_guild_color_df,
-                          aes(x = guild, y = response,
-                              color = color, group = color)) +
-  geom_line(linewidth = 0.8, position = position_dodge(0.3)) +
-  geom_point(size = 3.5, position = position_dodge(0.3)) +
+fig_guild_intensity <- ggplot(em_guild_intensity_df,
+                              aes(x = guild, y = response,
+                                  color = intensity, group = intensity)) +
+  geom_line(linewidth = 0.8, position = position_dodge(0.4)) +
+  geom_point(size = 3.5, position = position_dodge(0.4)) +
   geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
                 width = 0.15, linewidth = 0.7,
-                position = position_dodge(0.3)) +
-  scale_color_manual(values = c(R = col_red, W = col_white),
-                     labels  = c(R = "Red", W = "White"),
-                     name    = "Light color") +
+                position = position_dodge(0.4)) +
+  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
   labs(
-    title    = "Light Color Effect by Foraging Guild",
-    subtitle = "Marginal means ± 95% CI from guild × color model",
+    title    = "Light Intensity Effect by Foraging Guild",
+    subtitle = "Marginal means ± 95% CI from guild × intensity model",
     x        = "Foraging guild",
     y        = "Predicted detections per night"
   ) +
@@ -479,13 +479,13 @@ fig_guild_dist <- ggplot(em_guild_dist_df,
   bat_theme +
   theme(legend.position = "top")
 
-fig_guild_color
+fig_guild_intensity
 fig_guild_dist
 
-ggsave("output/figures/fig_guild_color.png",
-       fig_guild_color, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("output/figures/fig_guild_intensity.png",
+       fig_guild_intensity, width = 7, height = 5, dpi = 300, bg = "white")
 ggsave("output/figures/fig_guild_dist.png",
-       fig_guild_dist,  width = 8, height = 5, dpi = 300, bg = "white")
+       fig_guild_dist,      width = 8, height = 5, dpi = 300, bg = "white")
 ```
 
 ## Species Models
