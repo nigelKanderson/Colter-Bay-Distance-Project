@@ -381,6 +381,142 @@ sp_results <- run_species_models(data_env, bat_theme, col_red, col_white)
 sp_results$fig_s1   # Color effect by species
 sp_results$fig_s2   # Intensity slopes by species
 sp_results$fig_s3   # White:red ratio heatmap
+sp_results$fig_s4a  # Predicted detections ~ dist_km × color × intensity (species facets)
+sp_results$fig_s4b  # Same, species × color grid
+```
+
+## Optimal Light Treatment by Site
+
+```{r optimal_treatment, warning=FALSE, message=FALSE}
+library(emmeans)
+
+site_dists <- data_env %>%
+  distinct(site, dist_km) %>%
+  arrange(dist_km)
+
+# Predict detections at every color × intensity combo at each site's dist_km
+em_opt <- emmeans(
+  simple_model1,
+  ~ color * intensity + dist_km,
+  at   = list(dist_km = site_dists$dist_km),
+  type = "response"
+) %>%
+  as.data.frame() %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+  left_join(site_dists, by = "dist_km") %>%
+  mutate(
+    combo     = paste0(ifelse(color == "R", "Red", "White"), " / ", intensity, "%"),
+    site      = factor(site, levels = site_dists$site),
+    intensity = factor(intensity, levels = c("10","30","50","70","100"))
+  )
+
+# Flag the best combo per site
+best_combo <- em_opt %>%
+  group_by(site) %>%
+  slice_max(response, n = 1) %>%
+  ungroup() %>%
+  select(site, combo, response, lower_CL, upper_CL)
+
+cat("=== Best predicted light treatment per site ===\n")
+print(best_combo)
+
+# Heatmap: site (y) × combo (x), fill = predicted detections
+combo_order <- em_opt %>%
+  group_by(combo) %>%
+  summarise(mean_r = mean(response)) %>%
+  arrange(mean_r) %>%
+  pull(combo)
+
+em_opt <- em_opt %>%
+  mutate(
+    combo          = factor(combo, levels = combo_order),
+    response_scaled = (response - min(response)) / (max(response) - min(response))
+  )
+
+best_marks <- em_opt %>%
+  group_by(site) %>%
+  slice_max(response, n = 1) %>%
+  ungroup()
+
+ggplot(em_opt, aes(x = combo, y = fct_rev(site), fill = response_scaled)) +
+  geom_tile(color = "white", linewidth = 0.4) +
+  geom_text(data = best_marks, label = "*", color = "white",
+            size = 4, fontface = "bold") +
+  scale_fill_gradient(low = col_ivory, high = col_navy,
+                      name = "Relative\nactivity") +
+  labs(
+    title    = "Predicted Bat Detections by Light Treatment and Site",
+    subtitle = "* = best treatment per site · sites ordered by increasing distance",
+    x        = "Light color / intensity",
+    y        = NULL
+  ) +
+  bat_theme +
+  theme(
+    axis.text.x  = element_text(angle = 45, hjust = 1, size = 9),
+    panel.grid   = element_blank(),
+    axis.line    = element_blank(),
+    axis.ticks   = element_blank()
+  )
+
+ggsave("output/figures/fig_optimal_treatment.png",
+       last_plot(), width = 10, height = 5, dpi = 300, bg = "white")
+```
+
+```{r optimal_by_species, warning=FALSE, message=FALSE}
+# Same heatmap per species using the per-species GLMMs
+em_sp_opt <- map2_dfr(sp_results$sp_models, names(sp_results$sp_models),
+  function(mod, sp) {
+    tryCatch({
+      emmeans(mod, ~ color * intensity + dist_km,
+              at   = list(dist_km = site_dists$dist_km),
+              type = "response") %>%
+        as.data.frame() %>%
+        rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+        left_join(site_dists, by = "dist_km") %>%
+        mutate(species = sp)
+    }, error = function(e) {
+      cat("Skipping", sp, ":", conditionMessage(e), "\n"); NULL
+    })
+  }) %>%
+  mutate(
+    combo = paste0(ifelse(color == "R", "Red", "White"), " / ", intensity, "%"),
+    combo = factor(combo, levels = combo_order),
+    site  = factor(site, levels = site_dists$site)
+  ) %>%
+  group_by(species) %>%
+  mutate(response_scaled = (response - min(response)) / (max(response) - min(response))) %>%
+  ungroup()
+
+best_sp <- em_sp_opt %>%
+  group_by(species, site) %>%
+  slice_max(response, n = 1) %>%
+  ungroup()
+
+ggplot(em_sp_opt, aes(x = combo, y = fct_rev(site), fill = response_scaled)) +
+  geom_tile(color = "white", linewidth = 0.3) +
+  geom_text(data = best_sp, label = "*", color = "white",
+            size = 3, fontface = "bold") +
+  scale_fill_gradient(low = col_ivory, high = col_navy,
+                      name = "Relative\nactivity") +
+  facet_wrap(~ species, nrow = 2) +
+  labs(
+    title    = "Predicted Detections by Light Treatment and Site — Per Species",
+    subtitle = "* = best treatment per site · sites ordered by increasing distance",
+    x        = "Light color / intensity",
+    y        = NULL
+  ) +
+  bat_theme +
+  theme(
+    axis.text.x     = element_text(angle = 45, hjust = 1, size = 7),
+    strip.text      = element_text(size = 9, face = "bold"),
+    panel.grid      = element_blank(),
+    axis.line       = element_blank(),
+    axis.ticks      = element_blank(),
+    legend.position = "right"
+  )
+
+ggsave("output/figures/fig_optimal_treatment_by_species.png",
+       last_plot(), width = 16, height = 8, dpi = 300, bg = "white")
 ```
 
 ## Figures
@@ -388,7 +524,7 @@ sp_results$fig_s3   # White:red ratio heatmap
 ```{r figures, message=FALSE, warning=FALSE}
 source("R/08_figures.R")
 
-fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14
+fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14; fig15; fig16
 ```
 
 ## Species Key

@@ -492,6 +492,39 @@ fig14 <- ggplot(pred_dist, aes(x = dist_km, y = response,
   theme(legend.position = "right")
 
 
+# ==============================================================================
+# ── Fig 15: Species detections by color across the distance gradient ──────────
+# ==============================================================================
+
+fig15_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  group_by(species, color, site, dist_km) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE),
+            se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+            .groups  = "drop")
+
+fig15 <- ggplot(fig15_data,
+                aes(x = dist_km, y = mean_det,
+                    color = color, fill = color, group = color)) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.0, alpha = 0.15) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels  = c(R = "Red", W = "White"),
+                     name    = "Light color") +
+  scale_fill_manual(values  = c(R = col_red, W = col_white),
+                    guide   = "none") +
+  facet_wrap(~ species, scales = "free_y", nrow = 2) +
+  labs(
+    title    = "Bat Detections by Light Color Across the Distance Gradient",
+    subtitle = "Linear trend ± 95% CI · one observation per site",
+    x        = "Distance from light source (km)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(
+    legend.position = "top",
+    strip.text      = element_text(size = 9, face = "bold")
+  )
+
 dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
 
 ggsave("output/figures/fig1_color_effect.png",       fig1, width = 5,  height = 5,   dpi = 300)
@@ -508,5 +541,36 @@ ggsave("output/figures/fig11_intensity_color_bar.png", fig11, width = 16, height
 ggsave("output/figures/fig12_species_intensity_color.png", fig12, width = 14, height = 7, dpi = 300)
 ggsave("output/figures/fig13_nonforest_detections.png",   fig13, width = 7,  height = 5,  dpi = 300)
 ggsave("output/figures/fig14_dist_intensity_pred.png",    fig14, width = 10, height = 6,  dpi = 300, bg = "white")
+# ==============================================================================
+# ── Fig 16: Species detections by intensity across the distance gradient ───────
+# ==============================================================================
+
+fig16_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
+  group_by(species, intensity, site, dist_km) %>%
+  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+
+fig16 <- ggplot(fig16_data,
+                aes(x = dist_km, y = mean_det,
+                    color = intensity, fill = intensity, group = intensity)) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.0, alpha = 0.12) +
+  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
+  scale_fill_manual(values  = intensity_pal, guide = "none") +
+  facet_wrap(~ species, scales = "free_y", nrow = 2) +
+  labs(
+    title    = "Bat Detections by Light Intensity Across the Distance Gradient",
+    subtitle = "Linear trend ± 95% CI · one observation per site",
+    x        = "Distance from light source (km)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(
+    legend.position = "top",
+    strip.text      = element_text(size = 9, face = "bold")
+  )
+
+ggsave("output/figures/fig15_species_color_by_site.png",  fig15, width = 14, height = 8,  dpi = 300, bg = "white")
+ggsave("output/figures/fig16_species_intensity_dist.png", fig16, width = 14, height = 8,  dpi = 300, bg = "white")
 
 message("All figures saved to output/figures/")

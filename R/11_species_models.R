@@ -25,7 +25,7 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
     "pct_nonforest",
     if (has_brightness) "brightness_dark",
     "intensity * color",
-    "dist_cat"
+    "dist_km"
   )
   sp_formula <- as.formula(
     paste("detections ~", paste(fixed_terms, collapse = " + "), "+ (1 | site)")
@@ -185,6 +185,59 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
     bat_theme +
     theme(legend.position = "right")
 
+  # ── Fig S4: Predicted detections ~ distance × color × intensity per species ─
+  # Predict over a fine dist_km grid so the gradient is continuous.
+  dist_grid <- seq(
+    min(data_env$dist_km, na.rm = TRUE),
+    max(data_env$dist_km, na.rm = TRUE),
+    length.out = 40
+  )
+
+  extract_dist_pred <- function(mod, sp_name) {
+    tryCatch({
+      emmeans(mod, ~ color + dist_km,
+              at   = list(dist_km = dist_grid),
+              type = "response") %>%
+        as.data.frame() %>% norm_ci() %>%
+        mutate(species = sp_name)
+    }, error = function(e) {
+      cat("  dist emmeans failed for", sp_name, ":", conditionMessage(e), "\n")
+      NULL
+    })
+  }
+
+  df_dist_pred <- map2_dfr(sp_models, names(sp_models), extract_dist_pred)
+
+  # Figure S4: one panel per species, x=dist_km, color=light color
+  fig_s4a <- ggplot(df_dist_pred,
+                    aes(x     = dist_km,
+                        y     = response,
+                        color = color,
+                        fill  = color,
+                        group = color)) +
+    geom_ribbon(aes(ymin = lower_CL, ymax = upper_CL),
+                alpha = 0.15, color = NA) +
+    geom_line(linewidth = 1.1) +
+    scale_color_manual(values = c(R = col_red, W = col_white),
+                       labels = c(R = "Red", W = "White"),
+                       name   = "Light color") +
+    scale_fill_manual(values  = c(R = col_red, W = col_white),
+                      guide   = "none") +
+    facet_wrap(~ species, scales = "free_y", nrow = 2) +
+    labs(
+      title    = "Predicted Bat Detections Across Distance Gradient by Light Color",
+      subtitle = "Per-species GLMMs · marginal over intensity · ribbon = 95% CI",
+      x        = "Distance from light source (km)",
+      y        = "Predicted detections per night"
+    ) +
+    bat_theme +
+    theme(
+      legend.position = "top",
+      strip.text      = element_text(size = 9, face = "bold")
+    )
+
+  fig_s4b <- NULL  # retired — single combined figure is cleaner
+
   # ── Fig S3: White:red log2 ratio heatmap ──────────────────────────────────
   df_heat <- df_sp_ci %>%
     select(any_of(c("species", "color", "intensity", "response"))) %>%
@@ -239,8 +292,17 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
   ggsave("output/figures/species_ratio_heatmap.png",
          fig_s3, width = 9, height = 6, dpi = 300, bg = "white")
 
+  n_sp <- length(sp_models)
+  ggsave("output/figures/fig_s4a_species_dist_color_intensity.png",
+         fig_s4a,
+         width  = max(14, n_sp * 1.8),
+         height = 8,
+         dpi    = 300, bg = "white")
+
+
   write_csv(df_contrasts, "output/posthoc_color_contrasts_by_species.csv")
   write_csv(df_sp_color,  "output/posthoc_color_main_by_species.csv")
+  write_csv(df_dist_pred, "output/posthoc_dist_color_intensity_by_species.csv")
   cat("Saved species figures and post-hoc CSVs to output/\n")
 
   list(
@@ -248,8 +310,11 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
     df_sp_ci     = df_sp_ci,
     df_contrasts = df_contrasts,
     df_sp_color  = df_sp_color,
+    df_dist_pred = df_dist_pred,
     fig_s1       = fig_s1,
     fig_s2       = fig_s2,
-    fig_s3       = fig_s3
+    fig_s3       = fig_s3,
+    fig_s4a      = fig_s4a,
+    fig_s4b      = fig_s4b
   )
 }
