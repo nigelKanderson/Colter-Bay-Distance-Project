@@ -229,14 +229,14 @@ summary(models$sm)
 ## Occurrence Thresholds
 
 ```{r thresholds, warning=FALSE, message=FALSE}
-source("R/05_data_exploration.R")
+#source("R/05_data_exploration.R")
 source("R/04_Occurrence_Thresholds.R")
 
 occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
 
 env_data <- data_env %>%
-  distinct(site, date, mean_moonlight, mean_phase,
-           color, intensity, year, jd, pct_forest)
+  distinct(site, date, dist_km, mean_phase,
+           color, intensity, jd_c, pct_nonforest, brightness_dark)
 
 occurrences <- occurrences %>%
   left_join(env_data, by = c("site", "date")) %>%
@@ -250,18 +250,19 @@ data_300 <- occurrences %>% filter(threshold_sec == 300)
 
 ```{r threshold_models, warning=FALSE, message=FALSE}
 threshold_formula <- occurrences ~
-  color * intensity * mean_phase +
-  pct_forest +
-  jd +
-  I(jd^2) +
-  mean_moonlight +
-  (1 | site) +
-  (1 | year)
+  color * intensity +
+  intensity * dist_km +
+  pct_nonforest +
+  jd_c +
+  I(jd_c^2) +
+  mean_phase +
+  brightness_dark +
+  (1 | site) 
 
-data_30_model  <- glmmTMB(threshold_formula, data = data_30,  family = nbinom2())
-data_60_model  <- glmmTMB(threshold_formula, data = data_60,  family = nbinom2())
-data_120_model <- glmmTMB(threshold_formula, data = data_120, family = nbinom2())
-data_300_model <- glmmTMB(threshold_formula, data = data_300, family = nbinom2())
+data_30_model  <- glmmTMB(threshold_formula, data = data_30, ziformula = ~1,  family = nbinom2())
+data_60_model  <- glmmTMB(threshold_formula, data = data_60, ziformula = ~1,  family = nbinom2())
+data_120_model <- glmmTMB(threshold_formula, data = data_120, ziformula = ~1, family = nbinom2())
+data_300_model <- glmmTMB(threshold_formula, data = data_300, ziformula = ~1, family = nbinom2())
 
 AIC(data_30_model, data_60_model, data_120_model, data_300_model)
 
@@ -302,6 +303,12 @@ cor.test(site_means$dist_km, site_means$mean_det, method = "spearman")
 
 
 # (Distance post-hoc contrasts moved to posthoc chunk below)
+```
+
+```{r}
+source("R/08b_threshold_figures.R")
+
+fig_t1; fig_t2; fig_t3; fig_t4; fig_t5; fig_t6; fig_t7; fig_t8; fig_t9; fig_t10; fig_t11; fig_t12; fig_t13; fig_t14; fig_t15; fig_t16; fig_t17
 ```
 
 ## Post-hoc Contrasts
