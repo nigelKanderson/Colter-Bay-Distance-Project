@@ -605,4 +605,74 @@ fig17 <- ggplot(fig17_data,
 ggsave("output/figures/fig17_species_detections.png",
        fig17, width = 7, height = 5, dpi = 300, bg = "white")
 
+# ==============================================================================
+# ── Fig 18: Species bar charts — light color × detections ─────────────────────
+# ==============================================================================
+
+fig18_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  group_by(species, color) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  )
+
+fig18 <- ggplot(fig18_data,
+                aes(x = color, y = mean_det, fill = color)) +
+  geom_col(width = 0.6, color = NA) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                width = 0.18, linewidth = 0.7, color = "#333333") +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels  = c(R = "Red", W = "White"),
+                    name    = "Light color") +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  facet_wrap(~ species, nrow = 2, scales = "free_y") +
+  labs(
+    title    = "Bat Detections by Light Color per Species",
+    subtitle = "Mean ± SE · y-axes free within species",
+    x        = "Light color",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "none",
+        strip.text      = element_text(size = 9, face = "bold"))
+
+ggsave("output/figures/fig18_species_color_bar.png",
+       fig18, width = 12, height = 7, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 19: Species bar charts — intensity × detections ───────────────────────
+# ==============================================================================
+
+fig19_data <- data_env %>%
+  filter(species %in% focal_spp) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
+  group_by(species, intensity) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  )
+
+fig19 <- ggplot(fig19_data,
+                aes(x = intensity, y = mean_det, fill = intensity)) +
+  geom_col(width = 0.65, color = NA) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                width = 0.18, linewidth = 0.7, color = "#333333") +
+  scale_fill_manual(values = intensity_pal, guide = "none") +
+  facet_wrap(~ species, nrow = 2, scales = "free_y") +
+  labs(
+    title    = "Bat Detections by Light Intensity per Species",
+    subtitle = "Mean ± SE · y-axes free within species",
+    x        = "Light intensity (%)",
+    y        = "Mean detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "none",
+        strip.text      = element_text(size = 9, face = "bold"))
+
+ggsave("output/figures/fig19_species_intensity_bar.png",
+       fig19, width = 12, height = 7, dpi = 300, bg = "white")
+
 message("All figures saved to output/figures/")
