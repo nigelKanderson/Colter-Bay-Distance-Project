@@ -151,6 +151,51 @@ fig3 <- ggplot(intensity_summary,
   theme(legend.position = c(0.88, 0.88))
 
 # ==============================================================================
+# ── Fig 3b: Color × Intensity by site ────────────────────────────────────────
+# ==============================================================================
+
+zone_sites <- list(
+  Close  = c("GRTE17","GRTE16","GRTE05","GRTE01","GRTE06","GRTE02"),
+  Medium = c("GRTE08","GRTE03","GRTE09","GRTE11","GRTE10"),
+  Far    = c("GRTE15","GRTE14","GRTE13")
+)
+
+zone_lookup <- stack(zone_sites) %>%
+  rename(site = values, zone = ind) %>%
+  mutate(zone = factor(zone, levels = c("Close","Medium","Far")))
+
+intensity_distcat_summary <- data_env %>%
+  inner_join(zone_lookup, by = "site") %>%
+  group_by(zone, intensity, color) %>%
+  summarise(
+    mean_det = mean(detections, na.rm = TRUE),
+    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+fig3b <- ggplot(intensity_distcat_summary,
+               aes(x = intensity, y = mean_det,
+                   color = color, group = color)) +
+  geom_line(linewidth = 1.0) +
+  geom_point(size = 3.0) +
+  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
+                width = 0.15, linewidth = 0.8,
+                position = position_dodge(0.1)) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"),
+                     name   = "Light color") +
+  facet_wrap(~ zone, scales = "free_y") +
+  labs(
+    title    = "Light Intensity Effect by Color — By Distance Category",
+    subtitle = "Mean ± SE at each intensity level",
+    x        = "Light intensity (%)",
+    y        = "Mean bat passes per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top")
+
+# ==============================================================================
 # ── Fig 4: Seasonal patterns by light color ───────────────────────────────────
 # ==============================================================================
 
@@ -529,7 +574,8 @@ dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
 
 ggsave("output/figures/fig1_color_effect.png",       fig1, width = 5,  height = 5,   dpi = 300)
 ggsave("output/figures/fig2_distance_effect.png",    fig2, width = 6,  height = 5,   dpi = 300)
-ggsave("output/figures/fig3_color_intensity.png",    fig3, width = 7,  height = 5,   dpi = 300)
+ggsave("output/figures/fig3_color_intensity.png",    fig3,  width = 7,  height = 5,   dpi = 300)
+ggsave("output/figures/fig3b_color_intensity_site.png", fig3b, width = 12, height = 8,   dpi = 300, bg = "white")
 ggsave("output/figures/fig4_seasonal.png",           fig4, width = 9,  height = 5,   dpi = 300)
 ggsave("output/figures/fig5_community_heatmap.png",  fig5, width = 5,  height = 5.5, dpi = 300)
 ggsave("output/figures/fig6_moon_phase.png",         fig6, width = 7,  height = 5,   dpi = 300)
@@ -629,10 +675,10 @@ fig18 <- ggplot(fig18_data,
   scale_x_discrete(labels = c(R = "Red", W = "White")) +
   facet_wrap(~ species, nrow = 2, scales = "free_y") +
   labs(
-    title    = "Bat Detections by Light Color per Species",
+    title    = "Bat Passes by Light Color per Species",
     subtitle = "Mean ± SE · y-axes free within species",
     x        = "Light color",
-    y        = "Mean detections per night"
+    y        = "Mean bat passes per night"
   ) +
   bat_theme +
   theme(legend.position = "none",
@@ -663,10 +709,10 @@ fig19 <- ggplot(fig19_data,
   scale_fill_manual(values = intensity_pal, guide = "none") +
   facet_wrap(~ species, nrow = 2, scales = "free_y") +
   labs(
-    title    = "Bat Detections by Light Intensity per Species",
+    title    = "Bat Passes by Light Intensity per Species",
     subtitle = "Mean ± SE · y-axes free within species",
     x        = "Light intensity (%)",
-    y        = "Mean detections per night"
+    y        = "Mean bat passes per night"
   ) +
   bat_theme +
   theme(legend.position = "none",

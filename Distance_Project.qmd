@@ -587,6 +587,58 @@ ggsave("output/figures/fig_optimal_treatment.png",
        last_plot(), width = 10, height = 5, dpi = 300, bg = "white")
 ```
 
+```{r optimal_by_zone, warning=FALSE, message=FALSE}
+zone_sites <- list(
+  Close  = c("GRTE17","GRTE16","GRTE05","GRTE01","GRTE06","GRTE02"),
+  Medium = c("GRTE08","GRTE03","GRTE09","GRTE11","GRTE10"),
+  Far    = c("GRTE15","GRTE14","GRTE13")
+)
+
+zone_lookup <- stack(zone_sites) %>%
+  rename(site = values, zone = ind) %>%
+  mutate(zone = factor(zone, levels = c("Close","Medium","Far")))
+
+# Average predicted detections across sites within each zone
+em_zone <- em_opt %>%
+  left_join(zone_lookup, by = "site") %>%
+  group_by(zone, color, intensity, combo) %>%
+  summarise(
+    response  = mean(response,  na.rm = TRUE),
+    lower_CL  = mean(lower_CL,  na.rm = TRUE),
+    upper_CL  = mean(upper_CL,  na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(combo = factor(combo, levels = combo_order))
+
+best_zone <- em_zone %>%
+  group_by(zone) %>%
+  slice_max(response, n = 1) %>%
+  ungroup()
+
+cat("=== Best predicted light treatment per distance zone ===\n")
+best_zone %>% select(zone, combo, response, lower_CL, upper_CL) %>% print()
+
+ggplot(em_zone, aes(x = response, y = combo, color = combo)) +
+  geom_linerange(aes(xmin = lower_CL, xmax = upper_CL),
+                 linewidth = 0.6, alpha = 0.6) +
+  geom_point(size = 3) +
+  geom_point(data = best_zone, size = 5, shape = 21,
+             fill = NA, stroke = 1.3, color = "#111111") +
+  scale_color_manual(values = treatment_pal, guide = "none") +
+  facet_wrap(~ zone, nrow = 1, scales = "free_x") +
+  labs(
+    title    = "Optimal Light Treatment by Distance Zone",
+    subtitle = "Circle outline = best treatment · bars = 95% CI · averaged across sites within zone",
+    x        = "Predicted bat passes per night",
+    y        = NULL
+  ) +
+  bat_theme +
+  theme(strip.text = element_text(size = 10, face = "bold"))
+
+ggsave("output/figures/fig_optimal_treatment_by_zone.png",
+       last_plot(), width = 10, height = 6, dpi = 300, bg = "white")
+```
+
 ```{r close_vs_far, warning=FALSE, message=FALSE}
 # Define distance zones by site groupings
 zone_sites <- list(
@@ -741,7 +793,7 @@ ggsave("output/figures/fig_optimal_treatment_by_species.png",
 ```{r figures, message=FALSE, warning=FALSE}
 source("R/08_figures.R")
 
-fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14; fig15; fig16; fig17
+fig1; fig2; fig3; fig3b; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14; fig15; fig16; fig17; fig18; fig19
 ```
 
 ## Species Key
