@@ -860,4 +860,23 @@ fig26 <- ggplot(fig26_data, aes(x = site, y = detections)) +
 ggsave("output/figures/fig26_lano_by_site.png",
        fig26, width = 10, height = 6, dpi = 300, bg = "white")
 
+# ==============================================================================
+# ── Fig 27: Epfu detections by light intensity ────────────────────────────────
+# ==============================================================================
+
+fig27_data <- data_env %>%
+  filter(species == "Epfu", !is.na(detections)) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+fig27 <- ggplot(fig27_data, aes(x = intensity, y = detections, fill = intensity)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7, color = "#333333") +
+  scale_fill_manual(values = intensity_pal, guide = "none") +
+  labs(title = "Epfu Detections by Light Intensity",
+       x = "Light intensity (%)", y = "Bat passes per night") +
+  bat_theme
+
+ggsave("output/figures/fig27_epfu_by_intensity.png",
+       fig27, width = 8, height = 6, dpi = 300, bg = "white")
+
 message("All figures saved to output/figures/")

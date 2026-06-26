@@ -793,7 +793,7 @@ ggsave("output/figures/fig_optimal_treatment_by_species.png",
 ```{r figures, message=FALSE, warning=FALSE}
 source("R/08_figures.R")
 
-fig1; fig2; fig3; fig3b; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14; fig15; fig16; fig17; fig18; fig19; fig20; fig21; fig22; fig23; fig24; fig25; fig26
+fig1; fig2; fig3; fig3b; fig4; fig5; fig6; fig7; fig8; fig9; fig10; fig11; fig12; fig13; fig14; fig15; fig16; fig17; fig18; fig19; fig20; fig21; fig22; fig23; fig24; fig25; fig26; fig27
 ```
 
 ## Species Key
