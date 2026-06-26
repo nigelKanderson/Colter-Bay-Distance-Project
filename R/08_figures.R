@@ -652,23 +652,16 @@ ggsave("output/figures/fig17_species_detections.png",
        fig17, width = 7, height = 5, dpi = 300, bg = "white")
 
 # ==============================================================================
-# ── Fig 18: Species bar charts — light color × detections ─────────────────────
+# ── Fig 18: Species boxplots — light color × detections ───────────────────────
 # ==============================================================================
 
 fig18_data <- data_env %>%
-  filter(species %in% focal_spp) %>%
-  group_by(species, color) %>%
-  summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
-    .groups  = "drop"
-  )
+  filter(species %in% focal_spp)
 
 fig18 <- ggplot(fig18_data,
-                aes(x = color, y = mean_det, fill = color)) +
-  geom_col(width = 0.6, color = NA) +
-  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.18, linewidth = 0.7, color = "#333333") +
+                aes(x = color, y = detections, fill = color)) +
+  geom_jitter(width = 0.15, size = 1, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7, color = "#333333") +
   scale_fill_manual(values = c(R = col_red, W = col_white),
                     labels  = c(R = "Red", W = "White"),
                     name    = "Light color") +
@@ -676,49 +669,42 @@ fig18 <- ggplot(fig18_data,
   facet_wrap(~ species, nrow = 2, scales = "free_y") +
   labs(
     title    = "Bat Passes by Light Color per Species",
-    subtitle = "Mean ± SE · y-axes free within species",
+    subtitle = "Median + IQR · points jittered · y-axes free within species",
     x        = "Light color",
-    y        = "Mean bat passes per night"
+    y        = "Bat passes per night"
   ) +
   bat_theme +
   theme(legend.position = "none",
         strip.text      = element_text(size = 9, face = "bold"))
 
-ggsave("output/figures/fig18_species_color_bar.png",
+ggsave("output/figures/fig18_species_color_boxplot.png",
        fig18, width = 12, height = 7, dpi = 300, bg = "white")
 
 # ==============================================================================
-# ── Fig 19: Species bar charts — intensity × detections ───────────────────────
+# ── Fig 19: Species boxplots — intensity × detections ─────────────────────────
 # ==============================================================================
 
 fig19_data <- data_env %>%
   filter(species %in% focal_spp) %>%
-  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
-  group_by(species, intensity) %>%
-  summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
-    .groups  = "drop"
-  )
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
 
 fig19 <- ggplot(fig19_data,
-                aes(x = intensity, y = mean_det, fill = intensity)) +
-  geom_col(width = 0.65, color = NA) +
-  geom_errorbar(aes(ymin = mean_det - se, ymax = mean_det + se),
-                width = 0.18, linewidth = 0.7, color = "#333333") +
+                aes(x = intensity, y = detections, fill = intensity)) +
+  geom_jitter(width = 0.15, size = 1, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.55, outlier.shape = NA, alpha = 0.7, color = "#333333") +
   scale_fill_manual(values = intensity_pal, guide = "none") +
   facet_wrap(~ species, nrow = 2, scales = "free_y") +
   labs(
     title    = "Bat Passes by Light Intensity per Species",
-    subtitle = "Mean ± SE · y-axes free within species",
+    subtitle = "Median + IQR · points jittered · y-axes free within species",
     x        = "Light intensity (%)",
-    y        = "Mean bat passes per night"
+    y        = "Bat passes per night"
   ) +
   bat_theme +
   theme(legend.position = "none",
         strip.text      = element_text(size = 9, face = "bold"))
 
-ggsave("output/figures/fig19_species_intensity_bar.png",
+ggsave("output/figures/fig19_species_intensity_boxplot.png",
        fig19, width = 12, height = 7, dpi = 300, bg = "white")
 
 message("All figures saved to output/figures/")
