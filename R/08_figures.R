@@ -707,4 +707,157 @@ fig19 <- ggplot(fig19_data,
 ggsave("output/figures/fig19_species_intensity_boxplot.png",
        fig19, width = 12, height = 7, dpi = 300, bg = "white")
 
+# ==============================================================================
+# ── Fig 20: Myvo detections ~ sky brightness (dark period) ────────────────────
+# ==============================================================================
+
+fig20_data <- data_env %>%
+  filter(species == "Myvo", !is.na(brightness_dark), !is.na(detections))
+
+fig20 <- ggplot(fig20_data,
+                aes(x = brightness_dark, y = detections)) +
+  geom_point(size = 2.5, alpha = 0.6, color = col_red) +
+  geom_smooth(method = "loess", se = TRUE, color = "#333333", fill = "#cccccc") +
+  labs(
+    title = "Myvo Detections vs. Sky Brightness (Dark Period)",
+    x     = "Sky brightness — dark period (mag/arcsec²)",
+    y     = "Bat passes per night"
+  ) +
+  bat_theme
+
+ggsave("output/figures/fig20_myvo_brightness_dark.png",
+       fig20, width = 8, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 21: Myvo detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig21_data <- data_env %>%
+  filter(species == "Myvo", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig21 <- ggplot(fig21_data,
+                aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(
+    title = "Myvo Detections by Site",
+    x     = "Site (ordered by median)",
+    y     = "Bat passes per night"
+  ) +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig21_myvo_by_site.png",
+       fig21, width = 10, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 22: Mylu detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig22_data <- data_env %>%
+  filter(species == "Mylu", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig22 <- ggplot(fig22_data,
+                aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(
+    title = "Mylu Detections by Site",
+    x     = "Site (ordered by median)",
+    y     = "Bat passes per night"
+  ) +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig22_mylu_by_site.png",
+       fig22, width = 10, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 23: Myev detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig23_data <- data_env %>%
+  filter(species == "Myev", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig23 <- ggplot(fig23_data,
+                aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(
+    title = "Myev Detections by Site",
+    x     = "Site (ordered by median)",
+    y     = "Bat passes per night"
+  ) +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig23_myev_by_site.png",
+       fig23, width = 10, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 24: Laci detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig24_data <- data_env %>%
+  filter(species == "Laci", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig24 <- ggplot(fig24_data, aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(title = "Laci Detections by Site",
+       x = "Site (ordered by median)", y = "Bat passes per night") +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig24_laci_by_site.png",
+       fig24, width = 10, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 25: Epfu detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig25_data <- data_env %>%
+  filter(species == "Epfu", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig25 <- ggplot(fig25_data, aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(title = "Epfu Detections by Site",
+       x = "Site (ordered by median)", y = "Bat passes per night") +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig25_epfu_by_site.png",
+       fig25, width = 10, height = 6, dpi = 300, bg = "white")
+
+# ==============================================================================
+# ── Fig 26: Lano detections by site ───────────────────────────────────────────
+# ==============================================================================
+
+fig26_data <- data_env %>%
+  filter(species == "Lano", !is.na(detections)) %>%
+  mutate(site = fct_reorder(site, detections, median, na.rm = TRUE))
+
+fig26 <- ggplot(fig26_data, aes(x = site, y = detections)) +
+  geom_jitter(width = 0.15, size = 1.5, alpha = 0.4, color = "#555555") +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.7,
+               fill = col_red, color = "#333333") +
+  labs(title = "Lano Detections by Site",
+       x = "Site (ordered by median)", y = "Bat passes per night") +
+  bat_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("output/figures/fig26_lano_by_site.png",
+       fig26, width = 10, height = 6, dpi = 300, bg = "white")
+
 message("All figures saved to output/figures/")
