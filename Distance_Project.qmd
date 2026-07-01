@@ -905,4 +905,18 @@ bind_rows(bat_dist_slope, moth_dist_slope) %>%
   arrange(intensity, taxon)
 ```
 
+## Total Detections: Bat vs. Moth
+
+```{r total_detections, warning=FALSE, message=FALSE}
+source("R/16_total_detections.R")
+totals <- plot_total_detections(
+  data_env, insect_total_env, bat_theme,
+  col_navy, col_purple, col_red, col_white, intensity_pal
+)
+
+totals$fig_site
+totals$fig_color
+totals$fig_intensity
+```
+
 ------------------------------------------------------------------------
