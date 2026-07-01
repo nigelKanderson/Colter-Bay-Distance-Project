@@ -919,4 +919,21 @@ totals$fig_color
 totals$fig_intensity
 ```
 
+## Bat vs. Moth Relative Effects
+
+```{r bat_moth_effects, warning=FALSE, message=FALSE}
+source("R/17_bat_moth_effects.R")
+bm_effects <- compare_bat_moth_effects(
+  simple_model1, insect_general$model, data_env, insect_total_env,
+  bat_theme, col_navy, col_purple
+)
+
+bm_effects$fig_color
+bm_effects$fig_intensity
+bm_effects$fig_distance
+bm_effects$fig_forest
+
+bm_effects$forest_df
+```
+
 ------------------------------------------------------------------------
