@@ -135,22 +135,14 @@ message("Rows after species filter: ", nrow(data_env),
 source("R/09_add_sky_brightness.R")
 ```
 
-```{r guild, warning=FALSE, message=FALSE}
-guild_map <- tribble(
-  ~species, ~guild,
-  "Laci",   "Open-air",
-  "Lano",   "Edge",
-  "Epfu",   "Edge",
-  "Mylu",   "Clutter",
-  "Myev",   "Clutter",
-  "Myvo",   "Clutter",
-  "Myyu",   "Clutter",
-  "Myci",   "Clutter"
-)
+```{r bat_traits, warning=FALSE, message=FALSE}
+library(readxl)
+
+bat_traits <- read_excel("data/bat_traits.xlsx") %>%
+  rename(species = Species)
 
 data_env <- data_env %>%
-  left_join(guild_map, by = "species") %>%
-  mutate(guild = factor(guild, levels = c("Open-air", "Edge", "Clutter")))
+  left_join(bat_traits, by = "species")
 ```
 
 ## Models
@@ -395,104 +387,29 @@ ggsave("output/figures/fig9_dist_intensity.png",
        last_plot(), width = 8, height = 5, dpi = 300, bg = "white")
 ```
 
-## Guild Analysis
+## Morphology Trait Analysis
 
-```{r guild_model, warning=FALSE, message=FALSE}
-guild_model <- glmmTMB(
-  detections ~
-    guild * intensity +
-    guild * dist_km +
-    mean_phase +
-    pct_nonforest +
-    jd_c + I(jd_c^2) +
-    (1 | site),
-  data      = data_env,
-  ziformula = ~1,
-  family    = nbinom2()
-)
+```{r trait_models, warning=FALSE, message=FALSE}
+source("R/12_trait_models.R")
+trait_results <- run_trait_models(data_env, bat_theme, col_navy, col_red, col_purple)
 
-summary(guild_model)
+for (trait in names(trait_results$trait_models)) {
+  cat("\n\n=== ", trait, " model ===\n")
+  print(summary(trait_results$trait_models[[trait]]))
+}
 ```
 
-```{r guild_posthoc, warning=FALSE, message=FALSE}
-# Intensity effect by guild
-em_guild_intensity <- emmeans(guild_model, ~ intensity | guild, type = "response")
-cat("=== Intensity effect within each guild ===\n")
-em_guild_intensity
-pairs(em_guild_intensity, adjust = "holm")
+```{r trait_posthoc, warning=FALSE, message=FALSE}
+cat("=== Intensity effect at low/mean/high trait values ===\n")
+trait_results$df_trait_intensity
 
-# Distance slope by guild
-em_guild_dist <- emtrends(guild_model, ~ guild, var = "dist_km", type = "response")
-cat("\n=== Distance slope by guild ===\n")
-em_guild_dist
-pairs(em_guild_dist, adjust = "holm")
+cat("\n=== Distance slope at low/mean/high trait values ===\n")
+trait_results$df_trait_slope
 ```
 
-```{r guild_figs, warning=FALSE, message=FALSE}
-# Fig A: intensity effect by guild
-em_guild_intensity_df <- as.data.frame(em_guild_intensity) %>%
-  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
-  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
-
-fig_guild_intensity <- ggplot(em_guild_intensity_df,
-                              aes(x = guild, y = response,
-                                  color = intensity, group = intensity)) +
-  geom_line(linewidth = 0.8, position = position_dodge(0.4)) +
-  geom_point(size = 3.5, position = position_dodge(0.4)) +
-  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
-                width = 0.15, linewidth = 0.7,
-                position = position_dodge(0.4)) +
-  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
-  labs(
-    title    = "Light Intensity Effect by Foraging Guild",
-    subtitle = "Marginal means ± 95% CI from guild × intensity model",
-    x        = "Foraging guild",
-    y        = "Predicted detections per night"
-  ) +
-  bat_theme +
-  theme(legend.position = "top")
-
-# Fig B: distance trend by guild
-dist_grid_guild <- seq(min(data_env$dist_km, na.rm = TRUE),
-                       max(data_env$dist_km, na.rm = TRUE),
-                       length.out = 60)
-
-em_guild_dist_df <- emmeans(guild_model, ~ guild + dist_km,
-                             at   = list(dist_km = dist_grid_guild),
-                             type = "response") %>%
-  as.data.frame() %>%
-  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
-
-fig_guild_dist <- ggplot(em_guild_dist_df,
-                         aes(x = dist_km, y = response,
-                             color = guild, fill = guild)) +
-  geom_ribbon(aes(ymin = lower_CL, ymax = upper_CL),
-              alpha = 0.15, color = NA) +
-  geom_line(linewidth = 1.1) +
-  scale_color_manual(values = c("Open-air" = col_navy,
-                                 "Edge"     = col_red,
-                                 "Clutter"  = col_purple),
-                     name = "Guild") +
-  scale_fill_manual(values  = c("Open-air" = col_navy,
-                                 "Edge"     = col_red,
-                                 "Clutter"  = col_purple),
-                    guide   = "none") +
-  labs(
-    title    = "Bat Activity Across Distance Gradient by Foraging Guild",
-    subtitle = "Marginal predictions ± 95% CI · averaged over light color",
-    x        = "Distance from light source (km)",
-    y        = "Predicted detections per night"
-  ) +
-  bat_theme +
-  theme(legend.position = "top")
-
-fig_guild_intensity
-fig_guild_dist
-
-ggsave("output/figures/fig_guild_intensity.png",
-       fig_guild_intensity, width = 7, height = 5, dpi = 300, bg = "white")
-ggsave("output/figures/fig_guild_dist.png",
-       fig_guild_dist,      width = 8, height = 5, dpi = 300, bg = "white")
+```{r trait_figs, warning=FALSE, message=FALSE}
+trait_results$fig_trait_intensity
+trait_results$fig_trait_dist
 ```
 
 ## Species Models
