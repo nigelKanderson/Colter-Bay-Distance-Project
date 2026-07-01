@@ -852,6 +852,13 @@ moth_community$mv_anova
 moth_community$fig_c1
 moth_community$fig_c2
 moth_community$fig_c3
+
+ggsave("output/figures/moth_fig_dbrda.png", moth_community$fig_c1,
+       width = 7, height = 6, dpi = 300, bg = "white")
+ggsave("output/figures/moth_fig_community_heatmap.png", moth_community$fig_c2,
+       width = 8, height = 6, dpi = 300, bg = "white")
+ggsave("output/figures/moth_fig_dist_heatmap.png", moth_community$fig_c3,
+       width = 7, height = 6, dpi = 300, bg = "white")
 ```
 
 ## Bat vs. Moth Comparison

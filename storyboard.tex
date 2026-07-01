@@ -75,6 +75,16 @@ Design: 14 acoustic monitoring stations along a distance gradient
 at five intensities (10, 30, 50, 70, 100\%). Survey season: 2022.
 Eight focal species: Epfu, Laci, Lano, Myev, Mylu, Myvo, Myyu, Myci.
 
+This report extends the design in two directions. First, the six
+species with sufficient data are further characterized by four
+continuous wing-morphology traits (ear height, forearm length, wing
+loading, aspect ratio) in place of a discrete foraging guild (Section
+\ref{sec:traits}). Second, the same light treatments were run past
+moth (Lepidoptera) camera traps at all 14 stations over the same
+season, identified to family/subfamily, allowing a direct bat-vs-moth
+comparison of the light color, intensity, and distance effects
+(Sections \ref{sec:moths}--\ref{sec:comparison}).
+
 % ============================================================
 \section{Primary Model}
 % ============================================================
@@ -442,6 +452,321 @@ to any measured predictor. Colour is non-significant for all species.
 \end{figure}
 
 % ============================================================
+\section{Bat Morphology Traits}
+\label{sec:traits}
+% ============================================================
+
+Foraging guild (Open-air / Edge / Clutter) was replaced with four
+continuous wing-morphology measurements per species: ear height,
+forearm length, wing loading, and aspect ratio. Each trait was modeled
+separately (z-scored, interacted with intensity and distance) and
+compared at representative low / mean / high ($\pm$1 SD) values, in
+place of the three discrete guild levels.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trait_intensity.png}
+  \caption{Predicted bat detections by light intensity, evaluated at
+  low/mean/high ($\pm$1 SD) values of each morphology trait.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trait_dist.png}
+  \caption{Predicted bat detections across the distance gradient,
+  evaluated at low/mean/high ($\pm$1 SD) values of each morphology
+  trait.}
+\end{figure}
+
+All four traits point the same direction. Species with smaller ears,
+shorter forearms, lower wing loading, and lower aspect ratio ---
+slower, more maneuverable fliers such as \textit{Myotis} spp. --- show
+a steeper increase in activity with distance from the light source,
+while species at the high end of each trait (larger, faster,
+open-air-adapted fliers such as Laci) are comparatively flat across the
+same gradient. The same ordering holds for intensity: low-trait-value
+species have consistently higher predicted detections at every
+intensity level, with the gap narrowing at high intensity. Because
+forearm length, wing loading, ear height, and aspect ratio are all
+measured on the same six species, the four traits are highly
+correlated with one another (and with species identity itself, as
+guild was) --- the four panels are best read as one wing-morphology
+gradient viewed four ways, not four independent effects.
+
+% ============================================================
+\section{Moth (Lepidoptera) Data}
+\label{sec:moths}
+% ============================================================
+
+\subsection{Data and General Activity Model}
+
+Moth specimens were identified from nightly camera-trap photographs at
+the same 14 monitoring stations, over the same 2022 season (21 June --
+16 August). Each photo's filename encoded site, date, and light
+treatment (e.g.\ \texttt{GRTE01\_2aug22\_w100D}); intensity readings
+that deviated from the bat project's 10/30/50/70/100\% schedule were
+rounded to the nearest level, and repeat photos of the same
+site/date/treatment were merged. 9{,}864 identified specimens across
+241 photographs (225 site-nights) were retained, spanning 11 families
+and 31 subfamilies, dominated numerically by Noctuidae, Lasiocampidae,
+and Erebidae.
+
+A general activity model --- mirroring the bat Primary Model exactly
+(color $\times$ intensity + intensity $\times$ dist\_km + mean\_phase +
+pct\_nonforest + jd\_c + jd\_c$^2$ + (1$\vert$site), negative binomial,
+zero-inflated) --- was fit to total nightly moth counts.
+
+\begin{verbatim}
+Family:      nbinom2  ( log )
+Formula:     detections ~ color * intensity + intensity * dist_km +
+             mean_phase + pct_nonforest + jd_c + I(jd_c^2) + (1 | site)
+Zero infl:   ~1
+Data:        insect_env
+
+      AIC       BIC    logLik  -2*log(L)  df.resid
+   1992.0    2067.2    -974.0     1948.0      204
+
+Random effects:
+ Groups  Name         Variance  Std.Dev.
+ site    (Intercept)  0.0122    0.1103
+Number of obs: 226, groups: site, 14
+
+Dispersion parameter for nbinom2 family (): 2.43
+
+Conditional model:
+                       Estimate   Std.Err  z value  Pr(>|z|)
+(Intercept)            4.1115    0.2755   14.924   <2e-16   ***
+colorW                 0.0596    0.2689    0.222   0.8244
+intensity30            0.3922    0.2996    1.309   0.1905
+intensity50            0.0481    0.2987    0.161   0.8722
+intensity70            0.1013    0.2827    0.358   0.7201
+intensity100          -0.6289    0.2818   -2.232   0.0256   *
+dist_km                0.1086    0.0408    2.661   0.0078   **
+mean_phase            -0.4558    0.2414   -1.888   0.0590   .
+pct_nonforest         -0.2558    0.2164   -1.182   0.2371
+jd_c                   0.0056    0.0036    1.528   0.1266
+I(jd_c^2)             -0.0028    0.0003   -9.562   <2e-16   ***
+colorW:intensity30    -0.3184    0.3806   -0.837   0.4028
+colorW:intensity50    -0.0686    0.3578   -0.192   0.8479
+colorW:intensity70     0.1072    0.3414    0.314   0.7535
+colorW:intensity100    1.0669    0.3252    3.280   0.0010   ***
+intensity30:dist_km    0.0490    0.0579    0.846   0.3978
+intensity50:dist_km    0.0393    0.0547    0.718   0.4727
+intensity70:dist_km    0.0264    0.0544    0.484   0.6282
+intensity100:dist_km  -0.1158    0.0523   -2.214   0.0268   *
+\end{verbatim}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{moth_fig_color_intensity.png}
+  \caption{Moth detections by light color and intensity (general
+  activity model). Cardinal crimson = red, gilded gold = white.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{moth_fig_dist_intensity.png}
+  \caption{Predicted moth detections by distance and light intensity.}
+\end{figure}
+
+\begin{verbatim}
+=== color | intensity  (response scale) ===
+intensity = 10:   R = 60.1   W = 63.8   ratio R/W = 0.942  p = 0.824
+intensity = 30:   R = 100.5  W = 77.6   ratio R/W = 1.295  p = 0.311
+intensity = 50:   R = 69.5   W = 68.9   ratio R/W = 1.009  p = 0.968
+intensity = 70:   R = 71.0   W = 83.9   ratio R/W = 0.846  p = 0.376
+intensity = 100:  R = 24.0   W = 74.0   ratio R/W = 0.324  p < 0.0001  ***
+
+=== Distance slope (km) by intensity level (emtrends) ===
+ intensity  dist_km.trend    SE   asymp.LCL  asymp.UCL
+ 10              0.1086   0.0408     0.0286     0.1886  *
+ 30              0.1576   0.0442     0.0709     0.2442  *
+ 50              0.1479   0.0397     0.0701     0.2257  *
+ 70              0.1350   0.0395     0.0574     0.2125  *
+ 100            -0.0072   0.0365    -0.0787     0.0643
+\end{verbatim}
+
+Unlike bats, moths show no significant color preference at low-to-mid
+intensity. At 100\% intensity, however, white light produced 3.1$\times$
+more detections than red (p $<$ 0.0001) --- the mirror image of the bat
+pattern at that same intensity (Section 2), where red and white were
+statistically indistinguishable. The positive distance slope seen at
+10--70\% intensity flattens to essentially zero at 100\%, echoing the
+bat finding that the distance gradient weakens at high intensity.
+
+\subsection{Family-Level Models}
+
+Six of nine families cleared the same 30-detection / 20-row threshold
+used for the bat species models (Noctuidae, Lasiocampidae, Erebidae,
+Geometridae, Sphingidae, Notodontidae); Crambidae, Drepanidae, and
+Euteliidae had too few identified specimens to model individually.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_species_color_effect.png}
+  \caption{Left: marginal means $\pm$ 95\% CI by color, ranked by
+  family. Right: white/red detection ratio by intensity level per
+  family. Ratio $>$ 1 = more detections under white; $<$ 1 = more under
+  red.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_fig_s4a_species_dist_color_intensity.png}
+  \caption{Predicted moth detections across the distance gradient by
+  light color, faceted by family.}
+\end{figure}
+
+Noctuidae is numerically dominant (predicted 40--50 detections/night
+vs. $<$15 for every other family) and drives most of the aggregate
+pattern above. At 100\% intensity, Erebidae, Noctuidae, and Geometridae
+each show a 2--3$\times$ white-over-red ratio; at lower intensities the
+families track each other closely with wide, overlapping confidence
+intervals.
+
+\subsection{Community Analysis}
+
+\begin{verbatim}
+=== PERMANOVA (adonis2), family-level community ===
+          Df  SumOfSqs     R2      F     Pr(>F)
+Model      9    6.781   0.305   5.943   <0.001  ***
+Residual 122   15.468   0.695
+Total    131   22.249   1.000
+
+=== dbRDA marginal tests ===
+                Df  SumOfSqs     F    Pr(>F)
+color            1    0.201   1.581   0.159
+intensity        4    3.930   7.749  <0.001  ***
+dist_km          1    1.065   8.401  <0.001  ***
+mean_phase       1    0.761   6.005   0.001  **
+pct_nonforest    1    0.104   0.821   0.494
+brightness_dark  1    0.086   0.682   0.596
+Residual       122   15.468
+
+=== mvabund --- multivariate GLM (nBoot = 9999) ===
+                Dev   Df  Pr(>Dev)
+color           6.11   1   0.585
+intensity     173.32   4  <2e-16   ***
+dist_km        73.77   1  <2e-16   ***
+mean_phase     40.72   1  <2e-16   ***
+pct_nonforest  13.34   1   0.149
+brightness_d    6.82   1   0.500
+\end{verbatim}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_fig_community_heatmap.png}
+  \caption{Moth family activity by light intensity and color (z-scored
+  within family).}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_fig_dbrda.png}
+  \caption{Moth family community composition --- dbRDA ordination.}
+\end{figure}
+
+As with bats, light \emph{color} has no detectable effect on moth
+community composition (dbRDA p = 0.159, mvabund p = 0.585). Intensity,
+distance, and moon phase all structure the community strongly
+(dbRDA p $<$ 0.001 for all three; mvabund p $<$ 2e-16). Notably, the
+treatment variables jointly explain far more of the moth community's
+variation (model $R^2$ = 0.305) than the bat community's (model
+$R^2$ = 0.156, Community Analysis section above) --- moth community
+turnover along the light gradient is proportionally stronger than
+bats'. Per-family univariate tests attribute most of the intensity
+signal to Lasiocampidae and Noctuidae (both p $<$ 2e-16) and the
+distance signal primarily to Lasiocampidae (p $<$ 2e-16) and Noctuidae
+(p = 0.005).
+
+% ============================================================
+\section{Bat vs. Moth Comparison}
+\label{sec:comparison}
+% ============================================================
+
+Raw totals differ by roughly an order of magnitude between taxa and
+reflect different sampling effort, so they are shown first for
+reference, followed by effort-independent, relative comparisons of the
+treatment effects themselves.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\linewidth]{fig_bat_vs_moth_site_totals.png}
+  \caption{Total detections by site, bat vs.\ moth (sites ordered by
+  distance from the light source). Bat = nave navy, Moth = papal
+  purple.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{fig_bat_vs_moth_color_totals.png}
+  \caption{Total detections by light color, bat vs.\ moth.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{fig_bat_vs_moth_intensity_totals.png}
+  \caption{Total detections by light intensity, bat vs.\ moth.}
+\end{figure}
+
+To compare the \emph{shape} of each taxon's response independent of its
+absolute abundance, the figures below rescale each model's marginal
+predictions to \% change from that taxon's own baseline.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{fig_bat_vs_moth_color_relative.png}
+  \caption{\% change in detections, white vs.\ red light, by intensity
+  --- both taxa on a shared scale.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.65\linewidth]{fig_bat_vs_moth_intensity_relative.png}
+  \caption{\% change in detections from the 10\% baseline, marginal
+  over color --- both taxa on a shared scale.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig_bat_vs_moth_distance_relative.png}
+  \caption{\% change in detections along the distance gradient from the
+  nearest shared site --- both taxa on a shared scale.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig_bat_vs_moth_forest.png}
+  \caption{Effect-size comparison: rate ratios $\pm$ 95\% CI for color,
+  each intensity level vs.\ 10\%, and the marginal distance slope.}
+\end{figure}
+
+\begin{verbatim}
+Term                     Bat ratio [95% CI]      Moth ratio [95% CI]
+Color (White vs Red)     0.78  [0.71, 0.86]      1.24  [1.02, 1.51]
+Intensity 30% vs 10%     1.24  [0.99, 1.55]      1.43  [0.96, 2.11]
+Intensity 50% vs 10%     1.11  [0.86, 1.44]      1.12  [0.71, 1.77]
+Intensity 70% vs 10%     1.28  [1.11, 1.47]      1.25  [0.92, 1.69]
+Intensity 100% vs 10%    1.03  [0.87, 1.22]      0.68  [0.48, 0.97]
+Distance (per km)        1.08  [0.95, 1.23]      1.11  [1.07, 1.16]
+\end{verbatim}
+
+The two taxa diverge most clearly on light color: averaged across
+intensity, bats show 22\% fewer detections under white than red (CI
+excludes 1), while moths show 24\% more (CI excludes 1) --- opposite
+directions. At 100\% intensity specifically, bat activity is
+indistinguishable from the 10\% baseline (ratio 1.03, ns) while moth
+activity drops significantly (ratio 0.68, CI excludes 1): bats hold
+steady at maximum brightness where moths pull back. Both taxa increase
+with distance from the light source over the shared 0--7.4 km range,
+and the relative increase is if anything larger for moths (+125\% at
+the far end vs.\ +80\% for bats); only the moth slope is significant on
+its own (CI excludes 1), because the bat's marginal, intensity-averaged
+slope is diluted by the reversal at 70--100\% intensity documented in
+the Primary Model (Section 2) --- a reversal not present in the moth
+data.
+
+% ============================================================
 \section{Summary}
 % ============================================================
 
@@ -459,9 +784,24 @@ to any measured predictor. Colour is non-significant for all species.
 3. Community composition is driven by distance, habitat (pct\_nonforest),
    and sky darkness --- not by light colour.
 
-4. Management implication: red light at 30--50\% intensity minimises
-   suppression of bat activity. At high intensities, siting lights
-   $>$0.5--1.0 km from sensitive habitat is critical to reduce impact.
+4. Wing morphology (ear height, forearm length, wing loading, aspect
+   ratio) replaces guild as the trait-level lens: smaller, slower,
+   more maneuverable species consistently show higher and more
+   distance-sensitive activity than larger, faster, open-air fliers,
+   across every intensity level.
+
+5. Moths mirror bats on intensity and distance (both show a positive
+   distance effect that weakens at 100\% intensity, and light color
+   has no effect on community composition in either taxon) but invert
+   the color effect: bats favor red overall while moths favor white,
+   most sharply at 100\% intensity (bat ratio 1.03 ns vs.\ moth ratio
+   0.68, CI excludes 1).
+
+6. Management implication: red light at 30--50\% intensity minimises
+   suppression of bat activity while also avoiding the white-light
+   attraction effect seen in moths at high intensity; siting lights
+   $>$0.5--1.0 km from sensitive habitat remains important for both
+   taxa at high intensity.
 
 % ============================================================
 \section{Species Key}
@@ -476,6 +816,17 @@ Myev  Myotis evotis             (long-eared myotis)
 Mylu  Myotis lucifugus          (little brown myotis)
 Myvo  Myotis volans             (long-legged myotis)
 Myyu  Myotis yumanensis         (Yuma myotis)
+\end{verbatim}
+
+Moth families modeled individually (Section \ref{sec:moths}):
+
+\begin{verbatim}
+Noctuidae      Owlet moths       (numerically dominant)
+Lasiocampidae  Lappet/tent moths
+Erebidae       Erebid moths      (incl. tiger, tussock moths)
+Geometridae    Geometer moths    ("inchworm" moths)
+Sphingidae     Sphinx/hawk moths
+Notodontidae   Prominent moths
 \end{verbatim}
 
 \end{document}
