@@ -9,7 +9,7 @@ nlcd_forest <- terra::rast('data/Annual_NLCD_LndCov_2021_CU_C1V1.tif')
 # and non-forest values. 
 
 
-add_habitat <- function(data, forest_raster, buffer = 50) {
+add_habitat <- function(data, forest_raster, buffer = 50, cache_path = "data/data_out.rds") {
   
   sites <- data %>%
     dplyr::group_by(site) %>%
@@ -51,8 +51,8 @@ add_habitat <- function(data, forest_raster, buffer = 50) {
   
   data_out <- data %>%
     left_join(sites_env, by = "site")
-  
-  saveRDS(data_out, "data/data_out.rds")
+
+  saveRDS(data_out, cache_path)
   
   return(data_out)
 }
@@ -66,7 +66,7 @@ add_moonlight <- function(data,
   library(moonlit)
   library(purrr)
   
-  site_night <- data_env %>%
+  site_night <- data %>%
     mutate(date = as.Date(datetime)) %>%
     distinct(site, date, lat.y, lon.y)
   

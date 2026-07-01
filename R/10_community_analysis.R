@@ -5,7 +5,8 @@
 #            col_red / col_white — shared colour constants
 # Returns:   named list of model objects, data frames, and figures
 
-run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
+run_community_analysis <- function(data_env, bat_theme, col_red, col_white,
+                                    taxon = "Bat", unit = "Species") {
 
   library(vegan)
   library(mvabund)
@@ -198,7 +199,7 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
       name   = "Light color"
     ) +
     labs(
-      title    = "Bat Community Composition — dbRDA",
+      title    = paste0(taxon, " Community Composition — dbRDA"),
       subtitle = paste0("Year partialled (Condition) · Global p = ", p_global),
       x        = "dbRDA1", y = "dbRDA2",
       caption  = "Bray–Curtis distance · arrows = constrained predictors"
@@ -237,10 +238,10 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
     facet_wrap(~ color,
                labeller = labeller(color = c(R = "Red light", W = "White light"))) +
     labs(
-      title   = "Species Activity by Light Intensity and Color",
+      title   = paste0(unit, " Activity by Light Intensity and Color"),
       x       = "Light intensity (% of maximum)",
       y       = NULL,
-      caption = "Z-scored within species across all treatment combinations"
+      caption = paste0("Z-scored within ", tolower(unit), " across all treatment combinations")
     ) +
     bat_theme +
     theme(panel.grid = element_blank(),
@@ -268,10 +269,10 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white) {
       name     = "Relative\nactivity (z)"
     ) +
     labs(
-      title   = "Species Activity by Distance from Light Source",
+      title   = paste0(unit, " Activity by Distance from Light Source"),
       x       = "Distance category",
       y       = NULL,
-      caption = "Z-scored within species across distance categories"
+      caption = paste0("Z-scored within ", tolower(unit), " across distance categories")
     ) +
     bat_theme +
     theme(panel.grid = element_blank(),

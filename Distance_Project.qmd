@@ -730,4 +730,179 @@ fig1; fig2; fig3; fig4; fig5; fig6; fig7; fig8; fig9; fig11; fig12; fig13; fig14
 | Epfu | *Eptesicus fuscus* \*                            |
 | Anpa | *Antrozous pallidus* (possibly *L. noctivagans*) |
 
+## Moth (Insect) Data Import
+
+```{r insect_import, warning=FALSE, message=FALSE}
+source("R/13_import_insects.R")
+insects <- import_insects("data/grte_distance_insectID.xlsx")
+```
+
+```{r insect_env, warning=FALSE, message=FALSE}
+insect_events <- insects$total %>%
+  left_join(sites, by = "site") %>%
+  left_join(site_dists, by = "site") %>%
+  mutate(
+    dist_km  = dist_m / 1000,
+    dist_cat = case_when(
+      dist_km < 0.52 ~ "Close",
+      dist_km < 1    ~ "Medium",
+      dist_km < 2.1  ~ "Further",
+      TRUE           ~ "Far"
+    ),
+    jd = lubridate::yday(date)
+  ) %>%
+  filter(!is.na(dist_km))
+
+insect_events <- add_habitat(insect_events, forest_raster = nlcd_forest, buffer = 50,
+                              cache_path = "data/insect_data_out.rds")
+
+# Photos are dated but not exactly timestamped; noon avoids any timezone date-rollover
+insect_events$datetime <- as.POSIXct(paste(insect_events$date, "12:00:00"), tz = "America/Denver")
+insect_events <- add_moonlight(insect_events)
+
+sky <- read_csv("data/sky_brightness_measurements.csv", show_col_types = FALSE) %>%
+  mutate(site = toupper(site))
+insect_events <- insect_events %>%
+  left_join(sky %>% select(site, brightness_dark), by = "site")
+
+insect_total_env <- insect_events %>%
+  mutate(
+    jd_c      = jd - mean(jd, na.rm = TRUE),
+    color     = factor(color),
+    site      = factor(site),
+    intensity = factor(intensity)
+  )
+
+message("Moth sampling events: ", nrow(insect_total_env),
+        "  |  Sites: ", n_distinct(insect_total_env$site),
+        "  |  Date range: ", paste(range(insect_total_env$date), collapse = " to "))
+```
+
+## Moth General Activity Model
+
+```{r insect_general_model, warning=FALSE, message=FALSE}
+source("R/15_insect_models.R")
+insect_general <- run_insect_general_model(insect_total_env, bat_theme, intensity_pal)
+
+summary(insect_general$model)
+```
+
+```{r insect_general_posthoc, warning=FALSE, message=FALSE}
+cat("=== Color effect within each intensity level ===\n")
+insect_general$em_color_intensity
+pairs(insect_general$em_color_intensity, adjust = "holm")
+
+cat("\n=== Distance slope by intensity level ===\n")
+insect_general$em_dist_trend
+```
+
+```{r insect_general_figs, warning=FALSE, message=FALSE}
+insect_general$fig_color_intensity
+insect_general$fig_dist_intensity
+```
+
+## Moth Community Analysis (Family)
+
+```{r insect_family_env, warning=FALSE, message=FALSE}
+event_covariates <- insect_events %>%
+  select(site, date, color, intensity, dist_km, dist_cat, jd,
+         mean_phase, mean_moonlight, max_moonlight,
+         pct_forest, pct_nonforest, brightness_dark)
+
+insect_family_env <- insects$family %>%
+  left_join(event_covariates, by = c("site", "date", "color", "intensity")) %>%
+  filter(!is.na(dist_km)) %>%
+  rename(species = Family) %>%
+  mutate(color = factor(color), site = factor(site), intensity = factor(intensity))
+
+message("Moth family-level rows: ", nrow(insect_family_env),
+        "  |  Families: ", paste(sort(unique(insect_family_env$species)), collapse = ", "))
+```
+
+```{r insect_family_models, warning=FALSE, message=FALSE}
+source("R/11_species_models.R")
+moth_family_results <- run_species_models(
+  insect_family_env, bat_theme, col_red, col_white,
+  taxon = "Moth", unit = "Family", file_prefix = "moth_"
+)
+```
+
+```{r insect_family_figs, warning=FALSE, message=FALSE}
+moth_family_results$fig_s1
+moth_family_results$fig_s2
+moth_family_results$fig_s3
+moth_family_results$fig_s4a
+```
+
+```{r insect_community, warning=FALSE, message=FALSE}
+source("R/10_community_analysis.R")
+moth_community <- run_community_analysis(
+  insect_family_env, bat_theme, col_red, col_white,
+  taxon = "Moth", unit = "Family"
+)
+
+moth_community$perm
+moth_community$disp_test
+moth_community$db_global
+moth_community$db_margin
+moth_community$mv_anova
+```
+
+```{r insect_community_figs, warning=FALSE, message=FALSE}
+moth_community$fig_c1
+moth_community$fig_c2
+moth_community$fig_c3
+```
+
+## Bat vs. Moth Comparison
+
+```{r bat_moth_comparison, warning=FALSE, message=FALSE}
+# Pull comparable marginal effects from each taxon's general model
+bat_color_int <- as.data.frame(emmeans(simple_model1, ~ color | intensity, type = "response")) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+  mutate(taxon = "Bat")
+
+moth_color_int <- as.data.frame(insect_general$em_color_intensity) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+  mutate(taxon = "Moth")
+
+compare_df <- bind_rows(bat_color_int, moth_color_int) %>%
+  mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+fig_compare <- ggplot(compare_df,
+                      aes(x = intensity, y = response,
+                          color = color, group = interaction(color, taxon))) +
+  geom_line(linewidth = 0.8, position = position_dodge(0.3)) +
+  geom_point(size = 3, position = position_dodge(0.3)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.6, position = position_dodge(0.3)) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  facet_wrap(~ taxon, scales = "free_y") +
+  labs(
+    title    = "Bat vs. Moth: Light Color × Intensity Effect",
+    subtitle = "Marginal means ± 95% CI · each taxon's own negative binomial GLMM",
+    x        = "Light intensity (%)",
+    y        = "Predicted detections per night"
+  ) +
+  bat_theme +
+  theme(legend.position = "top")
+
+fig_compare
+
+ggsave("output/figures/fig_bat_vs_moth_color_intensity.png",
+       fig_compare, width = 10, height = 5, dpi = 300, bg = "white")
+
+# Distance slope comparison
+bat_dist_slope <- as.data.frame(emtrends(simple_model1, ~ intensity, var = "dist_km", type = "response")) %>%
+  mutate(taxon = "Bat")
+moth_dist_slope <- as.data.frame(insect_general$em_dist_trend) %>%
+  mutate(taxon = "Moth")
+
+cat("=== Distance slope (per km) by intensity — Bat vs. Moth ===\n")
+bind_rows(bat_dist_slope, moth_dist_slope) %>%
+  select(taxon, intensity, dist_km.trend, SE) %>%
+  arrange(intensity, taxon)
+```
+
 ------------------------------------------------------------------------

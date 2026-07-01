@@ -3,7 +3,8 @@
 # Input:  data_env, bat_theme, col_red, col_white
 # Output: sp_models list, summary data frames, figures S1–S4
 
-run_species_models <- function(data_env, bat_theme, col_red, col_white) {
+run_species_models <- function(data_env, bat_theme, col_red, col_white,
+                                taxon = "Bat", unit = "Species", file_prefix = "") {
 
   library(glmmTMB)
   library(emmeans)
@@ -150,8 +151,8 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
                        labels = c(R = "Red", W = "White"),
                        name   = "Light color") +
     labs(
-      title    = "Light Color Effect on Bat Detections by Species",
-      subtitle = "Marginal means ± 95% CI from per-species negative binomial GLMMs",
+      title    = paste0("Light Color Effect on ", taxon, " Detections by ", unit),
+      subtitle = paste0("Marginal means ± 95% CI from per-", tolower(unit), " negative binomial GLMMs"),
       x        = "Predicted detections per night",
       y        = NULL,
       caption  = "Connected lines link red/white estimates for the same species"
@@ -176,7 +177,7 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
                                    "100" = "#1B2A4A"),
                        name = "Intensity") +
     labs(
-      title    = "White vs. Red Light — Detection Ratio by Species & Intensity",
+      title    = paste0("White vs. Red Light — Detection Ratio by ", unit, " & Intensity"),
       subtitle = "Ratio > 1 = more detections under white; < 1 = more under red",
       x        = "White / Red detection ratio (response scale)",
       y        = NULL,
@@ -225,8 +226,8 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
                       guide   = "none") +
     facet_wrap(~ species, scales = "free_y", nrow = 2) +
     labs(
-      title    = "Predicted Bat Detections Across Distance Gradient by Light Color",
-      subtitle = "Per-species GLMMs · marginal over intensity · ribbon = 95% CI",
+      title    = paste0("Predicted ", taxon, " Detections Across Distance Gradient by Light Color"),
+      subtitle = paste0("Per-", tolower(unit), " GLMMs · marginal over intensity · ribbon = 95% CI"),
       x        = "Distance from light source (km)",
       y        = "Predicted detections per night"
     ) +
@@ -267,7 +268,7 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
                          midpoint = 0,
                          name     = "log₂(White/Red)") +
     labs(
-      title    = "White vs. Red Light Effect by Species and Intensity",
+      title    = paste0("White vs. Red Light Effect by ", unit, " and Intensity"),
       subtitle = "Negative values (red) = white light suppresses relative to red",
       x        = "Light intensity",
       y        = NULL,
@@ -282,28 +283,28 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white) {
   # ── Save figures ───────────────────────────────────────────────────────────
   dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
 
-  ggsave("output/figures/species_color_effect.png",
+  ggsave(paste0("output/figures/", file_prefix, "species_color_effect.png"),
          (fig_s1 | fig_s2) + plot_annotation(
-           title = "Species-Level Light Effects — Distance Project",
+           title = paste0(unit, "-Level Light Effects — Distance Project"),
            theme = theme(plot.title = element_text(size = 14, face = "bold"))
          ),
          width = 14, height = 7, dpi = 300, bg = "white")
 
-  ggsave("output/figures/species_ratio_heatmap.png",
+  ggsave(paste0("output/figures/", file_prefix, "species_ratio_heatmap.png"),
          fig_s3, width = 9, height = 6, dpi = 300, bg = "white")
 
   n_sp <- length(sp_models)
-  ggsave("output/figures/fig_s4a_species_dist_color_intensity.png",
+  ggsave(paste0("output/figures/", file_prefix, "fig_s4a_species_dist_color_intensity.png"),
          fig_s4a,
          width  = max(14, n_sp * 1.8),
          height = 8,
          dpi    = 300, bg = "white")
 
 
-  write_csv(df_contrasts, "output/posthoc_color_contrasts_by_species.csv")
-  write_csv(df_sp_color,  "output/posthoc_color_main_by_species.csv")
-  write_csv(df_dist_pred, "output/posthoc_dist_color_intensity_by_species.csv")
-  cat("Saved species figures and post-hoc CSVs to output/\n")
+  write_csv(df_contrasts, paste0("output/", file_prefix, "posthoc_color_contrasts_by_species.csv"))
+  write_csv(df_sp_color,  paste0("output/", file_prefix, "posthoc_color_main_by_species.csv"))
+  write_csv(df_dist_pred, paste0("output/", file_prefix, "posthoc_dist_color_intensity_by_species.csv"))
+  cat("Saved", tolower(unit), "figures and post-hoc CSVs to output/\n")
 
   list(
     sp_models    = sp_models,
