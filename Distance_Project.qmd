@@ -655,4 +655,15 @@ summary(pred_test$model)
 pred_test$fig_partial
 ```
 
+## Moth Distance Gradient Across the Season
+
+```{r moth_season_distance, warning=FALSE, message=FALSE}
+source("R/19_moth_season_distance.R")
+season_test <- run_moth_season_distance_test(insect_total_env, bat_theme, col_navy, col_red, col_purple)
+
+summary(season_test$model)
+season_test$fig_season_distance
+season_test$fig_season_distance_relative
+```
+
 ------------------------------------------------------------------------
