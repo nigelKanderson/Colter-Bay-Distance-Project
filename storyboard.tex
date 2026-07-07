@@ -1,5 +1,5 @@
 % ============================================================
-%  Distance Project — Research Storyboard / Results Summary
+%  Distance Project — Research Paper
 %  Compile: pdflatex storyboard.tex  (twice for TOC/refs)
 % ============================================================
 \documentclass[11pt, letterpaper]{article}
@@ -84,6 +84,10 @@ moth (Lepidoptera) camera traps at all 14 stations over the same
 season, identified to family/subfamily, allowing a direct bat-vs-moth
 comparison of the light color, intensity, and distance effects
 (Sections \ref{sec:moths}--\ref{sec:comparison}).
+
+Figures are limited to the main results in the body of this report;
+additional supporting figures are collected in Supplemental Materials
+at the end.
 
 % ============================================================
 \section{Primary Model}
@@ -188,22 +192,8 @@ Ratio = R / W (ratio > 1 = more detections under red)
 
 At 30\% intensity, red light produced 2.06x more detections than white
 (p $<$ 0.0001). At 50\%, 1.63x (p $<$ 0.0001). At 70\% and 100\%, no
-significant difference. White and red converge above 50\% intensity.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig1_color_effect.png}
-  \caption{Mean detections per night by light colour (cardinal crimson =
-  red, gilded gold = white), averaged across intensities. Error bars = SE.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig1_color_intensity.png}
-  \caption{Mean detections per night by colour at each intensity level
-  with 95\% CI. Cardinal crimson (red) peaks at 30\% and converges with
-  gilded gold (white) at high intensity.}
-\end{figure}
+significant difference. White and red converge above 50\% intensity
+(Supplemental Figs.\ S1--S2).
 
 \begin{figure}[H]
   \centering
@@ -246,23 +236,8 @@ Under red light, activity peaks at 30\% (10/30 ratio = 0.547, i.e.\
 30\% produces 1.83x more than 10\%; p $<$ 0.0001) and collapses at
 100\% (30/100 ratio = 1.77; p $<$ 0.0001). 50\% and 70\% are
 intermediate and not distinguishable from 30\%. White is flat across
-all intensities --- no pairwise contrast survives Holm correction.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig4_seasonal.png}
-  \caption{Seasonal trend in bat detections by light colour. LOESS
-  smoothed. Cardinal crimson (red) and gilded gold (white) both decline
-  through the season; red/white separation persists across the survey
-  period.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig6_moon_phase.png}
-  \caption{Bat detections vs.\ moon phase by colour (cardinal crimson =
-  red, gilded gold = white). No evident colour $\times$ moon interaction.}
-\end{figure}
+all intensities --- no pairwise contrast survives Holm correction
+(Supplemental Figs.\ S3--S4).
 
 % ============================================================
 \section{Post-hoc: Intensity $\times$ Distance}
@@ -319,31 +294,15 @@ their distance slopes are significantly shallower than 10\% (i.e.\ high
 intensities suppress bats uniformly across distance, not just close in).
 At 0.3 km, 70\% produces 1.66x more detections than 10\% (ratio = 0.602
 inverted); this gap narrows but persists at 2.0 km (ratio = 0.748,
-p $=$ 0.0003). 70\% and 100\% converge only at far distances.
+p $=$ 0.0003). 70\% and 100\% converge only at far distances
+(additional distance-gradient views in Supplemental Figs.\ S5--S7).
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{fig7_distance_gradient.png}
-  \caption{Site-level mean detections vs.\ distance from light source (km).
-  Points in cardinal crimson; nave navy trend line with manuscript ivory
-  confidence band.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig3_distance_treatment.png}
-  \caption{Detections by distance category and light treatment.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig9_dist_intensity.png}
-  \caption{Predicted bat detections across the distance gradient by light
-  intensity level. Marginal means $\pm$ 95\% CI from the negative binomial
-  GLMM. Intensity palette: manuscript ivory (10\%), gilded gold (30\%),
-  papal purple (50\%), cardinal crimson (70\%), nave navy (100\%). Steeper
-  recovery with distance at 70\% and 100\% reflects the significant
-  intensity $\times$ distance interaction.}
+  \includegraphics[width=\linewidth]{fig14_dist_intensity_pred.png}
+  \caption{Bat activity vs.\ distance from light by intensity. Marginal
+  predictions $\pm$ 95\% CI; dashed vertical lines mark the 0.3, 0.7,
+  and 2.0 km distances tested in the pairwise contrasts above.}
 \end{figure}
 
 % ============================================================
@@ -351,9 +310,6 @@ p $=$ 0.0003). 70\% and 100\% converge only at far distances.
 % ============================================================
 
 \begin{verbatim}
-=== NMDS ===
-Stress: 0.207  (k = 2, Bray-Curtis, trymax = 100)
-
 === NMDS ===
 Stress: 0.207  (k = 2, Bray-Curtis, trymax = 100)
 
@@ -404,6 +360,13 @@ not spread.
   (high).}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig9_species_site.png}
+  \caption{Species activity by site (z-scored within species), sites
+  ordered by increasing distance from the light source.}
+\end{figure}
+
 % ============================================================
 \section{Species-level Results}
 % ============================================================
@@ -425,30 +388,15 @@ Myci     ns      ns         ns        ns          ns          ns
 Epfu: most treatment-sensitive; responds to intensity, distance, and moon
 phase. Myev: tracks habitat (pct\_nonforest) and distance. Myvo: strongly
 tracks sky brightness and distance. Myyu, Myci: no significant response
-to any measured predictor. Colour is non-significant for all species.
+to any measured predictor. Colour is non-significant for all species
+(Supplemental Figs.\ S8--S10).
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{fig8_species_distance.png}
-  \caption{Species activity by distance category (z-scored within species).
-  Scale runs manuscript ivory (low) to nave navy (high).}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{species_color_effect.png}
-  \caption{Left: marginal means $\pm$ 95\% CI by colour (cardinal crimson =
-  red, gilded gold = white), ranked by species. Right: white/red detection
-  ratio by intensity level per species (Catholic intensity palette).
-  Ratio $>$ 1 = more detections under white; $<$ 1 = more under red.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{species_ratio_heatmap.png}
-  \caption{Log$_2$(white/red) heatmap by species and intensity. Negative
-  values (cardinal crimson) = white suppresses relative to red; positive
-  values (gilded gold) = white enhances. Manuscript ivory = parity.}
+  \includegraphics[width=\linewidth]{fig15_species_color_by_site.png}
+  \caption{Bat detections by light colour across the distance gradient,
+  faceted by species. Linear trend $\pm$ 95\% CI; one observation per
+  site. Cardinal crimson = red, gilded gold = white.}
 \end{figure}
 
 % ============================================================
@@ -463,21 +411,6 @@ separately (z-scored, interacted with intensity and distance) and
 compared at representative low / mean / high ($\pm$1 SD) values, in
 place of the three discrete guild levels.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig_trait_intensity.png}
-  \caption{Predicted bat detections by light intensity, evaluated at
-  low/mean/high ($\pm$1 SD) values of each morphology trait.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig_trait_dist.png}
-  \caption{Predicted bat detections across the distance gradient,
-  evaluated at low/mean/high ($\pm$1 SD) values of each morphology
-  trait.}
-\end{figure}
-
 All four traits point the same direction. Species with smaller ears,
 shorter forearms, lower wing loading, and lower aspect ratio ---
 slower, more maneuverable fliers such as \textit{Myotis} spp. --- show
@@ -491,7 +424,8 @@ forearm length, wing loading, ear height, and aspect ratio are all
 measured on the same six species, the four traits are highly
 correlated with one another (and with species identity itself, as
 guild was) --- the four panels are best read as one wing-morphology
-gradient viewed four ways, not four independent effects.
+gradient viewed four ways, not four independent effects
+(Supplemental Figs.\ S11--S12).
 
 % ============================================================
 \section{Moth (Lepidoptera) Data}
@@ -556,43 +490,14 @@ intensity70:dist_km    0.0264    0.0544    0.484   0.6282
 intensity100:dist_km  -0.1158    0.0523   -2.214   0.0268   *
 \end{verbatim}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\linewidth]{moth_fig_color_intensity.png}
-  \caption{Moth detections by light color and intensity (general
-  activity model). Cardinal crimson = red, gilded gold = white.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.75\linewidth]{moth_fig_dist_intensity.png}
-  \caption{Predicted moth detections by distance and light intensity.}
-\end{figure}
-
-\begin{verbatim}
-=== color | intensity  (response scale) ===
-intensity = 10:   R = 60.1   W = 63.8   ratio R/W = 0.942  p = 0.824
-intensity = 30:   R = 100.5  W = 77.6   ratio R/W = 1.295  p = 0.311
-intensity = 50:   R = 69.5   W = 68.9   ratio R/W = 1.009  p = 0.968
-intensity = 70:   R = 71.0   W = 83.9   ratio R/W = 0.846  p = 0.376
-intensity = 100:  R = 24.0   W = 74.0   ratio R/W = 0.324  p < 0.0001  ***
-
-=== Distance slope (km) by intensity level (emtrends) ===
- intensity  dist_km.trend    SE   asymp.LCL  asymp.UCL
- 10              0.1086   0.0408     0.0286     0.1886  *
- 30              0.1576   0.0442     0.0709     0.2442  *
- 50              0.1479   0.0397     0.0701     0.2257  *
- 70              0.1350   0.0395     0.0574     0.2125  *
- 100            -0.0072   0.0365    -0.0787     0.0643
-\end{verbatim}
-
 Unlike bats, moths show no significant color preference at low-to-mid
 intensity. At 100\% intensity, however, white light produced 3.1$\times$
 more detections than red (p $<$ 0.0001) --- the mirror image of the bat
 pattern at that same intensity (Section 2), where red and white were
 statistically indistinguishable. The positive distance slope seen at
 10--70\% intensity flattens to essentially zero at 100\%, echoing the
-bat finding that the distance gradient weakens at high intensity.
+bat finding that the distance gradient weakens at high intensity
+(Supplemental Figs.\ S13--S14).
 
 \subsection{Family-Level Models}
 
@@ -600,29 +505,12 @@ Six of nine families cleared the same 30-detection / 20-row threshold
 used for the bat species models (Noctuidae, Lasiocampidae, Erebidae,
 Geometridae, Sphingidae, Notodontidae); Crambidae, Drepanidae, and
 Euteliidae had too few identified specimens to model individually.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{moth_species_color_effect.png}
-  \caption{Left: marginal means $\pm$ 95\% CI by color, ranked by
-  family. Right: white/red detection ratio by intensity level per
-  family. Ratio $>$ 1 = more detections under white; $<$ 1 = more under
-  red.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{moth_fig_s4a_species_dist_color_intensity.png}
-  \caption{Predicted moth detections across the distance gradient by
-  light color, faceted by family.}
-\end{figure}
-
 Noctuidae is numerically dominant (predicted 40--50 detections/night
 vs. $<$15 for every other family) and drives most of the aggregate
 pattern above. At 100\% intensity, Erebidae, Noctuidae, and Geometridae
 each show a 2--3$\times$ white-over-red ratio; at lower intensities the
 families track each other closely with wide, overlapping confidence
-intervals.
+intervals (Supplemental Figs.\ S15--S16).
 
 \subsection{Community Analysis}
 
@@ -653,19 +541,6 @@ pct_nonforest  13.34   1   0.149
 brightness_d    6.82   1   0.500
 \end{verbatim}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{moth_fig_community_heatmap.png}
-  \caption{Moth family activity by light intensity and color (z-scored
-  within family).}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{moth_fig_dbrda.png}
-  \caption{Moth family community composition --- dbRDA ordination.}
-\end{figure}
-
 As with bats, light \emph{color} has no detectable effect on moth
 community composition (dbRDA p = 0.159, mvabund p = 0.585). Intensity,
 distance, and moon phase all structure the community strongly
@@ -677,7 +552,7 @@ turnover along the light gradient is proportionally stronger than
 bats'. Per-family univariate tests attribute most of the intensity
 signal to Lasiocampidae and Noctuidae (both p $<$ 2e-16) and the
 distance signal primarily to Lasiocampidae (p $<$ 2e-16) and Noctuidae
-(p = 0.005).
+(p = 0.005) (Supplemental Figs.\ S17--S18).
 
 % ============================================================
 \section{Bat vs. Moth Comparison}
@@ -828,5 +703,153 @@ Geometridae    Geometer moths    ("inchworm" moths)
 Sphingidae     Sphinx/hawk moths
 Notodontidae   Prominent moths
 \end{verbatim}
+
+% ============================================================
+\clearpage
+\renewcommand{\thefigure}{S\arabic{figure}}
+\setcounter{figure}{0}
+\section*{Supplemental Materials}
+\addcontentsline{toc}{section}{Supplemental Materials}
+% ============================================================
+
+Additional figures supporting the results in the main text, in the
+order those results are discussed above.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig1_color_effect.png}
+  \caption{Mean detections per night by light colour (cardinal crimson =
+  red, gilded gold = white), averaged across intensities. Error bars = SE.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig1_color_intensity.png}
+  \caption{Mean detections per night by colour at each intensity level
+  with 95\% CI. Cardinal crimson (red) peaks at 30\% and converges with
+  gilded gold (white) at high intensity.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig4_seasonal.png}
+  \caption{Seasonal trend in bat detections by light colour. LOESS
+  smoothed. Cardinal crimson (red) and gilded gold (white) both decline
+  through the season; red/white separation persists across the survey
+  period.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig6_moon_phase.png}
+  \caption{Bat detections vs.\ moon phase by colour (cardinal crimson =
+  red, gilded gold = white). No evident colour $\times$ moon interaction.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig7_distance_gradient.png}
+  \caption{Site-level mean detections vs.\ distance from light source (km).
+  Points in cardinal crimson; nave navy trend line with manuscript ivory
+  confidence band.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig3_distance_treatment.png}
+  \caption{Detections by distance category and light treatment.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig9_dist_intensity.png}
+  \caption{Predicted bat detections across the distance gradient by light
+  intensity level. Marginal means $\pm$ 95\% CI from the negative binomial
+  GLMM. Intensity palette: manuscript ivory (10\%), gilded gold (30\%),
+  papal purple (50\%), cardinal crimson (70\%), nave navy (100\%). Steeper
+  recovery with distance at 70\% and 100\% reflects the significant
+  intensity $\times$ distance interaction.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{fig8_species_distance.png}
+  \caption{Species activity by distance category (z-scored within species).
+  Scale runs manuscript ivory (low) to nave navy (high).}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{species_color_effect.png}
+  \caption{Left: marginal means $\pm$ 95\% CI by colour (cardinal crimson =
+  red, gilded gold = white), ranked by species. Right: white/red detection
+  ratio by intensity level per species (Catholic intensity palette).
+  Ratio $>$ 1 = more detections under white; $<$ 1 = more under red.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{species_ratio_heatmap.png}
+  \caption{Log$_2$(white/red) heatmap by species and intensity. Negative
+  values (cardinal crimson) = white suppresses relative to red; positive
+  values (gilded gold) = white enhances. Manuscript ivory = parity.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trait_intensity.png}
+  \caption{Predicted bat detections by light intensity, evaluated at
+  low/mean/high ($\pm$1 SD) values of each morphology trait.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trait_dist.png}
+  \caption{Predicted bat detections across the distance gradient,
+  evaluated at low/mean/high ($\pm$1 SD) values of each morphology
+  trait.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{moth_fig_color_intensity.png}
+  \caption{Moth detections by light color and intensity (general
+  activity model). Cardinal crimson = red, gilded gold = white.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{moth_fig_dist_intensity.png}
+  \caption{Predicted moth detections by distance and light intensity.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_species_color_effect.png}
+  \caption{Left: marginal means $\pm$ 95\% CI by color, ranked by
+  family. Right: white/red detection ratio by intensity level per
+  family. Ratio $>$ 1 = more detections under white; $<$ 1 = more under
+  red.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{moth_fig_s4a_species_dist_color_intensity.png}
+  \caption{Predicted moth detections across the distance gradient by
+  light color, faceted by family.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{moth_fig_community_heatmap.png}
+  \caption{Moth family activity by light intensity and color (z-scored
+  within family).}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\linewidth]{moth_fig_dbrda.png}
+  \caption{Moth family community composition --- dbRDA ordination.}
+\end{figure}
 
 \end{document}
