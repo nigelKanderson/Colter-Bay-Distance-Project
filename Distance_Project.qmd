@@ -645,4 +645,14 @@ bm_effects$fig_forest
 bm_effects$forest_df
 ```
 
+## Bat-Moth Predation Co-occurrence Test
+
+```{r bat_moth_predation, warning=FALSE, message=FALSE}
+source("R/18_bat_moth_predation.R")
+pred_test <- run_bat_moth_predation_test(data_env, insect_total_env, bat_theme, col_navy, col_purple)
+
+summary(pred_test$model)
+pred_test$fig_partial
+```
+
 ------------------------------------------------------------------------
