@@ -24,9 +24,11 @@ compare_bat_moth_effects <- function(bat_model, moth_model, data_env, insect_tot
   intensity_levels <- c("10", "30", "50", "70", "100")
 
   # ── A. Color effect (% diff White vs Red) across intensity levels ────────
+  # Use revpairwise (White / Red) to match the forest plot's contrast direction;
+  # plain pairs() defaults to Red / White since factor levels are alphabetical.
   color_pct <- function(model, taxon) {
     em <- emmeans(model, ~ color | intensity, type = "response")
-    as.data.frame(pairs(em, adjust = "none")) %>%
+    as.data.frame(contrast(em, method = "revpairwise", adjust = "none")) %>%
       transmute(
         intensity = factor(intensity, levels = intensity_levels),
         pct_diff  = (ratio - 1) * 100,
