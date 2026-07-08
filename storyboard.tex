@@ -354,17 +354,18 @@ not spread.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{fig5_community_heatmap.png}
-  \caption{Species activity heatmap (z-scored within species) by light
-  colour and intensity. Scale runs manuscript ivory (low) to nave navy
-  (high).}
+  \includegraphics[width=\linewidth]{fig9_species_site.png}
+  \caption{Species activity by site (z-scored within species), sites
+  ordered by increasing distance from the light source --- the dominant
+  structuring gradient in the community analysis.}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{fig9_species_site.png}
-  \caption{Species activity by site (z-scored within species), sites
-  ordered by increasing distance from the light source.}
+  \includegraphics[width=\linewidth]{fig5_community_heatmap.png}
+  \caption{Species activity heatmap (z-scored within species) by light
+  colour and intensity. Scale runs manuscript ivory (low) to nave navy
+  (high).}
 \end{figure}
 
 % ============================================================
@@ -393,10 +394,10 @@ to any measured predictor. Colour is non-significant for all species
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{fig15_species_color_by_site.png}
-  \caption{Bat detections by light colour across the distance gradient,
-  faceted by species. Linear trend $\pm$ 95\% CI; one observation per
-  site. Cardinal crimson = red, gilded gold = white.}
+  \includegraphics[width=\linewidth]{fig16_species_intensity_dist.png}
+  \caption{Bat detections by light intensity across the distance
+  gradient, faceted by species --- the two predictors that dominate the
+  univariate mvabund tests above. Marginal predictions $\pm$ 95\% CI.}
 \end{figure}
 
 % ============================================================
@@ -425,7 +426,17 @@ measured on the same six species, the four traits are highly
 correlated with one another (and with species identity itself, as
 guild was) --- the four panels are best read as one wing-morphology
 gradient viewed four ways, not four independent effects
-(Supplemental Figs.\ S11--S12).
+(intensity view in Supplemental Fig.\ S11).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{fig_trait_dist.png}
+  \caption{Predicted bat detections across the distance gradient,
+  evaluated at low/mean/high ($\pm$1 SD) values of each morphology
+  trait. Low-trait-value species (smaller, slower, more maneuverable)
+  show the steeper increase in activity with distance from the light
+  source.}
+\end{figure}
 
 % ============================================================
 \section{Moth (Lepidoptera) Data}
@@ -497,7 +508,16 @@ pattern at that same intensity (Section 2), where red and white were
 statistically indistinguishable. The positive distance slope seen at
 10--70\% intensity flattens to essentially zero at 100\%, echoing the
 bat finding that the distance gradient weakens at high intensity
-(Supplemental Figs.\ S13--S14).
+(distance view in Supplemental Fig.\ S13).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{moth_fig_color_intensity.png}
+  \caption{Moth detections by light colour and intensity (general
+  activity model). Cardinal crimson = red, gilded gold = white. White
+  overtakes red at 100\% intensity --- the mirror image of the bat
+  colour pattern (Section 2).}
+\end{figure}
 
 \subsection{Family-Level Models}
 
@@ -773,24 +793,17 @@ order those results are discussed above.
 
 \begin{figure}[H]
   \centering
+  \includegraphics[width=\linewidth]{fig15_species_color_by_site.png}
+  \caption{Bat detections by light colour across the distance gradient,
+  faceted by species. Linear trend $\pm$ 95\% CI; one observation per
+  site. Cardinal crimson = red, gilded gold = white.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
   \includegraphics[width=\linewidth]{fig_trait_intensity.png}
   \caption{Predicted bat detections by light intensity, evaluated at
   low/mean/high ($\pm$1 SD) values of each morphology trait.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{fig_trait_dist.png}
-  \caption{Predicted bat detections across the distance gradient,
-  evaluated at low/mean/high ($\pm$1 SD) values of each morphology
-  trait.}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.7\linewidth]{moth_fig_color_intensity.png}
-  \caption{Moth detections by light color and intensity (general
-  activity model). Cardinal crimson = red, gilded gold = white.}
 \end{figure}
 
 \begin{figure}[H]
