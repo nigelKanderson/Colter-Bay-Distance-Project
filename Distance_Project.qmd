@@ -34,14 +34,12 @@ bat_theme <- theme_classic(base_size = 12) +
     plot.margin        = margin(12, 14, 10, 12)
   )
 
-# Catholic-inspired palette
-col_red    <- "#7A1C2E"   # cardinal crimson
-col_white  <- "#C9A84C"   # gilded gold
-col_navy   <- "#1B2A4A"   # nave navy
-col_purple <- "#4A1259"   # papal purple
-col_ivory  <- "#F5F0E3"   # illuminated manuscript ivory
+col_red    <- "#7A1C2E"   
+col_white  <- "#C9A84C"   
+col_navy   <- "#1B2A4A"   
+col_purple <- "#4A1259"   
+col_ivory  <- "#F5F0E3"   
 
-# Intensity gradient: ivory → gold → purple → crimson → navy
 intensity_pal <- c("10"  = col_ivory,
                    "30"  = col_white,
                    "50"  = col_purple,

@@ -133,8 +133,4 @@ process_file <- function(file) {
 
 data_raw <- map_dfr(files, process_file)
 
-write_csv(
-  all_counts,
-  "data/glmm_ready_data.csv"
-)
 
