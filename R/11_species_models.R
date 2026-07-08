@@ -237,8 +237,6 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white,
       strip.text      = element_text(size = 9, face = "bold")
     )
 
-  fig_s4b <- NULL  # retired — single combined figure is cleaner
-
   # ── Fig S3: White:red log2 ratio heatmap ──────────────────────────────────
   df_heat <- df_sp_ci %>%
     select(any_of(c("species", "color", "intensity", "response"))) %>%
@@ -315,7 +313,6 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white,
     fig_s1       = fig_s1,
     fig_s2       = fig_s2,
     fig_s3       = fig_s3,
-    fig_s4a      = fig_s4a,
-    fig_s4b      = fig_s4b
+    fig_s4a      = fig_s4a
   )
 }
