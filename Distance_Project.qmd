@@ -451,6 +451,12 @@ insect_general$fig_color_intensity
 insect_general$fig_dist_intensity
 ```
 
+```{r insect_moon_phase, warning=FALSE, message=FALSE}
+source("R/22_moth_moon_phase.R")
+fig_moth_moon_phase <- plot_moth_moon_phase(insect_total_env, bat_theme, col_red, col_white)
+fig_moth_moon_phase
+```
+
 ## Moth Community Analysis (Family)
 
 ```{r insect_family_env, warning=FALSE, message=FALSE}
