@@ -484,6 +484,12 @@ moth_family_results$fig_s3
 moth_family_results$fig_s4a
 ```
 
+```{r insect_family_site, warning=FALSE, message=FALSE}
+source("R/21_moth_family_site.R")
+fig_moth_family_site <- plot_moth_family_site(insect_family_env, bat_theme, col_red, col_navy, col_ivory)
+fig_moth_family_site
+```
+
 ```{r insect_community, warning=FALSE, message=FALSE}
 source("R/10_community_analysis.R")
 moth_community <- run_community_analysis(
