@@ -457,6 +457,12 @@ fig_moth_moon_phase <- plot_moth_moon_phase(insect_total_env, bat_theme, col_red
 fig_moth_moon_phase
 ```
 
+```{r insect_100red_diagnostic, warning=FALSE, message=FALSE}
+source("R/23_moth_intensity_family.R")
+diag_100red <- plot_moth_100red_diagnostic(insect_total_env, insects$specimens, bat_theme, col_red, col_white)
+diag_100red$fig_combined
+```
+
 ## Moth Community Analysis (Family)
 
 ```{r insect_family_env, warning=FALSE, message=FALSE}
@@ -603,6 +609,18 @@ bm_effects$fig_distance
 bm_effects$fig_forest
 
 bm_effects$forest_df
+```
+
+## Lamp Visual Modeling: Moth vs. Bat Perception
+
+```{r lamp_visual_model, warning=FALSE, message=FALSE}
+source("R/24_lamp_visual_model.R")
+lamp_vis <- run_lamp_visual_model(bat_theme = bat_theme, col_red = col_red, col_white = col_white)
+
+lamp_vis$fig_moth
+lamp_vis$fig_bat
+lamp_vis$fig_moth_abs
+lamp_vis$fig_bat_abs
 ```
 
 ------------------------------------------------------------------------
