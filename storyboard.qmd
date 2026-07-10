@@ -331,6 +331,63 @@ response to any measured predictor. Colour is non-significant for all species.
 
 ---
 
+## Visitor Perceptions
+
+**Survey:** 166 park visitors were each exposed to a single light condition
+(red or white) and rated 13 attitude statements on a 5-point scale
+(1 = "not at all true"), plus a 7-point sky-acceptability rating. We reduced
+the 13 items with exploratory factor analysis and segmented respondents by
+clustering on their factor scores (`R/25_people_factor_cluster.R`).
+
+Missing responses (coded `999`) were median-imputed to retain all 166
+respondents (37 had ≥ 1 missing item). The item set is well-suited to
+factoring: **KMO = 0.80**, Bartlett's χ² = 936, p < 0.001.
+
+### Factor structure
+
+Parallel analysis returned **three factors** (oblimin rotation, ML extraction;
+45% of total variance):
+
+| Factor | Interpretation | Top items (loading) |
+|--------|----------------|---------------------|
+| **F1 — Wildlife concern** | Lighting harms wildlife | wildlife behaviour (0.93), wildlife benefits (0.87), reduce human impacts (0.68) |
+| **F2 — Positive experience** | Lighting improves the visit | eye transition (0.81), activities more pleasurable (0.67), easier to navigate (0.58) |
+| **F3 — Discomfort in the dark** | Darkness feels unsafe/limiting | feels less safe (0.75), too dark (0.63), activities difficult (0.58), can't see points of interest (0.53) |
+
+### Two respondent segments
+
+Average silhouette width selected **k = 2** (0.41; k-means and Ward
+agreement 91%). Cluster means are standardised factor scores:
+
+```
+Segment                                   n    F1      F2      F3
+                                            (wildlife) (experience) (discomfort)
+1  Light-positive / dark-tolerant         99   +0.58   +0.63   −0.20
+2  Light-skeptical / discomfort-prone     67   −0.86   −0.93   +0.29
+```
+
+The segments map strongly onto the light condition the respondent
+experienced:
+
+```
+              red   white          Sky-acceptability (1–7)
+Segment 1      69     29                 5.43
+Segment 2      16     50                 3.88
+χ²(1) = 31.8, p = 1.7e-08
+```
+
+**Respondents who experienced red light overwhelmingly fell into the
+light-positive segment** (Segment 1 is 70% red), which simultaneously rated
+lighting as improving the visit, saw wildlife benefits to dimmer conditions,
+reported little discomfort, and was more accepting of dark skies (mean 5.4 vs.
+3.9). **White-light respondents concentrated in the skeptical segment**
+(Segment 2 is 76% white). The red/white split is not independent of segment
+membership (χ² = 31.8, p < 10⁻⁷).
+
+![Respondent clusters in factor space (Factor 1 = wildlife concern, Factor 2 = positive experience). Segment 1 (light-positive / dark-tolerant) vs. Segment 2 (light-skeptical / discomfort-prone), 95% normal ellipses.](output/figures/people_clusters_factorspace.png)
+
+---
+
 ## Summary
 
 1. **Colour × intensity:** Red light at 30–50% produced 1.6–2.1× more
@@ -345,9 +402,16 @@ response to any measured predictor. Colour is non-significant for all species.
 3. **Community composition** is driven by distance, habitat (pct_nonforest),
    and sky darkness — not by light colour.
 
-4. **Management implication:** Red light at 30–50% intensity minimises
-   suppression of bat activity. At high intensities, siting lights > 0.5–1.0
-   km from sensitive habitat is critical to reduce impact.
+4. **Visitor perceptions:** Attitudes split into two segments — light-positive
+   /dark-tolerant vs. light-skeptical/discomfort-prone. Segment membership is
+   strongly tied to the light experienced (χ² = 31.8, p < 10⁻⁷): red-light
+   visitors found the experience positive and were more accepting of dark skies
+   (5.4 vs. 3.9 on a 7-point scale).
+
+5. **Management implication:** Red light at 30–50% intensity minimises
+   suppression of bat activity *and* is received more favourably by visitors.
+   At high intensities, siting lights > 0.5–1.0 km from sensitive habitat is
+   critical to reduce impact.
 
 ---
 

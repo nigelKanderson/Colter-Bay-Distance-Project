@@ -672,3 +672,15 @@ source("R/08b_threshold_figures.R")
 
 fig_t1; fig_t2; fig_t3; fig_t4; fig_t5; fig_t6; fig_t7; fig_t8; fig_t9; fig_t10; fig_t11; fig_t12; fig_t13; fig_t14; fig_t15; fig_t16; fig_t17
 ```
+
+## Visitor Perception Survey (Factor–Cluster Analysis)
+
+Exploratory factor analysis of 13 streetlight attitude items (1–5 Likert, 1 = "not at all true") from 166 visitors, followed by k-means clustering on the factor scores. `StreetlightCondition` (1 = red, 2 = white) and `Acceptable_Sky_Conditions` (1–7) are held out and used to profile the segments. Missing values (`999`) are median-imputed. The chunk prints the KMO/Bartlett suitability tests, factor loadings, cluster silhouettes, and cluster profiles.
+
+```{r people_factor_cluster, warning=FALSE, message=FALSE}
+source("R/25_people_factor_cluster.R")
+```
+
+```{r people_cluster_figure, warning=FALSE, message=FALSE}
+p   # respondent clusters in factor space
+```
