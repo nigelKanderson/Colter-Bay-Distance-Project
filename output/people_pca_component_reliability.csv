@@ -1,0 +1,4 @@
+component,n_items,items,reverse_keyed,cronbach_alpha,reliable
+PC1,5,Streetlights_activitiesmorepleasurable; Streetlights_eyetransition; Streetlights_wildlifebehavior; Streetlights_wildlifebenefits; Streetlights_reducehumanimpacts,,0.898,TRUE
+PC2,4,Streetlights_activitiesdifficult; Streetlights_lesssafe; Streetlights_dark; Streetlights_pointsofinterest,,0.7,TRUE
+PC3,2,Streetlights_easiernavigate; Streetlights_unlitareas,,0.555,FALSE

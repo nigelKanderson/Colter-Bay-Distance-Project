@@ -684,3 +684,11 @@ source("R/25_people_factor_cluster.R")
 ```{r people_cluster_figure, warning=FALSE, message=FALSE}
 p   # respondent clusters in factor space
 ```
+
+## Visitor Perception Survey (PCA + Cronbach's α)
+
+Principal components analysis of the same 13 items as a data-reduction step, following the standard motivation-segmentation recipe: assess suitability (Bartlett's test of sphericity, KMO \> 0.50), extract components with eigenvalue \> 1, assign items at a minimum loading of ≥ 0.40, eliminate cross-loaded items, check each component's reliability with Cronbach's α (≥ 0.65), and average the retained items into a single component score. The chunk prints suitability tests, rotated loadings, the item-assignment table, per-component α, and the component scores related to light condition and sky acceptability.
+
+```{r people_pca, warning=FALSE, message=FALSE}
+source("R/26_people_pca.R")
+```

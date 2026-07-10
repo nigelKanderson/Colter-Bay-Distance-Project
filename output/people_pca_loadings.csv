@@ -1,0 +1,14 @@
+item,RC1,RC2,RC4,RC3,status
+Streetlights_activitiesmorepleasurable,0.658,-0.104,0.335,-0.011,PC1
+Streetlights_eyetransition,0.77,-0.086,0.388,-0.137,PC1
+Streetlights_activitiesdifficult,-0.269,0.622,0.05,0.386,PC2
+Streetlights_lesssafe,-0.08,0.826,-0.061,-0.038,PC2
+Streetlights_easiernavigate,0.141,-0.134,0.814,-0.153,PC3
+Streetlights_wildlifebehavior,0.893,0.09,-0.062,-0.04,PC1
+Streetlights_wildlifebenefits,0.908,0.029,-0.003,-0.103,PC1
+Streetlights_reducehumanimpacts,0.868,-0.081,0.045,-0.017,PC1
+Streetlights_bright,-0.532,0.122,-0.058,0.618,dropped (cross-loaded)
+Streetlights_dark,0.014,0.785,-0.146,-0.128,PC2
+Streetlights_pointsofinterest,0.188,0.612,-0.36,0.16,PC2
+Streetlights_affectGYE,0.026,-0.029,-0.021,0.883,PC4
+Streetlights_unlitareas,0.113,-0.129,0.726,0.112,PC3
