@@ -152,15 +152,27 @@ write_csv(result %>% mutate(row_id = row_number()) %>%
                    StreetlightCondition, Acceptable_Sky_Conditions),
           "output/people_cluster_assignments.csv")
 
-# Cluster visualization in factor space (first two factors)
+# Cluster visualization in factor space (first two factors).
+# Axis labels name the gradient each factor represents, taken from its
+# highest-loading items (see the loadings table printed above):
+#   F1 = wildlife/ecological concern; F2 = positive lighting experience.
+lab_f1 <- "Factor 1: Wildlife / ecological concern  (low → high)"
+lab_f2 <- "Factor 2: Positive lighting experience  (low → high)"
 p <- ggplot(result, aes(F1, .data[[if (ncol(scores) >= 2) "F2" else "F1"]],
                         color = cluster)) +
   geom_point(size = 2, alpha = 0.8) +
   stat_ellipse(type = "norm", linewidth = 0.4) +
   labs(title = "Respondent clusters in factor space",
-       x = "Factor 1", y = if (ncol(scores) >= 2) "Factor 2" else "Factor 1") +
-  theme_minimal()
+       subtitle = "Higher F1 = greater concern that lighting harms wildlife; higher F2 = lighting rated as improving the visit",
+       x = lab_f1,
+       y = if (ncol(scores) >= 2) lab_f2 else lab_f1,
+       color = "Cluster",
+       caption = paste0(
+         "F1 items: wildlife behaviour, wildlife benefits, reduce human impacts | ",
+         "F2 items: eye transition, activities more pleasurable, easier to navigate")) +
+  theme_minimal() +
+  theme(plot.caption = element_text(size = 7, color = "#666666", hjust = 0))
 ggsave("output/figures/people_clusters_factorspace.png", p,
-       width = 7, height = 5, dpi = 130)
+       width = 7.5, height = 5.2, dpi = 130)
 
 cat("\nDone. Outputs written to output/ and output/figures/\n")

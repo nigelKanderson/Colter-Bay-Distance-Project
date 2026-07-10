@@ -692,3 +692,11 @@ Principal components analysis of the same 13 items as a data-reduction step, fol
 ```{r people_pca, warning=FALSE, message=FALSE}
 source("R/26_people_pca.R")
 ```
+
+## Predicting Light Exposure from Attitudes (Logistic GLM)
+
+Binomial GLM asking whether the reduced attitude scores discriminate red vs. white light exposure (outcome: `StreetlightCondition`, white = 1, red = 0). Predictors are the EFA factor scores and the PCA component scores from the two sections above, so this chunk must run after them. A plain GLM is used because the survey has no grouping variable for a random effect. **Direction caveat:** light condition was experimentally assigned and attitudes were measured after exposure, so this is a discriminant/association model — which responses distinguish the two groups — not evidence that attitudes cause exposure.
+
+```{r people_exposure_glm, warning=FALSE, message=FALSE}
+source("R/27_people_exposure_glm.R")
+```
