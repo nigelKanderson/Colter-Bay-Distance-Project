@@ -2,7 +2,6 @@
 # Per-trait GLMMs + emmeans summaries + figures — Distance Project
 # Tests whether bat morphology (ear height, forearm length, wing loading,
 # aspect ratio) moderates the effect of light intensity and distance,
-# in place of the earlier foraging-guild grouping.
 # Input:  data_env (already joined to bat_traits), bat_theme, col_navy, col_red, col_purple
 # Output: trait_models list, summary data frames, fig_trait_intensity, fig_trait_dist
 
@@ -20,7 +19,6 @@ run_trait_models <- function(data_env, bat_theme, col_navy, col_red, col_purple)
   }
 
   # Representative trait values (mean ± 1 SD) for simple-slopes style comparisons,
-  # replacing the discrete Open-air / Edge / Clutter guild levels
   trait_levels <- c(Low = -1, Mean = 0, High = 1)
 
   fit_trait <- function(trait) {
@@ -173,7 +171,7 @@ run_trait_models <- function(data_env, bat_theme, col_navy, col_red, col_purple)
     labs(
       title    = "Bat Activity Across Distance Gradient by Morphology Trait Value",
       subtitle = "Marginal predictions ± 95% CI · low/mean/high (±1 SD) trait values",
-      x        = "Distance from light source (km)",
+      x        = "Distance from Colter Bay parking lot (km)",
       y        = "Predicted detections per night"
     ) +
     bat_theme +

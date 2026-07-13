@@ -12,8 +12,7 @@
 #   5. Reliability of each component's items: Cronbach's alpha (>= 0.65 = ok).
 #   6. Retained items are averaged into a single component score.
 #
-# NOTE: the source method describes 30 motivation items; this survey has the
-# 13 streetlight attitude items, so the recipe is applied to those 13.
+# NOTE: 
 # Negatively-worded items are reverse-keyed (6 - x on the 1-5 scale) within a
 # component before alpha and averaging so all items point the same way.
 # =============================================================================

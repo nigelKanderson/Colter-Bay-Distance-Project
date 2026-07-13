@@ -39,7 +39,7 @@ plot_total_detections <- function(data_env, insect_total_env, bat_theme,
     facet_wrap(~ taxon, scales = "free_y", ncol = 1) +
     labs(
       title    = "Total Detections by Site — Bat vs. Moth",
-      subtitle = "Sites ordered by increasing distance from light source",
+      subtitle = "Sites ordered by increasing distance from Colter Bay parking lot",
       x        = "Site",
       y        = "Total detections"
     ) +

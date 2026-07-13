@@ -1,7 +1,7 @@
 # 21_moth_family_site.R
 # Moth counterpart to fig9 in 08_figures.R: family x site heatmap
 # (z-scored within family), sites ordered by increasing distance from the
-# light source.
+# Colter Bay parking lot.
 #
 # Input:  insect_family_env (site, dist_km, species [= Family], detections),
 #         bat_theme, col_red, col_navy, col_ivory
@@ -46,8 +46,8 @@ plot_moth_family_site <- function(insect_family_env, bat_theme, col_red, col_nav
     scale_x_discrete(labels = setNames(dist_labels$label, dist_labels$site)) +
     labs(
       title    = "Moth Family Activity by Site",
-      subtitle = "Z-scored within family · sites ordered by increasing distance from light source",
-      x        = "Distance from light source",
+      subtitle = "Z-scored within family · sites ordered by increasing distance from Colter Bay parking lot",
+      x        = "Distance from Colter Bay parking lot",
       y        = NULL
     ) +
     bat_theme +

@@ -77,7 +77,7 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal) {
     labs(
       title    = "Predicted Moth Detections by Distance and Light Intensity",
       subtitle = "Marginal means ± 95% CI from negative binomial GLMM",
-      x        = "Distance from light source (km)",
+      x        = "Distance from Colter Bay parking lot (km)",
       y        = "Predicted detections per night",
       caption  = "Other covariates held at their means"
     ) +

@@ -101,7 +101,7 @@ ref_point <- st_transform(ref_point, 32612)
 
 sites_sf$dist_m <- as.numeric(st_distance(sites_sf, ref_point))
 
-# Pull only dist_m — avoid attaching the sf geometry class to data_env
+# Pull only dist_m 
 site_dists <- as.data.frame(sites_sf) %>% dplyr::select(site, dist_m)
 
 data_env <- data_env %>%
@@ -406,7 +406,7 @@ insect_events <- insects$total %>%
 insect_events <- add_habitat(insect_events, forest_raster = nlcd_forest, buffer = 50,
                               cache_path = "data/insect_data_out.rds")
 
-# Photos are dated but not exactly timestamped; noon avoids any timezone date-rollover
+# Entries are dated but not exactly timestamped; noon avoids any timezone date-rollover
 insect_events$datetime <- as.POSIXct(paste(insect_events$date, "12:00:00"), tz = "America/Denver")
 insect_events <- add_moonlight(insect_events)
 

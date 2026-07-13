@@ -6,7 +6,7 @@
 #  - trailing d/D is a processing marker, not a treatment level -> dropped
 #  - light-meter intensity readings that deviate from the bat project's
 #    10/30/50/70/100 schedule are rounded to the nearest of those levels
-#  - repeat-photo suffixes like " (2)", " (3)", "_b" mark duplicate photos of
+#  - repeat-entry suffixes like " (2)", " (3)", "_b" mark duplicate photos of
 #    the same site/date/treatment sampling event -> merged by grouping on
 #    site+date+color+intensity (the parsed key drops those suffixes entirely)
 #

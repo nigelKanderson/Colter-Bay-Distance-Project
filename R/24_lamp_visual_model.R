@@ -1,6 +1,5 @@
 # 24_lamp_visual_model.R
-# Models how a moth and a bat (genus Myotis, one of this project's own focal
-# genera) perceive the red and white experimental lights, using measured
+# Models how a moth and a bat (genus Myotis) perceive the red and white experimental lights, using measured
 # lamp emission spectra and published photoreceptor sensitivity peaks.
 #
 # Visual system sources:
@@ -10,7 +9,7 @@
 #     Manduca sexta: rhodopsin expression, the mosaic of green-, blue- and
 #     UV-sensitive photoreceptors, and regional specialization." Journal of
 #     Experimental Biology 206:3337-3348.
-#   Bat -- genus Myotis (this project's own focal genus), dichromatic:
+#   Bat -- genus Myotis, dichromatic:
 #     S/UV ~360-365 nm, L/green 558 nm
 #     L-opsin lambda-max of 558 nm for Myotis velifer is a sequence-based
 #     spectral tuning prediction from:

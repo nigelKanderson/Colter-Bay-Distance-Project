@@ -7,8 +7,7 @@
 #   - EFA factor scores   (F1 wildlife concern, F2 experience, F3 discomfort)
 #   - PCA component scores (PC1, PC2) + Acceptable_Sky_Conditions
 #
-# This is a plain binomial GLM (no grouping variable exists in the survey for a
-# random effect). NOTE ON DIRECTION: light condition was experimentally
+# This is a plain binomial GLM. NOTE ON DIRECTION: light condition was experimentally
 # assigned and attitudes were measured after exposure, so this is a
 # discriminant / association model ("which responses distinguish the groups"),
 # not evidence that attitudes cause exposure.

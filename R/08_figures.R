@@ -34,12 +34,11 @@ bat_theme <- theme_classic(base_size = 12) +
     plot.margin        = margin(12, 14, 10, 12)
   )
 
-# Catholic-inspired palette
-col_red    <- "#7A1C2E"   # cardinal crimson
-col_white  <- "#C9A84C"   # gilded gold
-col_navy   <- "#1B2A4A"   # nave navy
-col_purple <- "#4A1259"   # papal purple
-col_ivory  <- "#F5F0E3"   # illuminated manuscript ivory
+col_red    <- "#7A1C2E"   
+col_white  <- "#C9A84C"   
+col_navy   <- "#1B2A4A"   
+col_purple <- "#4A1259"   
+col_ivory  <- "#F5F0E3"   
 
 intensity_pal <- c("10"  = col_ivory,
                    "30"  = col_white,
@@ -59,7 +58,7 @@ if (!"jd_c" %in% names(data_env)) {
 }
 
 # ==============================================================================
-# ── Fig 1: Red vs White — headline color effect (p < 0.001) ──────────────────
+# ── Fig 1: Red vs White — color effect (p < 0.001) ──────────────────
 # ==============================================================================
 
 color_summary <- data_env %>%
@@ -86,7 +85,7 @@ fig1 <- ggplot(color_summary,
   bat_theme
 
 # ==============================================================================
-# ── Fig 2: Distance from light source ─────────────────────────────────────────
+# ── Fig 2: Distance from Colter Bay parking lot ─────────────────────────────────────────
 # ==============================================================================
 
 dist_summary <- data_env %>%
@@ -108,7 +107,7 @@ fig2 <- ggplot(dist_summary,
   geom_text(aes(label = round(dist_km, 2), y = -0.4),
             size = 2.8, color = "#666666", vjust = 1) +
   labs(
-    title    = "Bat Detections by Distance from Light Source",
+    title    = "Bat Detections by Distance from Colter Bay Parking Lot",
     subtitle = "Site-level means ± SE, ordered by increasing distance (km shown below bars)",
     x        = "Site",
     y        = "Mean detections per night"
@@ -312,7 +311,7 @@ fig8 <- ggplot(spp_dist,
   scale_fill_gradient(low = col_ivory, high = col_navy,
                       name = "Mean\ndetections") +
   labs(
-    title    = "Species Detections by Distance from Light Source",
+    title    = "Species Detections by Distance from Colter Bay Parking Lot",
     subtitle = "Mean detections per species × distance category",
     x        = "Distance category",
     y        = NULL
@@ -364,8 +363,8 @@ fig9 <- ggplot(spp_site, aes(x = site, y = species, fill = mean_det_z)) +
   scale_x_discrete(labels = setNames(dist_labels$label, dist_labels$site)) +
   labs(
     title    = "Species Activity by Site",
-    subtitle = "Z-scored within species · sites ordered by increasing distance from light source",
-    x        = "Distance from light source",
+    subtitle = "Z-scored within species · sites ordered by increasing distance from Colter Bay parking lot",
+    x        = "Distance from Colter Bay Parking Lot",
     y        = NULL
   ) +
   bat_theme +
@@ -431,7 +430,7 @@ fig11 <- ggplot(int_color_bar,
   facet_wrap(~ site_label, nrow = 2) +
   labs(
     title    = "Bat Detections by Intensity and Light Color at Each Site",
-    subtitle = "Mean ± SE · sites ordered by increasing distance from light source",
+    subtitle = "Mean ± SE · sites ordered by increasing distance from Colter Bay parking lot",
     x        = "Light intensity (%)",
     y        = "Mean detections per night"
   ) +
@@ -530,7 +529,7 @@ fig14 <- ggplot(pred_dist, aes(x = dist_km, y = response,
   labs(
     title    = "Bat Activity vs. Distance from Light by Intensity",
     subtitle = "Marginal predictions ± 95% CI · dashed lines = distances tested in contrasts",
-    x        = "Distance from light (km)",
+    x        = "Distance from Colter Bay parking lot (km)",
     y        = "Predicted detections per night"
   ) +
   bat_theme +
@@ -561,7 +560,7 @@ fig15 <- ggplot(fig15_data,
   labs(
     title    = "Bat Detections by Light Color Across the Distance Gradient",
     subtitle = "Linear trend ± 95% CI · one observation per site",
-    x        = "Distance from light source (km)",
+    x        = "Distance from Colter Bay parking lot (km)",
     y        = "Mean detections per night"
   ) +
   bat_theme +
@@ -607,7 +606,7 @@ fig16 <- ggplot(fig16_data,
   labs(
     title    = "Bat Detections by Light Intensity Across the Distance Gradient",
     subtitle = "Linear trend ± 95% CI · one observation per site",
-    x        = "Distance from light source (km)",
+    x        = "Distance from Colter Bay parking lot (km)",
     y        = "Mean detections per night"
   ) +
   bat_theme +

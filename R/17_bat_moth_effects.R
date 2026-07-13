@@ -103,7 +103,7 @@ compare_bat_moth_effects <- function(bat_model, moth_model, data_env, insect_tot
       title    = "Distance Gradient Relative to the Nearest Shared Site — Bat vs. Moth",
       subtitle = paste0("% change in detections vs. ", round(shared_range[1], 2),
                         " km · marginal over color and intensity"),
-      x        = "Distance from light source (km)",
+      x        = "Distance from Colter Bay parking lot (km)",
       y        = paste0("% change from ", round(shared_range[1], 2), " km")
     ) +
     bat_theme +
