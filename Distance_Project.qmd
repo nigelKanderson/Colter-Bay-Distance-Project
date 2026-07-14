@@ -721,17 +721,17 @@ source("R/30_figure_panels_vector.R")
 ::: {layout-ncol="1"}
 ![Panel 1 — Bat detections: (A) by intensity, (B) by distance.](output/figures/panels/panel1_bat_marginal.png)
 
-![Panel 2 — Bat detections: (A) by colour × intensity, (B) by intensity × distance.](output/figures/panels/panel2_bat_color_intensity_dist.png)
+![Panel 2 — Bat detections: (A) by color × intensity, (B) by intensity × distance.](output/figures/panels/panel2_bat_color_intensity_dist.png)
 
 ![Panel 3 — (A) Bat species detections by distance × intensity, (B) morphology (forearm length).](output/figures/panels/panel3_bat_species_trait.png)
 
 ![Panel 4 — Moth detections: (A) by intensity, (B) by distance.](output/figures/panels/panel4_moth_marginal.png)
 
-![Panel 5 — Moth detections: (A) by colour × intensity, (B) by intensity × distance.](output/figures/panels/panel5_moth_color_intensity_dist.png)
+![Panel 5 — Moth detections: (A) by color × intensity, (B) by intensity × distance.](output/figures/panels/panel5_moth_color_intensity_dist.png)
 
 ![Panel 6 — Moth family detections: (A) by intensity, (B) by distance, (C) by moon phase.](output/figures/panels/panel6_moth_family.png)
 
-![Panel 7 — Bat vs. moth % change: (A) colour, (B) intensity, (C) distance.](output/figures/panels/panel7_bat_vs_moth_pct.png)
+![Panel 7 — Bat vs. moth % change: (A) color, (B) intensity, (C) distance.](output/figures/panels/panel7_bat_vs_moth_pct.png)
 
 ![Panel 8 — Human survey: (A) respondent clusters in factor space, (B) component scores by light.](output/figures/panels/panel8_human_survey.png)
 :::
