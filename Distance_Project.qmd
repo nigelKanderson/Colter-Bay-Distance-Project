@@ -710,7 +710,7 @@ Multi-part figure plates composed with patchwork from the live figure objects, s
 - **Panel 3 — Bat, species/trait:** species detections by distance × intensity; morphology (forearm length).
 - **Panel 4 — Moth, marginal:** detections by intensity; detections by distance.
 - **Panel 5 — Moth, treatment:** detections by colour × intensity; by intensity × distance.
-- **Panel 6 — Moth families:** detections by intensity; by distance; by moon phase.
+- **Panel 6 — Moth families:** detections by intensity; by distance.
 - **Panel 7 — Bat vs. moth:** % change by colour, intensity, and distance.
 - **Panel 8 — Human survey:** respondent clusters in factor space; component scores by light.
 
@@ -729,7 +729,7 @@ source("R/30_figure_panels_vector.R")
 
 ![Panel 5 — Moth detections: (A) by color × intensity, (B) by intensity × distance.](output/figures/panels/panel5_moth_color_intensity_dist.png)
 
-![Panel 6 — Moth family detections: (A) by intensity, (B) by distance, (C) by moon phase.](output/figures/panels/panel6_moth_family.png)
+![Panel 6 — Moth family detections: (A) by intensity, (B) by distance.](output/figures/panels/panel6_moth_family.png)
 
 ![Panel 7 — Bat vs. moth % change: (A) color, (B) intensity, (C) distance.](output/figures/panels/panel7_bat_vs_moth_pct.png)
 

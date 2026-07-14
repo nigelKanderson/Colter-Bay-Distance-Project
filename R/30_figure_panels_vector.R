@@ -53,7 +53,7 @@ save_panel("panel3_bat_species_trait",        fig16 | sub$g6,                   
 save_panel("panel4_moth_marginal",            sub$g1 | sub$g2,                  15, 6)
 save_panel("panel5_moth_color_intensity_dist",
            insect_general$fig_color_intensity | insect_general$fig_dist_intensity, 15, 6)
-save_panel("panel6_moth_family",              sub$g3 | sub$g4 | sub$g5,         23, 6, title_size = 12)
+save_panel("panel6_moth_family",              sub$g3 | sub$g4,                 15, 6)
 save_panel("panel7_bat_vs_moth_pct",
            bm_effects$fig_color | bm_effects$fig_intensity | bm_effects$fig_distance, 23, 6, title_size = 11)
 save_panel("panel8_human_survey",             people_fig | sub$g7,             15, 6)

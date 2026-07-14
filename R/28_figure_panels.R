@@ -81,8 +81,7 @@ panel("panel5_moth_color_intensity_dist.png", list(
 
 panel("panel6_moth_family.png", list(
   list(s("g3_family_intensity.png"), "A"),
-  list(s("g4_family_distance.png"),  "B"),
-  list(s("g5_family_moon.png"),      "C")))
+  list(s("g4_family_distance.png"),  "B")))
 
 panel("panel7_bat_vs_moth_pct.png", list(
   list(f("fig_bat_vs_moth_color_relative.png"),    "A"),
