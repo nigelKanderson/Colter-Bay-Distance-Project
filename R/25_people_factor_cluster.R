@@ -156,23 +156,27 @@ write_csv(result %>% mutate(row_id = row_number()) %>%
 # Axis labels name the gradient each factor represents, taken from its
 # highest-loading items (see the loadings table printed above):
 #   F1 = wildlife/ecological concern; F2 = positive lighting experience.
-lab_f1 <- "Factor 1: Wildlife / ecological concern  (low → high)"
-lab_f2 <- "Factor 2: Positive lighting experience  (low → high)"
+lab_f1 <- "Factor 1: Wildlife concern  (low → high)"
+lab_f2 <- "Factor 2: Positive experience  (low → high)"
 p <- ggplot(result, aes(F1, .data[[if (ncol(scores) >= 2) "F2" else "F1"]],
                         color = cluster)) +
   geom_point(size = 2, alpha = 0.8) +
   stat_ellipse(type = "norm", linewidth = 0.4) +
   labs(title = "Respondent clusters in factor space",
-       subtitle = "Higher F1 = greater concern that lighting harms wildlife; higher F2 = lighting rated as improving the visit",
+       subtitle = "Higher F1 = more wildlife concern; higher F2 = better rated experience",
        x = lab_f1,
        y = if (ncol(scores) >= 2) lab_f2 else lab_f1,
-       color = "Cluster",
-       caption = paste0(
-         "F1 items: wildlife behaviour, wildlife benefits, reduce human impacts | ",
-         "F2 items: eye transition, activities more pleasurable, easier to navigate")) +
-  theme_minimal() +
-  theme(plot.caption = element_text(size = 7, color = "#666666", hjust = 0))
+       color = "Cluster") +
+  theme_classic(base_size = 16, base_family = "Arial") +
+  theme(panel.grid.major = element_line(color = "#EBEBEB", linewidth = 0.3),
+        plot.title    = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(size = 10, color = "#666666"),
+        axis.title    = element_text(size = 18, color = "#222222"),
+        axis.text     = element_text(size = 16, color = "#333333"),
+        legend.title  = element_text(size = 13),
+        legend.text   = element_text(size = 13),
+        plot.caption  = element_text(size = 9, color = "#666666", hjust = 0))
 ggsave("output/figures/people_clusters_factorspace.png", p,
-       width = 7.5, height = 5.2, dpi = 130)
+       width = 8, height = 5.4, dpi = 150, device = ragg::agg_png)
 
 cat("\nDone. Outputs written to output/ and output/figures/\n")

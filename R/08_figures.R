@@ -7,7 +7,7 @@ library(forcats)
 # ── Shared theme (matches ColterBay_Practice style) ───────────────────────────
 # ==============================================================================
 
-bat_theme <- theme_classic(base_size = 12) +
+bat_theme <- theme_classic(base_size = 15, base_family = "Arial") +
   theme(
     plot.background    = element_rect(fill = "white", color = NA),
     panel.background   = element_rect(fill = "white", color = NA),
@@ -15,21 +15,21 @@ bat_theme <- theme_classic(base_size = 12) +
     panel.grid.major.x = element_blank(),
     axis.line          = element_line(color = "#444444", linewidth = 0.5),
     axis.ticks         = element_line(color = "#444444"),
-    axis.text          = element_text(color = "#333333", size = 10),
-    axis.title         = element_text(color = "#222222", size = 11),
-    plot.title         = element_text(color = "#111111", size = 13,
+    axis.text          = element_text(color = "#333333", size = 16),
+    axis.title         = element_text(color = "#222222", size = 18),
+    plot.title         = element_text(color = "#111111", size = 14,
                                       face = "bold", margin = margin(b = 3)),
-    plot.subtitle      = element_text(color = "#666666", size = 9,
+    plot.subtitle      = element_text(color = "#666666", size = 10,
                                       margin = margin(b = 8)),
     legend.background  = element_rect(fill = "white", color = NA),
     legend.key         = element_rect(fill = "white", color = NA),
-    legend.text        = element_text(color = "#333333", size = 10),
-    legend.title       = element_text(color = "#444444", size = 9,
+    legend.text        = element_text(color = "#333333", size = 13),
+    legend.title       = element_text(color = "#444444", size = 13,
                                       face = "bold"),
     strip.background   = element_rect(fill = "#F2F2F2", color = NA),
     strip.text         = element_text(color = "#222222", face = "bold",
-                                      size = 10),
-    plot.caption       = element_text(color = "#999999", size = 8,
+                                      size = 13),
+    plot.caption       = element_text(color = "#999999", size = 10,
                                       hjust = 0, margin = margin(t = 8)),
     plot.margin        = margin(12, 14, 10, 12)
   )
