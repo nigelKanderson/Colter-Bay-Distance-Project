@@ -49,7 +49,8 @@ save_panel <- function(name, plt, w, h, title_size = 14) {
 
 save_panel("panel1_bat_marginal",             fig10 | fig7,                     15, 6)
 save_panel("panel2_bat_color_intensity_dist", fig3  | fig14,                    15, 6)
-save_panel("panel3_bat_species_trait",        fig16 | sub$g6,                   15, 6)
+save_panel("panel3_bat_species_trait",
+           (fig16 / fig9) + plot_layout(heights = c(1.3, 1)),               11, 14)
 save_panel("panel4_moth_marginal",            sub$g1 | sub$g2,                  15, 6)
 save_panel("panel5_moth_color_intensity_dist",
            insect_general$fig_color_intensity | insect_general$fig_dist_intensity, 15, 6)

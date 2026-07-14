@@ -41,18 +41,19 @@ ggsave2("g6_trait_forearm.png",    sub$g6)
 ggsave2("g7_people_scores.png",    sub$g7)
 
 # ---- panel composition helpers ----------------------------------------------
-H <- 1100L  # common sub-figure height (px)
-tag <- function(path, letter) {
+D <- 1100L  # common sub-figure dimension (px): height when side-by-side, width when stacked
+tag <- function(path, letter, geom) {
   image_read(path) |>
-    image_resize(paste0("x", H)) |>
+    image_resize(geom) |>
     image_border("white", "10x10") |>
     image_annotate(letter, size = 60, weight = 700, color = "black",
                    font = "Arial", location = "+18+10", boxcolor = "white")
 }
-panel <- function(name, specs) {
-  imgs <- image_join(lapply(specs, function(s) tag(s[[1]], s[[2]])))
-  out <- image_append(imgs)                       # side by side
-  image_write(out, file.path(OUT, name))          # PNG montage (raster fallback)
+panel <- function(name, specs, stack = FALSE) {
+  geom <- if (stack) paste0(D, "x") else paste0("x", D)   # common width vs height
+  imgs <- image_join(lapply(specs, function(x) tag(x[[1]], x[[2]], geom)))
+  out <- image_append(imgs, stack = stack)                # side by side / stacked
+  image_write(out, file.path(OUT, name))                  # PNG montage (raster fallback)
   cat("wrote", file.path(OUT, name), "\n")
 }
 f  <- function(p) file.path(FIG, p)        # existing saved figure
@@ -69,7 +70,7 @@ panel("panel2_bat_color_intensity_dist.png", list(
 
 panel("panel3_bat_species_trait.png", list(
   list(f("fig16_species_intensity_dist.png"), "A"),
-  list(s("g6_trait_forearm.png"),             "B")))
+  list(f("fig9_species_site.png"),            "B")), stack = TRUE)
 
 panel("panel4_moth_marginal.png", list(
   list(s("g1_moth_intensity.png"), "A"),
