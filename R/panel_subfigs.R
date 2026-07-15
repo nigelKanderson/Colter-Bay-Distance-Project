@@ -80,6 +80,29 @@ build_panel_subfigs <- function() {
     labs(title = "Moth family detections by distance", x = "Distance from source (km)",
          y = "Mean detections per event") + panel_theme
 
+  ## G4b  family activity heatmap: z-scored within family, sites ordered by distance
+  site_km  <- site_dist %>% arrange(dist_km)
+  fam_heat <- famt %>%
+    group_by(Family, site) %>%
+    summarise(mean_det = mean(detections), .groups = "drop") %>%
+    group_by(Family) %>%
+    mutate(z = as.numeric(scale(mean_det))) %>%
+    ungroup() %>%
+    mutate(site   = factor(site, levels = site_km$site),
+           Family = fct_reorder(Family, mean_det, .fun = sum))
+  g4b <- ggplot(fam_heat, aes(site, Family, fill = z)) +
+    geom_tile(color = "white", linewidth = 0.4) +
+    scale_fill_gradient2(low = col_red, mid = col_ivory, high = col_navy,
+                         midpoint = 0, name = "Relative\nactivity (z)") +
+    scale_x_discrete(labels = setNames(paste0(round(site_km$dist_km, 2), " km"),
+                                       site_km$site)) +
+    labs(title = "Moth family activity by site",
+         subtitle = "Z-scored within family; sites ordered by increasing distance from source",
+         x = "Distance from source", y = NULL) +
+    panel_theme +
+    theme(panel.grid = element_blank(), axis.ticks = element_blank(),
+          axis.text.x = element_text(angle = 45, hjust = 1))
+
   ## G5  family detections by moon phase (illuminated fraction via suncalc)
   g5 <- famt %>%
     mutate(moon = suncalc::getMoonIllumination(date)$fraction) %>%
@@ -123,5 +146,5 @@ build_panel_subfigs <- function() {
     labs(title = "Survey component scores by light condition",
          x = NULL, y = "Mean component score (1-5)") + panel_theme
 
-  list(g1 = g1, g2 = g2, g3 = g3, g4 = g4, g5 = g5, g6 = g6, g7 = g7)
+  list(g1 = g1, g2 = g2, g3 = g3, g4 = g4, g4b = g4b, g5 = g5, g6 = g6, g7 = g7)
 }

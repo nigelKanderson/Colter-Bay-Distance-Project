@@ -36,6 +36,7 @@ ggsave2("g1_moth_intensity.png", sub$g1)
 ggsave2("g2_moth_distance.png",  sub$g2)
 ggsave2("g3_family_intensity.png", sub$g3)
 ggsave2("g4_family_distance.png",  sub$g4)
+ggsave2("g4b_family_heatmap.png",  sub$g4b)
 ggsave2("g5_family_moon.png",      sub$g5)
 ggsave2("g6_trait_forearm.png",    sub$g6)
 ggsave2("g7_people_scores.png",    sub$g7)
@@ -82,7 +83,7 @@ panel("panel5_moth_color_intensity_dist.png", list(
 
 panel("panel6_moth_family.png", list(
   list(s("g3_family_intensity.png"), "A"),
-  list(s("g4_family_distance.png"),  "B")))
+  list(s("g4b_family_heatmap.png"),  "B")), stack = TRUE)
 
 panel("panel7_bat_vs_moth_pct.png", list(
   list(f("fig_bat_vs_moth_color_relative.png"),    "A"),
