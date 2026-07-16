@@ -24,7 +24,8 @@ dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
 # ---- ensure all sub-figure objects exist ------------------------------------
 model_objs <- c("fig3", "fig7", "fig10", "fig14", "fig16",
-                "insect_general", "bm_effects")
+                "insect_general", "bm_effects", "fig_moth_family_intensity",
+                "fig_moth_intensity", "fig_bat_species_dist_intensity")
 if (!all(vapply(model_objs, exists, logical(1)))) {
   message("Model figure objects missing - reconstructing via 29 ...")
   source("R/29_regenerate_model_figures.R")
@@ -50,12 +51,12 @@ save_panel <- function(name, plt, w, h, title_size = 14) {
 save_panel("panel1_bat_marginal",             fig10 | fig7,                     15, 6)
 save_panel("panel2_bat_color_intensity_dist", fig3  | fig14,                    15, 6)
 save_panel("panel3_bat_species_trait",
-           (fig16 / fig9) + plot_layout(heights = c(1.3, 1)),               11, 14)
-save_panel("panel4_moth_marginal",            sub$g1 | sub$g2,                  15, 6)
+           (fig_bat_species_dist_intensity / fig9) + plot_layout(heights = c(1.3, 1)), 11, 14)
+save_panel("panel4_moth_marginal",            fig_moth_intensity | sub$g2,      15, 6)
 save_panel("panel5_moth_color_intensity_dist",
            insect_general$fig_color_intensity | insect_general$fig_dist_intensity, 15, 6)
 save_panel("panel6_moth_family",
-           (sub$g3 / sub$g4b) + plot_layout(heights = c(1, 1)),             11, 13)
+           (fig_moth_family_intensity / sub$g4b) + plot_layout(heights = c(1.3, 1)), 11, 14)
 save_panel("panel7_bat_vs_moth_pct",
            bm_effects$fig_color | bm_effects$fig_intensity | bm_effects$fig_distance, 23, 6, title_size = 11)
 save_panel("panel8_human_survey",             people_fig | sub$g7,             15, 6)

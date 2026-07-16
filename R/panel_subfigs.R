@@ -46,7 +46,7 @@ build_panel_subfigs <- function() {
     ggplot(aes(dist_km, mean_det)) +
     geom_smooth(method = "lm", se = TRUE, color = col_purple, fill = "#E7DDEE") +
     geom_point(size = 3, color = "#333333") +
-    labs(title = "Moth detections by distance", x = "Distance from source (km)",
+    labs(title = "Moth detections by distance", x = "Distance from Colter Bay parking lot (km)",
          y = "Mean detections per site-night") + panel_theme
 
   ## Moth family data (for panel 6)
@@ -77,7 +77,7 @@ build_panel_subfigs <- function() {
     ggplot(aes(dist_km, mean_det, color = Family)) +
     geom_smooth(method = "lm", se = FALSE, linewidth = 1) +
     scale_color_manual(values = fam_pal, name = NULL) +
-    labs(title = "Moth family detections by distance", x = "Distance from source (km)",
+    labs(title = "Moth family detections by distance", x = "Distance from Colter Bay parking lot (km)",
          y = "Mean detections per event") + panel_theme
 
   ## G4b  family activity heatmap: z-scored within family, sites ordered by distance
@@ -97,8 +97,8 @@ build_panel_subfigs <- function() {
     scale_x_discrete(labels = setNames(paste0(round(site_km$dist_km, 2), " km"),
                                        site_km$site)) +
     labs(title = "Moth family activity by site",
-         subtitle = "Z-scored within family; sites ordered by increasing distance from source",
-         x = "Distance from source", y = NULL) +
+         subtitle = "Z-scored within family; sites ordered by increasing distance from the Colter Bay parking lot",
+         x = "Distance from Colter Bay parking lot", y = NULL) +
     panel_theme +
     theme(panel.grid = element_blank(), axis.ticks = element_blank(),
           axis.text.x = element_text(angle = 45, hjust = 1))
@@ -125,7 +125,7 @@ build_panel_subfigs <- function() {
                       guide = "none") +
     labs(title = "Bat activity by distance × forearm length",
          subtitle = "Predicted detections ± 95% CI at low/mean/high (±1 SD)",
-         x = "Distance from source (km)", y = "Predicted detections per night") +
+         x = "Distance from Colter Bay parking lot (km)", y = "Predicted detections per night") +
     panel_theme
 
   ## G7  human-survey component scores by light condition
@@ -134,7 +134,7 @@ build_panel_subfigs <- function() {
     mutate(light = factor(StreetlightCondition, labels = c("Red", "White"))) %>%
     pivot_longer(c(PC1_score, PC2_score), names_to = "component", values_to = "score") %>%
     mutate(component = recode(component,
-                              PC1_score = "PC1: pro-wildlife\nattitude",
+                              PC1_score = "PC1: wildlife &\nexperience benefit",
                               PC2_score = "PC2: discomfort\nin the dark")) %>%
     group_by(light, component) %>%
     summarise(mean = mean(score), se = sd(score)/sqrt(n()), .groups = "drop") %>%

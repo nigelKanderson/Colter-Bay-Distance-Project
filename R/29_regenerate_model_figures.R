@@ -92,10 +92,129 @@ message("Fitting moth model + figures (15) ...")
 source("R/15_insect_models.R")
 insect_general <- run_insect_general_model(insect_total_env, bat_theme, intensity_pal)
 
+# Annotate the 100% white-vs-red contrast on Panel 5A (values computed from model)
+mci   <- as.data.frame(insect_general$em_color_intensity)
+r100  <- mci$response[mci$color == "R" & mci$intensity == "100"]
+w100  <- mci$response[mci$color == "W" & mci$intensity == "100"]
+ctr   <- as.data.frame(pairs(insect_general$em_color_intensity))  # ratio = R / W
+wr100 <- 1 / ctr$ratio[ctr$intensity == "100"]                    # white / red
+pv100 <- ctr$p.value[ctr$intensity == "100"]
+lab100 <- sprintf("White %.1f× red\n(p %s)", wr100,
+                  ifelse(pv100 < 0.001, "< 0.001", sprintf("= %.3f", pv100)))
+insect_general$fig_color_intensity <- insect_general$fig_color_intensity +
+  scale_x_discrete(expand = expansion(add = c(0.6, 0.7))) +
+  annotate("segment", x = 5.28, xend = 5.28, y = r100, yend = w100,
+           linewidth = 0.5, color = "#333333") +
+  annotate("segment", x = 5.22, xend = 5.28, y = r100, yend = r100,
+           linewidth = 0.5, color = "#333333") +
+  annotate("segment", x = 5.22, xend = 5.28, y = w100, yend = w100,
+           linewidth = 0.5, color = "#333333") +
+  annotate("text", x = 4.95, y = 135, label = lab100,
+           hjust = 1, size = 3.8, fontface = "italic", color = "#333333")
+
 message("Regenerating bat-vs-moth relative-effect figures (17) ...")
 source("R/17_bat_moth_effects.R")
 bm_effects <- compare_bat_moth_effects(simple_model1, insect_general$model,
                                        data_env, insect_total_env,
                                        bat_theme, col_navy, col_purple)
+
+# ---- Moth FAMILY-level: intensity across distance gradient (Panel 6A) --------
+# Moth analog of the bat fig16 (Panel 3A): facet by family, x = dist_km, one
+# linear trend (+/- 95% CI ribbon) per intensity level.
+message("Building moth family intensity-x-distance figure ...")
+library(emmeans)
+
+# Reconstruct family-level data: family counts per event + event covariates
+source("R/13_import_insects.R")
+fam_raw <- import_insects("data/grte_distance_insectID.xlsx")$family %>%
+  mutate(across(c(site, color, intensity), as.character))
+event_cov <- insect_total_env %>%
+  mutate(across(c(site, color, intensity), as.character)) %>%
+  select(site, date, color, intensity, dist_km, jd_c,
+         mean_phase, pct_nonforest, brightness_dark)
+insect_family_env <- fam_raw %>%
+  left_join(event_cov, by = c("site", "date", "color", "intensity")) %>%
+  filter(!is.na(dist_km)) %>%
+  rename(species = Family) %>%
+  mutate(color = factor(color), site = factor(site),
+         intensity = factor(intensity, levels = c("10", "30", "50", "70", "100")))
+
+# Top-6 families (same set as the 6B heatmap)
+top_fam <- insect_family_env %>% count(species, wt = detections, sort = TRUE) %>%
+  slice_head(n = 6) %>% pull(species)
+
+fam_theme <- theme_classic(base_size = 16, base_family = "Arial") +
+  theme(panel.grid.major.y = element_line(color = "#EBEBEB", linewidth = 0.4),
+        plot.title = element_text(face = "bold", size = 14),
+        plot.subtitle = element_text(color = "#666666", size = 10),
+        axis.title = element_text(size = 18, color = "#222222"),
+        axis.text = element_text(size = 16, color = "#333333"),
+        legend.title = element_text(size = 13), legend.text = element_text(size = 13),
+        legend.position = "top")
+
+# Model-based intensity-across-distance figure (per-unit GLMM + emmeans).
+# Uses the primary-model fixed-effect structure so intensity has its own
+# distance slope (color*intensity + intensity*dist_km); falls back to a
+# simpler formula if the full one does not converge for a sparse unit.
+make_model_dist_fig <- function(df, unit_levels, title_txt, y_lab) {
+  grid <- seq(0, max(df$dist_km, na.rm = TRUE), length.out = 40)
+  full <- detections ~ jd_c + I(jd_c^2) + mean_phase + pct_nonforest +
+    brightness_dark + color * intensity + intensity * dist_km + (1 | site)
+  redu <- detections ~ mean_phase + pct_nonforest + brightness_dark +
+    color + intensity * dist_km + (1 | site)
+  pred <- purrr::map_dfr(unit_levels, function(u) {
+    d <- df %>% filter(species == u)
+    if (sum(d$detections) < 30 || nrow(d) < 20) return(NULL)
+    mod <- tryCatch(glmmTMB(full, family = nbinom2, ziformula = ~1, data = d),
+                    error = function(e) NULL)
+    if (is.null(mod) || !isTRUE(mod$sdr$pdHess))
+      mod <- tryCatch(glmmTMB(redu, family = nbinom2, ziformula = ~1, data = d),
+                      error = function(e) NULL)
+    if (is.null(mod)) { cat("  dist-model skip:", u, "\n"); return(NULL) }
+    emmeans(mod, ~ intensity | dist_km, at = list(dist_km = grid),
+            type = "response") %>% as.data.frame() %>%
+      transmute(species = u, dist_km, intensity, response,
+                lower = asymp.LCL, upper = asymp.UCL)
+  })
+  pred %>%
+    mutate(species = factor(species, levels = unit_levels),
+           intensity = factor(intensity, levels = c("10", "30", "50", "70", "100"))) %>%
+    ggplot(aes(dist_km, response, color = intensity, fill = intensity, group = intensity)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.12, color = NA) +
+    geom_line(linewidth = 1) +
+    scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
+    scale_fill_manual(values = intensity_pal, guide = "none") +
+    facet_wrap(~ species, scales = "free_y", nrow = 2) +
+    labs(title = title_txt,
+         subtitle = "Marginal predictions ± 95% CI · per-unit negative binomial GLMM",
+         x = "Distance from Colter Bay parking lot (km)", y = y_lab) +
+    fam_theme + theme(strip.text = element_text(size = 11, face = "bold"))
+}
+
+message("Fitting per-family moth distance-gradient models ...")
+fig_moth_family_intensity <- make_model_dist_fig(
+  insect_family_env, top_fam,
+  "Moth family detections by intensity across the distance gradient",
+  "Predicted detections per event")
+
+message("Fitting per-species bat distance-gradient models ...")
+fig_bat_species_dist_intensity <- make_model_dist_fig(
+  data_env, c("Epfu", "Laci", "Lano", "Myev", "Mylu", "Myvo"),
+  "Bat detections by intensity across the distance gradient",
+  "Predicted detections per night")
+
+# ---- Moth TOTAL: intensity marginal means +/- 95% CI (Panel 4A) --------------
+# From the moth general model (same GLMM behind Panel 5), on the response scale.
+fig_moth_intensity <- emmeans(insect_general$model, ~ intensity, type = "response") %>%
+  as.data.frame() %>%
+  mutate(intensity = factor(intensity, levels = c("10", "30", "50", "70", "100"))) %>%
+  ggplot(aes(intensity, response, fill = intensity)) +
+  geom_col(color = "grey30") +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.2) +
+  scale_fill_manual(values = intensity_pal, guide = "none") +
+  labs(title = "Moth detections by intensity",
+       subtitle = "Marginal means ± 95% CI · negative binomial GLMM",
+       x = "Light intensity (%)", y = "Predicted detections per night") +
+  fam_theme
 
 message("Done regenerating model figures.")
