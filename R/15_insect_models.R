@@ -23,6 +23,7 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal) {
       mean_phase +
       pct_nonforest +
       jd_c + I(jd_c^2) +
+      brightness_dark +
       (1 | site),
     data      = insect_env,
     ziformula = ~1,
