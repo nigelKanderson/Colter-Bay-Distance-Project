@@ -15,21 +15,24 @@ We studied the effect of artificial light at night (ALAN) on bat and moth
 activity along a distance gradient from the Colter Bay parking lot, Grand Teton
 National Park, during the 2022 season (21 June – 16 August). Bats and
 moths were sampled at **14 monitoring stations** spanning **< 0.52 km to
-/> 2.1 km** (full range 0–7.46 km) from the lot. At each station the experimental
-light was crossed in a **red vs. white × five-intensity (10, 30, 50, 70, 100 %)**
-design, rotated across nights **[describe rotation schedule / lamp model /
-mounting]**.
+/> 2.1 km** (full range 0–7.46 km) from the lot. At each station the 
+experimental light was displayed in a **red vs. white × randomized** 
+**five-intensity (10, 30, 50, 70, 100 %)** design, rotated across nights for 
+three day blocks. Three day white blocks were followed by three day red blocks 
+at the same intensity. In this way, red and white lights were always 
+alternating.
 
-- **Bat activity** was recorded with **[detector model]** and classified with
+- **Bat activity** was recorded with **[sm4 microphones]** and classified with
   **[SonoBat v30]**; detections were retained at a **≥ 90 % classification
   probability** threshold **[confirm]**. Analyses focus on **eight focal
   species**, of which **six** (Epfu, Laci, Lano, Myev, Mylu, Myvo) met the
   minimum-data threshold for species-level models.
-- **Moths (Lepidoptera)** were sampled with **[trap type]** at the same 14
-  stations and photographed; **9,864 specimens** across **241 identifications**
-  (225 site-nights) were identified to family/subfamily, spanning **11 families
-  and 31 subfamilies** (numerically dominated by Noctuidae, Lasiocampidae, and
-  Erebidae).
+- **Moths (Lepidoptera)** were sampled with **UV bucket traps and passive 
+  malaise traps** at the same 14 stations on the second and third day of the 
+  light blocks; **9,864 specimens** across **241 identifications** 
+  (225 site-nights) were identified to family/subfamily, spanning 
+  **11 families and 31 subfamilies** (numerically dominated by Noctuidae, 
+  Lasiocampidae, and Erebidae).
 - **Visitor perceptions** were measured with a survey of **166 park visitors**,
   each exposed to a single light condition (**85 red, 79 white**), who rated 13
   streetlighting attitude statements on a 1–5 scale (1 = "not at all true") and
@@ -37,7 +40,7 @@ mounting]**.
 
 ## Environmental covariates
 
-For every site-night we compiled: distance from the parking lot (`dist_km`,
+For every site-night we compiled: distance from the Colter Bayparking lot (`dist_km`,
 continuous), lunar illumination / phase (`mean_phase`, from **[moonlit /
 suncalc]**), local canopy openness (`pct_nonforest`, from **[NLCD 2021]** within
 a **50 m** buffer), site sky brightness (`brightness_dark`), and centered
@@ -56,8 +59,8 @@ detections ~ color * intensity + intensity * dist_km + mean_phase
            + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site)
 ```
 
-The two focal interactions were **color × intensity** and **intensity ×
-distance**. Estimated marginal means and contrasts were obtained with `emmeans`
+The two focal interactions were **color × intensity** and **intensity × **
+**distance**. Estimated marginal means and contrasts obtained with `emmeans`
 on the response scale, with **Holm** (color × intensity) or **Dunnett/Tukey**
 (intensity) adjustment. Distance slopes per intensity were compared with
 `emtrends`. (N ≈ **[3,457]** records, 14 sites.)
@@ -113,8 +116,7 @@ component to be retained; reliable components were averaged into a single score
 median-imputed. In parallel, an exploratory factor analysis with **k-means**
 clustering segmented respondents, and a **binomial GLM** tested whether the
 component/factor scores discriminated the (experimentally assigned) light
-condition. Because attitudes were recorded **after** exposure, this GLM is a
-discriminant/association model, not a causal test.
+condition. 
 
 ### Software
 
@@ -144,7 +146,7 @@ the distance slopes at 70 % (β = −0.128, p < 0.001) and 100 % (β = −0.090,
 p = 0.001) were significantly shallower than at 10 %. At 0.3 km, 70 % produced
 **1.66× more detections than 10 %**; this gap narrowed but persisted at 2.0 km
 (ratio 0.748, p = 0.0003). High intensities thus **suppress bats uniformly
-across distance**, not just near the source.
+across distance**, not just near the Colter Bay parking lot.
 
 ## Community composition (Panel 3)
 
