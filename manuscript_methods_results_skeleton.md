@@ -40,11 +40,12 @@ alternating.
 
 ## Environmental covariates
 
-For every site-night we compiled: distance from the Colter Bayparking lot (`dist_km`,
-continuous), lunar illumination / phase (`mean_phase`, from **[moonlit /
-suncalc]**), local canopy openness (`pct_nonforest`, from **[NLCD 2021]** within
-a **50 m** buffer), site sky brightness (`brightness_dark`), and centered
-Julian day (`jd_c`, with a quadratic term for seasonality).
+For every site-night we compiled: distance from the Colter Bay parking lot 
+(`dist_km`, continuous), lunar illumination / phase (`mean_phase`, from 
+**[moonlit / suncalc]**), local canopy openness (`pct_nonforest`, from 
+**[NLCD 2021]** within a **50 m** buffer), site sky brightness 
+(`brightness_dark`), and centered Julian day (`jd_c`, with a quadratic term for 
+seasonality).
 
 ## Statistical analysis
 
