@@ -26,8 +26,7 @@ run_species_models <- function(data_env, bat_theme, col_red, col_white,
     "pct_nonforest",
     if (has_brightness) "brightness_dark",
     "intensity * color",
-    "dist_km"
-  )
+    "intensity * dist_km"  )
   sp_formula <- as.formula(
     paste("detections ~", paste(fixed_terms, collapse = " + "), "+ (1 | site)")
   )

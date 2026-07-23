@@ -11,7 +11,8 @@
 # Output: list(fig_color, fig_intensity, fig_distance, fig_forest, forest_df)
 
 compare_bat_moth_effects <- function(bat_model, moth_model, data_env, insect_total_env,
-                                      bat_theme, col_navy, col_purple) {
+                                      bat_theme, col_navy, col_purple,
+                                      file_prefix = "") {
   library(emmeans)
   library(dplyr)
   library(tidyr)
@@ -158,10 +159,10 @@ compare_bat_moth_effects <- function(bat_model, moth_model, data_env, insect_tot
     theme(legend.position = "top")
 
   dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
-  ggsave("output/figures/fig_bat_vs_moth_color_relative.png",     fig_color,     width = 7, height = 5, dpi = 300, bg = "white")
-  ggsave("output/figures/fig_bat_vs_moth_intensity_relative.png", fig_intensity, width = 7, height = 5, dpi = 300, bg = "white")
-  ggsave("output/figures/fig_bat_vs_moth_distance_relative.png",  fig_distance,  width = 8, height = 5, dpi = 300, bg = "white")
-  ggsave("output/figures/fig_bat_vs_moth_forest.png",             fig_forest,    width = 8, height = 6, dpi = 300, bg = "white")
+  ggsave(paste0("output/figures/", file_prefix, "fig_bat_vs_moth_color_relative.png"),     fig_color,     width = 7, height = 5, dpi = 300, bg = "white")
+  ggsave(paste0("output/figures/", file_prefix, "fig_bat_vs_moth_intensity_relative.png"), fig_intensity, width = 7, height = 5, dpi = 300, bg = "white")
+  ggsave(paste0("output/figures/", file_prefix, "fig_bat_vs_moth_distance_relative.png"),  fig_distance,  width = 8, height = 5, dpi = 300, bg = "white")
+  ggsave(paste0("output/figures/", file_prefix, "fig_bat_vs_moth_forest.png"),             fig_forest,    width = 8, height = 6, dpi = 300, bg = "white")
 
   list(
     fig_color     = fig_color,

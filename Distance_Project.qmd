@@ -735,3 +735,121 @@ source("R/30_figure_panels_vector.R")
 
 ![Panel 8 — Human survey: (A) respondent clusters in factor space, (B) component scores by light.](output/figures/panels/panel8_human_survey.png)
 :::
+
+# Alternative Distance Gradient (`dist_km_alt`)
+
+This section re-runs every distance-involving analysis using an **alternative
+"nearest-source" distance gradient** (`R/31_alt_distance.R`): sites GRTE01,
+GRTE16, and GRTE17 are treated as sources (distance 0), and every other site's
+distance is the measured distance to its assigned source (GRTE01 or GRTE16).
+The original single-reference gradient above is unchanged; here we swap
+`dist_km` → `dist_km_alt` in copies of each dataset and refit. All figures from
+this section are written with an `alt_` prefix so they do not overwrite the
+originals.
+
+```{r alt_data, warning=FALSE, message=FALSE}
+source("R/31_alt_distance.R")
+
+recut <- function(df) {
+  df %>%
+    dplyr::mutate(
+      dist_km  = dist_km_alt,
+      dist_cat = dplyr::case_when(dist_km < 0.52 ~ "Close",
+                                  dist_km < 1    ~ "Medium",
+                                  dist_km < 2.1  ~ "Further",
+                                  TRUE           ~ "Far"))
+}
+data_env_alt          <- recut(add_alt_distance(data_env))
+insect_total_env_alt  <- recut(add_alt_distance(insect_total_env))
+insect_family_env_alt <- recut(add_alt_distance(insect_family_env))
+
+print(site_dist_alt)
+```
+
+## Bat Primary Model (alt distance)
+
+```{r alt_bat_model, warning=FALSE, message=FALSE}
+simple_model1_alt <- glmmTMB(
+  detections ~ color * intensity + intensity * dist_km + mean_phase +
+    pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site),
+  data = data_env_alt, ziformula = ~1, family = nbinom2())
+summary(simple_model1_alt)
+
+cat("\n=== Red vs. White at each intensity (alt) ===\n")
+pairs(emmeans(simple_model1_alt, ~ color | intensity, type = "response"), adjust = "holm")
+cat("\n=== Distance slope (per km) by intensity (alt) ===\n")
+emtrends(simple_model1_alt, ~ intensity, var = "dist_km")
+```
+
+```{r alt_bat_figs, warning=FALSE, message=FALSE}
+grid_alt <- seq(0, max(data_env_alt$dist_km, na.rm = TRUE), length.out = 40)
+emmeans(simple_model1_alt, ~ intensity | dist_km,
+        at = list(dist_km = grid_alt), type = "response") %>%
+  as.data.frame() %>%
+  dplyr::rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+  dplyr::mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
+  ggplot(aes(dist_km, response, color = intensity, fill = intensity)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.12, color = NA) +
+  geom_line(linewidth = 1.1) +
+  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
+  scale_fill_manual(values = intensity_pal, guide = "none") +
+  labs(title = "Bat activity vs. distance by intensity (alt gradient)",
+       subtitle = "Marginal predictions ± 95% CI from the zero-inflated NB GLMM",
+       x = "Distance to nearest source (km)", y = "Predicted detections per night") +
+  bat_theme
+```
+
+## Bat Community, Species, and Traits (alt distance)
+
+```{r alt_bat_community, warning=FALSE, message=FALSE}
+community_alt <- run_community_analysis(data_env_alt, bat_theme, col_red, col_white)
+community_alt$db_margin      # dbRDA marginal tests (alt)
+community_alt$mv_anova       # mvabund (alt)
+community_alt$fig_c3         # distance heatmap (alt)
+```
+
+```{r alt_bat_species, warning=FALSE, message=FALSE}
+sp_results_alt <- run_species_models(data_env_alt, bat_theme, col_red, col_white,
+                                     file_prefix = "alt_bat_")
+sp_results_alt$fig_s4a       # predicted detections ~ dist_km × color × intensity (alt)
+```
+
+```{r alt_bat_traits, warning=FALSE, message=FALSE}
+trait_results_alt <- run_trait_models(data_env_alt, bat_theme, col_navy, col_red, col_purple,
+                                      file_prefix = "alt_")
+trait_results_alt$fig_trait_dist
+```
+
+## Moth Models (alt distance)
+
+```{r alt_moth_model, warning=FALSE, message=FALSE}
+insect_general_alt <- run_insect_general_model(insect_total_env_alt, bat_theme, intensity_pal,
+                                               file_prefix = "alt_")
+summary(insect_general_alt$model)
+insect_general_alt$fig_dist_intensity
+```
+
+```{r alt_moth_family, warning=FALSE, message=FALSE}
+moth_family_results_alt <- run_species_models(
+  insect_family_env_alt, bat_theme, col_red, col_white,
+  taxon = "Moth", unit = "Family", file_prefix = "alt_moth_")
+moth_family_results_alt$fig_s4a
+```
+
+```{r alt_moth_community, warning=FALSE, message=FALSE}
+moth_community_alt <- run_community_analysis(
+  insect_family_env_alt, bat_theme, col_red, col_white,
+  taxon = "Moth", unit = "Family")
+moth_community_alt$db_margin
+moth_community_alt$mv_anova
+```
+
+## Bat vs. Moth Relative Effects (alt distance)
+
+```{r alt_bat_moth, warning=FALSE, message=FALSE}
+bm_effects_alt <- compare_bat_moth_effects(
+  simple_model1_alt, insect_general_alt$model, data_env_alt, insect_total_env_alt,
+  bat_theme, col_navy, col_purple, file_prefix = "alt_")
+bm_effects_alt$fig_distance
+bm_effects_alt$forest_df
+```

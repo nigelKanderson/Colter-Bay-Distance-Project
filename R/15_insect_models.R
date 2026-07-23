@@ -6,7 +6,8 @@
 #         (dist_km, mean_phase, pct_nonforest, jd_c, site)
 # Output: list(model, em_color_intensity, em_dist_trend, fig_color_intensity, fig_dist_intensity)
 
-run_insect_general_model <- function(insect_env, bat_theme, intensity_pal) {
+run_insect_general_model <- function(insect_env, bat_theme, intensity_pal,
+                                     file_prefix = "") {
 
   library(glmmTMB)
   library(emmeans)
@@ -86,9 +87,9 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal) {
     theme(legend.position = "right")
 
   dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
-  ggsave("output/figures/moth_fig_color_intensity.png",
+  ggsave(paste0("output/figures/", file_prefix, "moth_fig_color_intensity.png"),
          fig_color_intensity, width = 8, height = 5, dpi = 300, bg = "white")
-  ggsave("output/figures/moth_fig_dist_intensity.png",
+  ggsave(paste0("output/figures/", file_prefix, "moth_fig_dist_intensity.png"),
          fig_dist_intensity, width = 8, height = 5, dpi = 300, bg = "white")
 
   list(

@@ -5,7 +5,8 @@
 # Input:  data_env (already joined to bat_traits), bat_theme, col_navy, col_red, col_purple
 # Output: trait_models list, summary data frames, fig_trait_intensity, fig_trait_dist
 
-run_trait_models <- function(data_env, bat_theme, col_navy, col_red, col_purple) {
+run_trait_models <- function(data_env, bat_theme, col_navy, col_red, col_purple,
+                             file_prefix = "") {
 
   library(glmmTMB)
   library(emmeans)
@@ -180,9 +181,9 @@ run_trait_models <- function(data_env, bat_theme, col_navy, col_red, col_purple)
 
   # ── Save figures + post-hoc tables ────────────────────────────────────────
   dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
-  ggsave("output/figures/fig_trait_intensity.png", fig_trait_intensity,
+  ggsave(paste0("output/figures/", file_prefix, "fig_trait_intensity.png"), fig_trait_intensity,
          width = 10, height = 7, dpi = 300, bg = "white")
-  ggsave("output/figures/fig_trait_dist.png", fig_trait_dist,
+  ggsave(paste0("output/figures/", file_prefix, "fig_trait_dist.png"), fig_trait_dist,
          width = 10, height = 7, dpi = 300, bg = "white")
 
   write_csv(df_trait_intensity, "output/posthoc_trait_intensity.csv")
