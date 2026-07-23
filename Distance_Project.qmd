@@ -738,14 +738,7 @@ source("R/30_figure_panels_vector.R")
 
 # Alternative Distance Gradient (`dist_km_alt`)
 
-This section re-runs every distance-involving analysis using an **alternative
-"nearest-source" distance gradient** (`R/31_alt_distance.R`): sites GRTE01,
-GRTE16, and GRTE17 are treated as sources (distance 0), and every other site's
-distance is the measured distance to its assigned source (GRTE01 or GRTE16).
-The original single-reference gradient above is unchanged; here we swap
-`dist_km` → `dist_km_alt` in copies of each dataset and refit. All figures from
-this section are written with an `alt_` prefix so they do not overwrite the
-originals.
+This section re-runs every distance-involving analysis using an **alternative "nearest-source" distance gradient** (`R/31_alt_distance.R`): sites GRTE01, GRTE16, and GRTE17 are treated as sources (distance 0), and every other site's distance is the measured distance to its assigned source (GRTE01 or GRTE16). The original single-reference gradient above is unchanged; here we swap `dist_km` → `dist_km_alt` in copies of each dataset and refit. All figures from this section are written with an `alt_` prefix so they do not overwrite the originals.
 
 ```{r alt_data, warning=FALSE, message=FALSE}
 source("R/31_alt_distance.R")
