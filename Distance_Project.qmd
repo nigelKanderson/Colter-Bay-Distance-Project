@@ -531,12 +531,7 @@ ggsave("output/figures/moth_fig_dist_heatmap.png", moth_community$fig_c3,
 
 ## Moth Taxonomic Levels & Richness
 
-Extends the family-level moth analysis to **subfamily, genus, and species**
-resolution. For each level we test whether light color, intensity, and distance
-restructure the community (dbRDA / PERMANOVA / mvabund), and we model
-**taxonomic richness** per site-night (species / genus / subfamily), adjusted
-for catch size. `mvabund` uses fewer bootstraps at the higher-dimensional
-levels (159 genera, 253 species) to keep knit time reasonable.
+Extends the family-level moth analysis to **subfamily, genus, and species** resolution. For each level we test whether light color, intensity, and distance restructure the community (dbRDA / PERMANOVA / mvabund), and we model **taxonomic richness** per site-night (species / genus / subfamily), adjusted for catch size. `mvabund` uses fewer bootstraps at the higher-dimensional levels (159 genera, 253 species) to keep knit time reasonable.
 
 ```{r moth_taxa_env, warning=FALSE, message=FALSE}
 source("R/33_moth_taxonomy.R")
