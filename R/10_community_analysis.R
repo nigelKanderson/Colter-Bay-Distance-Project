@@ -6,7 +6,8 @@
 # Returns:   named list of model objects, data frames, and figures
 
 run_community_analysis <- function(data_env, bat_theme, col_red, col_white,
-                                    taxon = "Bat", unit = "Species") {
+                                    taxon = "Bat", unit = "Species",
+                                    nBoot = 9999) {
 
   library(vegan)
   library(mvabund)
@@ -137,11 +138,11 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white,
   }
   db_formula <- as.formula(paste("comm ~", db_rhs))
   db <- dbrda(db_formula, data = env, distance = "bray")
-  db_global <- anova(db, permutations = 9999)
-  db_margin <- anova(db, by = "margin", permutations = 9999)
+  db_global <- anova(db, permutations = nBoot)
+  db_margin <- anova(db, by = "margin", permutations = nBoot)
 
   # ── mvabund ───────────────────────────────────────────────────────────────
-  cat("Running mvabund (nBoot = 9999 — may take a while)...\n")
+  cat("Running mvabund (nBoot =", nBoot, "— may take a while)...\n")
   Y      <- mvabund(comm)
   mv_rhs <- if (multi_year) {
     paste(cov_terms, "+ year")
@@ -154,7 +155,7 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white,
     family = "negative.binomial",
     data   = env
   )
-  mv_anova <- anova(mv_fit, p.uni = "adjusted", nBoot = 9999)
+  mv_anova <- anova(mv_fit, p.uni = "adjusted", nBoot = nBoot)
 
   # ── Fig C1: dbRDA ordination biplot ───────────────────────────────────────
   site_scores <- scores(db, display = "sites") %>%

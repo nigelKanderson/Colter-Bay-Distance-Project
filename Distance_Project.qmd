@@ -529,6 +529,51 @@ ggsave("output/figures/moth_fig_dist_heatmap.png", moth_community$fig_c3,
        width = 7, height = 6, dpi = 300, bg = "white")
 ```
 
+## Moth Taxonomic Levels & Richness
+
+Extends the family-level moth analysis to **subfamily, genus, and species**
+resolution. For each level we test whether light color, intensity, and distance
+restructure the community (dbRDA / PERMANOVA / mvabund), and we model
+**taxonomic richness** per site-night (species / genus / subfamily), adjusted
+for catch size. `mvabund` uses fewer bootstraps at the higher-dimensional
+levels (159 genera, 253 species) to keep knit time reasonable.
+
+```{r moth_taxa_env, warning=FALSE, message=FALSE}
+source("R/33_moth_taxonomy.R")
+subfam_env  <- build_taxon_env(insects$specimens, event_covariates, "Subfamily")
+genus_env   <- build_taxon_env(insects$specimens, event_covariates, "Genus")
+species_env <- build_taxon_env(insects$specimens, event_covariates, "Species_bin")
+c(subfamilies = n_distinct(subfam_env$species),
+  genera      = n_distinct(genus_env$species),
+  species     = n_distinct(species_env$species))
+```
+
+```{r moth_taxa_community, warning=FALSE, message=FALSE}
+comm_subfam  <- run_community_analysis(subfam_env,  bat_theme, col_red, col_white,
+                                       taxon = "Moth", unit = "Subfamily")
+comm_genus   <- run_community_analysis(genus_env,   bat_theme, col_red, col_white,
+                                       taxon = "Moth", unit = "Genus",   nBoot = 999)
+comm_species <- run_community_analysis(species_env, bat_theme, col_red, col_white,
+                                       taxon = "Moth", unit = "Species", nBoot = 999)
+
+cat("=== Subfamily community (dbRDA marginal) ===\n"); comm_subfam$db_margin
+cat("=== Genus community (dbRDA marginal) ===\n");     comm_genus$db_margin
+cat("=== Species community (dbRDA marginal) ===\n");   comm_species$db_margin
+```
+
+```{r moth_taxa_community_figs, warning=FALSE, message=FALSE}
+comm_subfam$fig_c3   # subfamily x distance heatmap
+comm_genus$fig_c3    # genus x distance heatmap
+comm_species$fig_c3  # species x distance heatmap
+```
+
+```{r moth_richness, warning=FALSE, message=FALSE}
+moth_richness <- compute_richness(insects$specimens, event_covariates)
+richness_results <- run_richness_models(moth_richness, bat_theme, intensity_pal,
+                                        col_red, col_white)
+richness_results$fig_richness
+```
+
 ## Bat vs. Moth Comparison
 
 ```{r bat_moth_comparison, warning=FALSE, message=FALSE}

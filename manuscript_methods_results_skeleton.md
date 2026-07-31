@@ -98,6 +98,19 @@ Six families passing the same threshold were modeled individually, and the
 family community was analyzed with the same NMDS/PERMANOVA/dbRDA/`mvabund`
 pipeline. (N = 226 site-nights, 14 sites.)
 
+### Moth taxonomic resolution and richness
+
+Specimens (9,864, identified to species where possible) were additionally
+analyzed at **subfamily (30 taxa), genus (159), and species (253)** resolution.
+At each level the community was tested for color, intensity, and distance
+effects with the same NMDS/PERMANOVA/dbRDA/`mvabund` pipeline (`mvabund`
+bootstraps reduced to 999 at the genus and species levels for tractability).
+**Taxonomic richness** — the number of distinct species, genera, and subfamilies
+per site-night — was modeled with negative binomial (Poisson where the negative
+binomial was unstable) GLMMs of the same form as the abundance model, with
+**log catch size** added as a covariate so treatment effects reflect richness
+beyond that expected from catch volume.
+
 ### Bat–moth comparison
 
 To compare the **shape** of each taxon's response independent of absolute
@@ -186,6 +199,32 @@ structured by intensity, distance, and moon phase (all dbRDA p < 0.001;
 `mvabund` p < 2e-16) but **not color** (p = 0.159), and treatment explained
 proportionally **more** of the moth community's variation (R² = 0.305) than the
 bats' (R² = 0.156).
+
+## Moth taxonomic resolution and richness (Panel 9)
+
+The family-level pattern held at finer resolution. At **subfamily** level the
+community was significantly structured by **intensity** (dbRDA F = 6.05,
+p = 0.01), **distance** (F = 6.23, p = 0.01), and **moon phase** (F = 3.97,
+p = 0.01) but **not by light color** (F = 1.57, p = 0.17). **Distance remained a
+strong structuring variable at the genus and species levels** (dbRDA marginal
+F = 3.48, p = 0.001 and F = 3.49, p = 0.001, respectively). This reflects a
+broad, community-wide increase in activity away from the parking lot: of the
+genera occurring at ≥ 6 sites, **26 increased with distance vs. 10 decreased**
+(species: 24 vs. 9), and every abundant genus rose with distance — *Malacosoma*
+(Spearman ρ = 0.72), *Leucania* (0.63), Noctuinae (0.57), *Euxoa* (0.51),
+*Egira* (0.45), *Apamea* (0.42) — as did the dominant species (*Malacosoma
+californica* ρ = 0.74, *Egira curialis* 0.54, *Apamea unanimis* 0.43).
+
+**Taxonomic richness tracked the abundance story.** Adjusting for catch size,
+**red light supported higher richness than white at 30–50 % intensity**:
+species richness was 1.36× higher at 30 % (p = 0.03) and 1.48× at 50 %
+(p = 0.01), and genus richness 1.34× at 50 % (p = 0.02). At **100 % intensity
+the pattern reversed** — white supported higher richness (species 0.75×,
+p = 0.06; genus 0.77×, p = 0.03; subfamily 0.72×, p = 0.04) — mirroring the
+100 % white-over-red abundance effect. So the color × intensity effect on moths
+is one of **diversity as well as abundance**: dim-to-moderate red light both
+attracts more moths and draws a richer assemblage, while the brightest white
+light does so instead (Panel 9).
 
 ## Bat vs. moth (Panel 7)
 
