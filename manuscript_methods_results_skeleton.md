@@ -202,18 +202,33 @@ bats' (R² = 0.156).
 
 ## Moth taxonomic resolution and richness (Panel 9)
 
-The family-level pattern held at finer resolution. At **subfamily** level the
-community was significantly structured by **intensity** (dbRDA F = 6.05,
-p = 0.01), **distance** (F = 6.23, p = 0.01), and **moon phase** (F = 3.97,
-p = 0.01) but **not by light color** (F = 1.57, p = 0.17). **Distance remained a
-strong structuring variable at the genus and species levels** (dbRDA marginal
-F = 3.48, p = 0.001 and F = 3.49, p = 0.001, respectively). This reflects a
-broad, community-wide increase in activity away from the parking lot: of the
-genera occurring at ≥ 6 sites, **26 increased with distance vs. 10 decreased**
-(species: 24 vs. 9), and every abundant genus rose with distance — *Malacosoma*
-(Spearman ρ = 0.72), *Leucania* (0.63), Noctuinae (0.57), *Euxoa* (0.51),
-*Egira* (0.45), *Apamea* (0.42) — as did the dominant species (*Malacosoma
-californica* ρ = 0.74, *Egira curialis* 0.54, *Apamea unanimis* 0.43).
+The family-level pattern held at finer resolution. Across **subfamily, genus,
+and species** the community was consistently structured by **light intensity**
+(dbRDA marginal p = 0.001 at every level) and **distance** (p = 0.001–0.002),
+whereas **light color was largely not** — non-significant at subfamily
+(F = 1.57, p = 0.16) and species (F = 1.21, p = 0.21), and only weakly
+structuring at the genus level (F = 2.49, p = 0.004). Moon phase structured the
+subfamily (F = 3.97, p = 0.004) and genus (F = 1.80, p = 0.038) communities but
+not species; local habitat and sky brightness were generally non-significant.
+
+The distance effect reflects a broad, community-wide increase in activity away
+from the parking lot: of the genera occurring at ≥ 6 sites, **26 increased with
+distance vs. 10 decreased** (species: 24 vs. 9), and every abundant genus rose
+with distance — *Malacosoma* (Spearman ρ = 0.72), *Leucania* (0.63), Noctuinae
+(0.57), *Euxoa* (0.51), *Egira* (0.45), *Apamea* (0.42) — as did the dominant
+species (*Malacosoma californica* ρ = 0.74, *Egira curialis* 0.54, *Apamea
+unanimis* 0.43).
+
+**Richness does not increase with distance once sampling effort is
+standardized — it decreases.** Observed per-site species richness rose only
+weakly and non-significantly with distance (Spearman ρ = 0.45, p = 0.10) while
+catch size rose steeply (ρ = 0.86); after coverage-based standardization
+(rarefaction/extrapolation, Hill q = 0, common coverage SC = 0.93),
+standardized richness **declined** with distance (ρ = −0.59, p = 0.03), and
+near-lot (< 1 km) sites accumulated more species per individual than mid or far
+zones (Panel 10). Thus the far, dark sites catch **more moths of fewer,
+more-dominant species** (e.g. *Malacosoma*), not a richer assemblage — the
+apparent richness–distance increase is an abundance artifact.
 
 **Taxonomic richness tracked the abundance story.** Adjusting for catch size,
 **red light supported higher richness than white at 30–50 % intensity**:
