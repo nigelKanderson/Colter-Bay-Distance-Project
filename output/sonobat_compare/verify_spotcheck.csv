@@ -1,0 +1,16 @@
+cat,rec_key,assigned_a,a_raw_spp,a_raw_prob,assigned_b,b_raw_spp,b_raw_prob
+a_only,GRTE16_20220802_233215,Lano,Lano,0.99860000000000004,NoID,NA,NaN/NaN
+a_only,GRTE16_20220725_230138,Mylu,Mylu,1,NoID,Labo/Mylu/Myse,0.46/0.47/0.07
+a_only,GRTE16_20220708_002213,Mylu,Mylu,1,NoID,Mylu/Labo,0.57/0.43
+agree_spp,GRTE05_20220811_030144,Mylu,Mylu,0.99990000000000001,Mylu,Mylu,0.99809999999999999
+agree_spp,GRTE16_20220703_223900,Epfu,Epfu,1,Epfu,Epfu,1
+agree_spp,GRTE06_20220711_222947,Laci,Laci,0.9997,Laci,Laci,1.0
+b_only,GRTE17_20220727_225449,NoID,NA,NA,Labo,Labo,1
+b_only,GRTE06_20220705_214614,NoID,NA,NA,Labo,Labo,1.0
+b_only,GRTE01_20220731_030710,NoID,NA,NA,Mylu,Mylu,1
+both_noid,GRTE16_20220701_222546,NoID,NA,NA,NoID,NA,NA
+both_noid,GRTE01_20220703_055803,NoID,NA,NA,NoID,NA,NA
+both_noid,GRTE17_20220801_052628,NoID,NA,NA,NoID,NA,NA
+disagree_spp,GRTE16_20220801_005808,Lano,Lano,1,Epfu,Epfu,1
+disagree_spp,GRTE16_20220627_224912,Lano,Lano,1,Epfu,Epfu,1
+disagree_spp,GRTE16_20220803_232929,Mylu,Mylu,1,Labo,Labo,0.9274
