@@ -1,0 +1,17 @@
+code,common,v4_4_5,v30_1,ratio,presence,called_by
+Labo,Eastern red bat,0,10153,10153,NOT in region,v30.1 only
+Myse,Northern long-eared bat,0,3107,3107,NOT in region,v30.1 only
+HiF,High-freq guild label (not a species),0,197,197,not a species,v30.1 only
+Mylu,Little brown myotis,9966,86526,8.7,in region,both
+Myvo,Long-legged myotis,565,30758,54.4,in region,both
+Lano,Silver-haired bat,18656,19307,1,in region,both
+Laci,Hoary bat,3436,5243,1.5,in region,both
+Epfu,Big brown bat,533,3997,7.5,in region,both
+Myci,Western small-footed myotis,11,1598,145.3,in region,both
+Myca,California myotis,82,1319,16.1,in region,both
+Myyu,Yuma myotis,123,546,4.4,in region,both
+Coto,Townsend's big-eared bat,0,117,117,in region,v30.1 only
+Anpa,Pallid bat,34,89,2.6,in region,both
+Myth,Fringed myotis,0,28,28,in region,v30.1 only
+Myev,Long-eared myotis,1091,18,0,in region,both
+Euma,Spotted bat,69,3,0,in region,both

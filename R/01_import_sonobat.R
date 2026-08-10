@@ -9,7 +9,7 @@ library(purrr)
 library(stringr)
 
 files_all <- list.files(
-  path = "/Users/nanderson/Library/CloudStorage/GoogleDrive-nigel_anderson@brown.edu/.shortcut-targets-by-id/1sSdpOAdUOgAVbJGpTKgB3-CJAfnjsvKJ/grandteton_distanceproject/grte_distance_v4.3",
+  path = "/Users/nanderson/Desktop/grte_distance_v30.1",
   pattern = "\\.xlsx$",
   full.names = TRUE,
   recursive = TRUE
@@ -17,11 +17,11 @@ files_all <- list.files(
 
 # Use only v430 files to ensure all files are the same SonoBat version
 
-files    <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
-excluded <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
+#files    <- files_all[grepl('v430', basename(files_all), ignore.case = TRUE)]
+#excluded <- files_all[!grepl('v430', basename(files_all), ignore.case = TRUE)]
 
-message("Found ", length(files_all), " total .xlsx files. Using ", length(files),
-        " v430 file(s). Excluded ", length(excluded), " non-v430 files.")
+#message("Found ", length(files_all), " total .xlsx files. Using ", length(files),
+        #" v430 file(s). Excluded ", length(excluded), " non-v430 files.")
   
 
 #This function simply reads in a file and ensures it has the right columns. It also
@@ -131,6 +131,6 @@ process_file <- function(file) {
 }
 
 
-data_raw <- map_dfr(files, process_file)
+data_raw <- map_dfr(files_all, process_file)
 
 
