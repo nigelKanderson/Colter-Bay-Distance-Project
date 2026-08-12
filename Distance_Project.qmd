@@ -121,12 +121,19 @@ data_env <- data_env %>% filter(!is.na(dist_km))
 
 data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
 
-# Reclassify out-of-region misidentifications onto the correct regional species.
-# The SonoBat classifier calls some Mylu as Labo (Eastern red bat) and some Myev
-# as Myse (N. long-eared) -- neither occurs in the Grand Teton fauna
-# (see R/38_species_checklist.R). Fold them back before filtering.
-data_env <- data_env %>%
-  mutate(species = recode(species, Labo = "Mylu", Myse = "Myev"))
+# Reclassify out-of-region misidentifications onto the correct regional species,
+# INCLUDING inside compound labels: Labo (Eastern red bat) -> Mylu and Myse
+# (N. long-eared) -> Myev, neither of which occurs in the Grand Teton fauna
+# (see R/38_species_checklist.R). Token-wise replacement; duplicate candidates
+# that result are collapsed while preserving vote order, so e.g. "Mylu/Labo" ->
+# "Mylu" (becomes a single-species call) and "Lano/Myse/Mylu" -> "Lano/Myev/Mylu".
+.fix_aliases <- function(x) {
+  vapply(stringr::str_split(x, "/"), function(toks) {
+    toks <- dplyr::recode(toks, Labo = "Mylu", Myse = "Myev")
+    paste(toks[!duplicated(toks)], collapse = "/")
+  }, character(1))
+}
+data_env <- data_env %>% mutate(species = .fix_aliases(species))
 
 # Merging can put two rows on the same species at the same site/date/recording;
 # sum detections so counts stay additive and re-derive mean confidence.
@@ -140,13 +147,24 @@ data_env <- data_env %>%
             .groups = "drop") %>%
   mutate(mean_confidence = weighted_detections / detections)
 
-# Filter to focal species
+# Focal single-species set for the per-species and community models.
 focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
                "Mylu", "Myvo", "Myyu", "Myth", "Myev")
-data_env  <- data_env %>% filter(species %in% focal_spp)
 
-message("Rows after species filter: ", nrow(data_env),
-        "  |  Species retained: ", n_distinct(data_env$species))
+# Overall stream = focal species + all compound (multi-species) labels. Compounds
+# are retained here for the OVERALL activity model and figures, but are dropped
+# from the per-species and community models (which use `data_env_focal`, built
+# after the trait join below). Non-focal single species stay excluded.
+data_env <- data_env %>%
+  filter(species %in% focal_spp | str_detect(species, "/"))
+
+message("Overall data rows: ", nrow(data_env),
+        "  |  single-species detections: ",
+        sum(data_env$detections[!str_detect(data_env$species, "/")]),
+        "  |  compound labels: ",
+        n_distinct(data_env$species[str_detect(data_env$species, "/")]),
+        " (", sum(data_env$detections[str_detect(data_env$species, "/")]),
+        " detections)")
 ```
 
 ```{r sky_brightness, warning=FALSE, message=TRUE}
@@ -161,6 +179,30 @@ bat_traits <- read_excel("data/bat_traits.xlsx") %>%
 
 data_env <- data_env %>%
   left_join(bat_traits, by = "species")
+
+# Single-species subset for the per-species and community models. Compound
+# (multi-species) labels are excluded here but remain in `data_env` for the
+# overall model and figures.
+data_env_focal <- data_env %>% filter(species %in% focal_spp)
+
+# Per-site-night totals: bat activity = sum of detections across every species /
+# compound label on a site-night. The site-night is the unit the light treatment
+# is applied to, so the OVERALL model and the pooled figures (R/08) both use this.
+# Every covariate is constant within a site-night, so nothing is lost aggregating.
+site_night <- data_env %>%
+  group_by(site, date) %>%
+  summarise(
+    total_det       = sum(detections, na.rm = TRUE),
+    color           = first(color),
+    intensity       = first(intensity),
+    dist_km         = first(dist_km),
+    mean_phase      = first(mean_phase),
+    pct_nonforest   = first(pct_nonforest),
+    brightness_dark = first(brightness_dark),
+    jd              = first(jd),
+    jd_c            = first(jd_c),
+    .groups = "drop"
+  )
 ```
 
 ## Models
@@ -168,8 +210,11 @@ data_env <- data_env %>%
 ```{r simple_model, warning=FALSE, message=FALSE}
 library(glmmTMB)
 
+# Overall activity model at the site-night level (one row per site x night).
+# Total detections per night ~ treatment + covariates, with a site random effect.
+# No ziformula: nightly totals have no structural zeros.
 simple_model1 <- glmmTMB(
-  detections ~
+  total_det ~
     color * intensity +
     intensity * dist_km +
     mean_phase +
@@ -177,9 +222,8 @@ simple_model1 <- glmmTMB(
     brightness_dark +
     jd_c + I(jd_c^2) +
     (1 | site),
-  data      = data_env,
-  ziformula = ~1,
-  family    = nbinom2()
+  data   = site_night,
+  family = nbinom2()
 )
 
 summary(simple_model1)
@@ -189,7 +233,7 @@ summary(simple_model1)
 
 ```{r community, warning=FALSE, message=FALSE}
 source("R/10_community_analysis.R")
-community <- run_community_analysis(data_env, bat_theme, col_red, col_white)
+community <- run_community_analysis(data_env_focal, bat_theme, col_red, col_white)
 ```
 
 ```{r community_results, warning=FALSE, message=FALSE}
@@ -340,7 +384,7 @@ ggsave("output/figures/fig9_dist_intensity.png",
 
 ```{r trait_models, warning=FALSE, message=FALSE}
 source("R/12_trait_models.R")
-trait_results <- run_trait_models(data_env, bat_theme, col_navy, col_red, col_purple)
+trait_results <- run_trait_models(data_env_focal, bat_theme, col_navy, col_red, col_purple)
 
 for (trait in names(trait_results$trait_models)) {
   cat("\n\n=== ", trait, " model ===\n")
@@ -365,7 +409,7 @@ trait_results$fig_trait_dist
 
 ```{r species_models, warning=FALSE, message=FALSE}
 source("R/11_species_models.R")
-sp_results <- run_species_models(data_env, bat_theme, col_red, col_white)
+sp_results <- run_species_models(data_env_focal, bat_theme, col_red, col_white)
 ```
 
 ```{r species_figs, warning=FALSE, message=FALSE}

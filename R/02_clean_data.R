@@ -23,13 +23,11 @@ clean_species <- function(x) {
 #This function filters out rows with NA's and ensures the variables are the right class.
 
 clean_data <- function(data) {
-  
-  data_clean <- data_raw %>%
-    
-    mutate(
-      species = clean_species(species)
-    ) %>%
-    
+
+  # Species labels (single or compound) are finalised in 01_import_sonobat.R,
+  # so we do NOT collapse compounds here. Operate on the passed `data`.
+  data_clean <- data %>%
+
     filter(
       !is.na(detections),
       !is.na(site),

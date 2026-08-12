@@ -49,23 +49,50 @@ intensity_pal <- c("10"  = col_ivory,
 # Distance category order
 dist_order <- c("Close", "Medium", "Further", "Far")
 
-# Species to include (matches ColterBay project)
-focal_spp <- c("Laci", "Lano", "Mylu", "Epfu", "Myev", "Myvo", "Myyu", "Myci")
+# Species to include for the per-species figures. Inherit the qmd's 10-species
+# focal set when this script is sourced from the pipeline; fall back to the same
+# list (so the script still runs standalone) rather than a divergent local set.
+if (!exists("focal_spp")) {
+  focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
+                 "Mylu", "Myvo", "Myyu", "Myth", "Myev")
+}
 
 # Ensure jd_c exists (centered Julian day)
 if (!"jd_c" %in% names(data_env)) {
   data_env$jd_c <- data_env$jd - mean(data_env$jd, na.rm = TRUE)
 }
 
+# ── Per-site-night totals for the POOLED (all-species) figures ────────────────
+# Bat activity per night = sum of detections across every species / compound
+# label on a site-night. The pooled figures below average these nightly totals,
+# so including compound labels ADDS to activity instead of diluting a per-row
+# mean. (Per-species figures keep using data_env with the focal-species filter.)
+# Inherit the pipeline's shared site_night (same table the overall model uses);
+# fall back to building it here so the script still runs standalone.
+if (!exists("site_night")) {
+  site_night <- data_env %>%
+    group_by(site, date) %>%
+    summarise(
+      total_det     = sum(detections, na.rm = TRUE),
+      color         = first(color),
+      intensity     = first(intensity),
+      dist_km       = first(dist_km),
+      mean_phase    = first(mean_phase),
+      pct_nonforest = first(pct_nonforest),
+      jd            = first(jd),
+      .groups = "drop"
+    )
+}
+
 # ==============================================================================
 # ── Fig 1: Red vs White — color effect (p < 0.001) ──────────────────
 # ==============================================================================
 
-color_summary <- data_env %>%
+color_summary <- site_night %>%
   group_by(color) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det,   na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   )
 
@@ -88,11 +115,11 @@ fig1 <- ggplot(color_summary,
 # ── Fig 2: Distance from Colter Bay parking lot ─────────────────────────────────────────
 # ==============================================================================
 
-dist_summary <- data_env %>%
+dist_summary <- site_night %>%
   group_by(site, dist_km) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det, na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   ) %>%
   arrange(dist_km) %>%
@@ -120,11 +147,11 @@ fig2 <- ggplot(dist_summary,
 # Mean ± SE at each discrete intensity level by color
 # ==============================================================================
 
-intensity_summary <- data_env %>%
+intensity_summary <- site_night %>%
   group_by(intensity, color) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det,   na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   ) %>%
   mutate(intensity = factor(intensity))
@@ -163,12 +190,12 @@ zone_lookup <- stack(zone_sites) %>%
   rename(site = values, zone = ind) %>%
   mutate(zone = factor(zone, levels = c("Close","Medium","Far")))
 
-intensity_distcat_summary <- data_env %>%
+intensity_distcat_summary <- site_night %>%
   inner_join(zone_lookup, by = "site") %>%
   group_by(zone, intensity, color) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections,   na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det,   na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   ) %>%
   mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
@@ -198,8 +225,8 @@ fig3b <- ggplot(intensity_distcat_summary,
 # ── Fig 4: Seasonal patterns by light color ───────────────────────────────────
 # ==============================================================================
 
-fig4 <- ggplot(data_env,
-               aes(x = jd, y = detections, color = color)) +
+fig4 <- ggplot(site_night,
+               aes(x = jd, y = total_det, color = color)) +
   geom_smooth(method = "loess", span = 0.4, se = FALSE, linewidth = 1.2) +
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"),
@@ -249,8 +276,8 @@ fig5 <- ggplot(heat_data,
 # ── Fig 6: Moon phase effect by color (mean_phase p = 0.008) ─────────────────
 # ==============================================================================
 
-fig6 <- ggplot(data_env %>% filter(!is.na(mean_phase)),
-               aes(x = mean_phase, y = detections, color = color)) +
+fig6 <- ggplot(site_night %>% filter(!is.na(mean_phase)),
+               aes(x = mean_phase, y = total_det, color = color)) +
   geom_smooth(method = "loess", span = 0.8, se = FALSE, linewidth = 1.2) +
   scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1),
                      labels = c("New", "1st Q", "Full", "3rd Q", "New")) +
@@ -272,9 +299,9 @@ fig6 <- ggplot(data_env %>% filter(!is.na(mean_phase)),
 
 library(ggrepel)
 
-site_means <- data_env %>%
+site_means <- site_night %>%
   group_by(site, dist_km) %>%
-  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+  summarise(mean_det = mean(total_det, na.rm = TRUE), .groups = "drop")
 
 fig7 <- ggplot(site_means, aes(x = dist_km, y = mean_det)) +
   geom_smooth(method = "lm", se = TRUE,
@@ -380,11 +407,11 @@ fig9 <- ggplot(spp_site, aes(x = site, y = species, fill = mean_det_z)) +
 # ── Fig 10: Mean detections by intensity level ────────────────────────────────
 # ==============================================================================
 
-intensity_bar <- data_env %>%
+intensity_bar <- site_night %>%
   group_by(intensity) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det, na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   ) %>%
   mutate(intensity = factor(intensity, levels = c("10","30","50","70","100")))
@@ -407,12 +434,12 @@ fig10 <- ggplot(intensity_bar, aes(x = intensity, y = mean_det,
 # ── Fig 11: Mean detections by intensity × color (grouped bar) ───────────────
 # ==============================================================================
 
-int_color_bar <- data_env %>%
+int_color_bar <- site_night %>%
   mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
   group_by(intensity, color, site, dist_km) %>%
   summarise(
-    mean_det = mean(detections, na.rm = TRUE),
-    se       = sd(detections, na.rm = TRUE) / sqrt(n()),
+    mean_det = mean(total_det, na.rm = TRUE),
+    se       = sd(total_det, na.rm = TRUE) / sqrt(n()),
     .groups  = "drop"
   ) %>%
   mutate(site_label = paste0(site, "\n(", round(dist_km, 2), " km)"),
@@ -476,9 +503,9 @@ fig12 <- ggplot(spp_int_color,
 # ── Fig 13: Detections vs pct_nonforest (site-level means) ───────────────────
 # ==============================================================================
 
-nonforest_means <- data_env %>%
+nonforest_means <- site_night %>%
   group_by(site, pct_nonforest) %>%
-  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
+  summarise(mean_det = mean(total_det, na.rm = TRUE), .groups = "drop")
 
 fig13 <- ggplot(nonforest_means,
                 aes(x = pct_nonforest, y = mean_det)) +
