@@ -121,8 +121,28 @@ data_env <- data_env %>% filter(!is.na(dist_km))
 
 data_env %>% select(site, dist_km) %>% distinct() %>% arrange(dist_km)
 
-# Filter to focal species (matches ColterBay project)
-focal_spp <- c("Laci", "Lano", "Mylu", "Epfu", "Myev", "Myvo")
+# Reclassify out-of-region misidentifications onto the correct regional species.
+# The SonoBat classifier calls some Mylu as Labo (Eastern red bat) and some Myev
+# as Myse (N. long-eared) -- neither occurs in the Grand Teton fauna
+# (see R/38_species_checklist.R). Fold them back before filtering.
+data_env <- data_env %>%
+  mutate(species = recode(species, Labo = "Mylu", Myse = "Myev"))
+
+# Merging can put two rows on the same species at the same site/date/recording;
+# sum detections so counts stay additive and re-derive mean confidence.
+.recode_key <- c("site", "year", "date", "jd", "jd2", "species",
+                 "datetime", "time_sec")
+data_env <- data_env %>%
+  group_by(across(all_of(.recode_key))) %>%
+  summarise(detections          = sum(detections),
+            weighted_detections = sum(weighted_detections),
+            across(-c(detections, weighted_detections, mean_confidence), first),
+            .groups = "drop") %>%
+  mutate(mean_confidence = weighted_detections / detections)
+
+# Filter to focal species
+focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
+               "Mylu", "Myvo", "Myyu", "Myth", "Myev")
 data_env  <- data_env %>% filter(species %in% focal_spp)
 
 message("Rows after species filter: ", nrow(data_env),
