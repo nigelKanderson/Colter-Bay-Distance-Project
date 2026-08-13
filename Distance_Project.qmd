@@ -205,7 +205,99 @@ site_night <- data_env %>%
   )
 ```
 
+## Species Detection Counts
+
+```{r species_counts, warning=FALSE, message=FALSE, fig.width=8, fig.height=5}
+# Total detections per species (compound multi-species labels pooled into one bar)
+spp_counts <- data_env %>%
+  mutate(grp = ifelse(str_detect(species, "/"), "(compound)", species)) %>%
+  group_by(grp) %>%
+  summarise(detections = sum(detections), .groups = "drop") %>%
+  mutate(grp = fct_reorder(grp, detections))
+
+fig_spp_det <- ggplot(spp_counts, aes(detections, grp)) +
+  geom_col(fill = col_navy, width = 0.75) +
+  geom_text(aes(label = scales::comma(detections)),
+            hjust = -0.1, size = 3.5, color = "#333333") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.18)),
+                     labels = scales::comma) +
+  labs(title = "Total detections per species",
+       subtitle = "SonoBat v30.1, Prob >= 0.9; compound (multi-species) labels pooled",
+       x = "Total detections", y = NULL) +
+  bat_theme
+
+fig_spp_det
+
+# Prevalence: how many of the sampled site-nights each focal species appears on
+spp_prev <- data_env_focal %>%
+  distinct(species, site, date) %>%
+  count(species, name = "site_nights") %>%
+  mutate(species = fct_reorder(species, site_nights))
+
+fig_spp_prev <- ggplot(spp_prev, aes(site_nights, species)) +
+  geom_col(fill = col_purple, width = 0.75) +
+  geom_text(aes(label = site_nights), hjust = -0.15, size = 3.5, color = "#333333") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
+  labs(title = "Site-nights each species was detected",
+       subtitle = paste0("Out of ", n_distinct(paste(data_env$site, data_env$date)),
+                         " sampled site-nights (focal species)"),
+       x = "Site-nights with at least one detection", y = NULL) +
+  bat_theme
+
+fig_spp_prev
+
+dir.create("output/figures", showWarnings = FALSE, recursive = TRUE)
+ggsave("output/figures/species_counts.png", fig_spp_det,
+       width = 8, height = 5, dpi = 200, bg = "white")
+ggsave("output/figures/species_prevalence.png", fig_spp_prev,
+       width = 8, height = 5, dpi = 200, bg = "white")
+```
+
 ## Models
+
+### Community-average species model (hierarchical)
+
+Total detections are \~68% `Mylu`, so a pooled total mostly reflects one species. This model instead keeps one row per site-night **× focal species** (with zeros filled in for species not detected that night) and enters species as a random effect, so the fixed effects estimate the **community-average** light response rather than a `Mylu`-weighted total. The zero-filled cells (\~39%) make the zero-inflated NB appropriate.
+
+```{r species_glmm, warning=FALSE, message=FALSE}
+library(glmmTMB)
+
+# focal single-species detections summed to the site-night level
+spp_det <- data_env_focal %>%
+  group_by(site, date, species) %>%
+  summarise(detections = sum(detections), .groups = "drop")
+
+# zero-filled grid: every sampled site-night x focal species (0 where undetected),
+# carrying the site-night covariates from `site_night`
+spp_night <- site_night %>%
+  select(site, date, color, intensity, dist_km, mean_phase,
+         pct_nonforest, brightness_dark, jd_c) %>%
+  tidyr::crossing(species = focal_spp) %>%
+  left_join(spp_det, by = c("site", "date", "species")) %>%
+  mutate(detections = tidyr::replace_na(detections, 0),
+         site    = factor(site),
+         species = factor(species))
+
+# Random intercepts for site and species. (A per-species colour slope,
+# (1 + color | species), was singular here, so intercepts only.)
+species_glmm <- glmmTMB(
+  detections ~
+    color * intensity +
+    dist_km +
+    mean_phase +
+    pct_nonforest +
+    brightness_dark +
+    jd_c + I(jd_c^2) +
+    (1 | site) + (1 | species),
+  data      = spp_night,
+  ziformula = ~1,
+  family    = nbinom2()
+)
+
+summary(species_glmm)
+```
+
+### Overall activity model (total detections per night)
 
 ```{r simple_model, warning=FALSE, message=FALSE}
 library(glmmTMB)
@@ -216,7 +308,7 @@ library(glmmTMB)
 simple_model1 <- glmmTMB(
   total_det ~
     color * intensity +
-    intensity * dist_km +
+    dist_km +
     mean_phase +
     pct_nonforest +
     brightness_dark +
@@ -227,6 +319,90 @@ simple_model1 <- glmmTMB(
 )
 
 summary(simple_model1)
+```
+
+### Model-based intensity × color effects
+
+Figure-3-style effect plots, but from the fitted models: predicted response by light intensity and colour with 95% CIs (estimated marginal means, other covariates held at their means, averaged over the random effects).
+
+```{r model_effect_figs, warning=FALSE, message=FALSE, fig.width=8, fig.height=9}
+library(emmeans)
+library(patchwork)
+
+# predicted response by intensity x color (+/- 95% CI), in the Fig 3 style
+emm_intensity_color <- function(model, ttl, sub, ylab) {
+  pd <- position_dodge(0.3)
+  e  <- as.data.frame(emmeans(model, ~ color * intensity, type = "response"))
+  names(e)[names(e) %in% c("response", "rate", "emmean")] <- "est"
+  ggplot(e, aes(factor(intensity), est, color = color, group = color)) +
+    geom_line(linewidth = 1, position = pd) +
+    geom_point(size = 3, position = pd) +
+    geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL),
+                  width = 0.15, linewidth = 0.8, position = pd) +
+    scale_color_manual(values = c(R = col_red, W = col_white),
+                       labels = c(R = "Red", W = "White"), name = "Light color") +
+    labs(title = ttl, subtitle = sub, x = "Light intensity (%)", y = ylab) +
+    bat_theme
+}
+
+fig_eff_species <- emm_intensity_color(
+  species_glmm, "Community-average species response",
+  "Model-based EMM +/- 95% CI (species_glmm)",
+  "Predicted detections / species / night")
+
+fig_eff_total <- emm_intensity_color(
+  simple_model1, "Overall nightly activity",
+  "Model-based EMM +/- 95% CI (simple_model1)",
+  "Predicted total detections / night")
+
+fig_eff_species / fig_eff_total
+
+ggsave("output/figures/model_intensity_color.png",
+       fig_eff_species / fig_eff_total,
+       width = 8, height = 9, dpi = 200, bg = "white")
+```
+
+### Per-species intensity × color effects
+
+To see *which* species drive the red-vs-white pattern, fit a model with a species × colour × intensity interaction (so each species has its own response shape, unlike `species_glmm`, which is random-intercept only) and plot each species' predicted curve. This is the model-based analog of R/08's Fig 12.
+
+```{r model_effect_byspecies, warning=FALSE, message=FALSE, fig.width=13, fig.height=6.5}
+library(emmeans)
+
+# species-specific colour x intensity response (fixed 3-way interaction),
+# same zero-filled grid as species_glmm
+species_glmm_int <- glmmTMB(
+  detections ~ species * color * intensity +
+    dist_km + mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
+    (1 | site),
+  data      = spp_night,
+  ziformula = ~1,
+  family    = nbinom2()
+)
+
+emm_sp <- as.data.frame(
+  emmeans(species_glmm_int, ~ color * intensity | species, type = "response"))
+names(emm_sp)[names(emm_sp) %in% c("response", "rate", "emmean")] <- "est"
+
+pd <- position_dodge(0.4)
+fig_eff_byspecies <- ggplot(
+    emm_sp, aes(factor(intensity), est, color = color, group = color)) +
+  geom_line(linewidth = 0.8, position = pd) +
+  geom_point(size = 2, position = pd) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL),
+                width = 0.2, linewidth = 0.6, position = pd) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  facet_wrap(~ species, scales = "free_y", nrow = 2) +
+  labs(title = "Per-species intensity × color effect (model-based)",
+       subtitle = "Predicted detections/night ± 95% CI; species × color × intensity model; y-axes free",
+       x = "Light intensity (%)", y = "Predicted detections / night") +
+  bat_theme
+
+fig_eff_byspecies
+
+ggsave("output/figures/model_intensity_color_byspecies.png", fig_eff_byspecies,
+       width = 13, height = 6.5, dpi = 200, bg = "white")
 ```
 
 ## Community Analysis
