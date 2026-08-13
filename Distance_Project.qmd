@@ -405,6 +405,114 @@ ggsave("output/figures/model_intensity_color_byspecies.png", fig_eff_byspecies,
        width = 13, height = 6.5, dpi = 200, bg = "white")
 ```
 
+## Guild-cluster models
+
+Rather than forcing ambiguous compound calls onto a single species, group every detection — single *or* compound — into the acoustic guild the classifier is confident about: a **low-frequency** guild (Epfu / Lano / Laci) and a **Myotis** guild (the seven Myotis). A detection joins a guild only if *every* candidate species in its label belongs to that guild; cross-guild calls (\~0.7% of detections) are dropped. This keeps \~99% of detections and models activity at the level SonoBat can actually resolve — and it separates guilds that respond to distance in opposite directions (so a pooled total cancels them out).
+
+```{r cluster_setup, warning=FALSE, message=FALSE}
+lowfreq_spp <- c("Epfu", "Lano", "Laci")
+myotis_spp  <- c("Mylu", "Myvo", "Myev", "Myci", "Myca", "Myyu", "Myth")
+
+# a label joins a guild only if EVERY candidate species is in that guild
+assign_cluster <- function(x) {
+  vapply(stringr::str_split(x, "/"), function(toks) {
+    if (all(toks %in% lowfreq_spp)) "LowFreq"
+    else if (all(toks %in% myotis_spp)) "Myotis"
+    else NA_character_
+  }, character(1))
+}
+
+# per-guild detections per site-night (single + compound detections combined)
+cl_det <- data_env %>%
+  mutate(cluster = assign_cluster(species)) %>%
+  filter(!is.na(cluster)) %>%
+  group_by(site, date, cluster) %>%
+  summarise(detections = sum(detections), .groups = "drop")
+
+# zero-filled: every sampled site-night x guild, carrying site-night covariates
+cluster_night <- site_night %>%
+  select(site, date, color, intensity, dist_km, mean_phase,
+         pct_nonforest, brightness_dark, jd_c) %>%
+  tidyr::crossing(cluster = c("LowFreq", "Myotis")) %>%
+  left_join(cl_det, by = c("site", "date", "cluster")) %>%
+  mutate(detections = tidyr::replace_na(detections, 0),
+         site = factor(site), cluster = factor(cluster))
+
+# guild x colour x intensity, plus a guild-specific distance slope
+cluster_glmm <- glmmTMB(
+  detections ~ cluster * color * intensity + cluster * dist_km +
+    mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
+    (1 | site),
+  data      = cluster_night,
+  ziformula = ~1,
+  family    = nbinom2()
+)
+
+summary(cluster_glmm)
+
+# guild-specific distance slopes (log scale)
+emmeans::emtrends(cluster_glmm, ~ cluster, var = "dist_km")
+```
+
+### Guild responses to intensity × color and to distance
+
+```{r cluster_figs, warning=FALSE, message=FALSE, fig.width=11, fig.height=5}
+library(emmeans)
+
+# (1) intensity x color by guild
+emm_cl <- as.data.frame(
+  emmeans(cluster_glmm, ~ color * intensity | cluster, type = "response"))
+names(emm_cl)[names(emm_cl) %in% c("response", "rate", "emmean")] <- "est"
+pd <- position_dodge(0.35)
+fig_cluster_ic <- ggplot(
+    emm_cl, aes(factor(intensity), est, color = color, group = color)) +
+  geom_line(linewidth = 0.9, position = pd) +
+  geom_point(size = 2.5, position = pd) +
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL),
+                width = 0.2, linewidth = 0.7, position = pd) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  facet_wrap(~ cluster, scales = "free_y") +
+  labs(title = "Guild response to intensity × color",
+       subtitle = "Predicted detections/night ± 95% CI",
+       x = "Light intensity (%)", y = "Predicted detections / night") +
+  bat_theme
+
+# (2) distance response by guild (other covariates at their means, at 50% red)
+dgrid <- expand.grid(
+  dist_km   = seq(min(cluster_night$dist_km), max(cluster_night$dist_km), length = 60),
+  cluster   = factor(c("LowFreq", "Myotis"), levels = levels(cluster_night$cluster)),
+  color     = factor("R",  levels = levels(cluster_night$color)),
+  intensity = factor("50", levels = levels(cluster_night$intensity)),
+  jd_c = 0,
+  mean_phase      = mean(cluster_night$mean_phase, na.rm = TRUE),
+  pct_nonforest   = mean(cluster_night$pct_nonforest, na.rm = TRUE),
+  brightness_dark = mean(cluster_night$brightness_dark, na.rm = TRUE),
+  site = NA)
+pr <- predict(cluster_glmm, newdata = dgrid, se.fit = TRUE, re.form = NA, type = "link")
+dgrid$fit <- exp(pr$fit)
+dgrid$lo  <- exp(pr$fit - 1.96 * pr$se.fit)
+dgrid$hi  <- exp(pr$fit + 1.96 * pr$se.fit)
+fig_cluster_dist <- ggplot(dgrid, aes(dist_km, fit, color = cluster, fill = cluster)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1.1) +
+  scale_color_manual(values = c(LowFreq = col_navy, Myotis = col_red), name = NULL) +
+  scale_fill_manual(values = c(LowFreq = col_navy, Myotis = col_red), guide = "none") +
+  labs(title = "Guild response to distance",
+       subtitle = "Predicted detections/night ± 95% CI (at 50% red, other covariates at means)",
+       x = "Distance from Colter Bay parking lot (km)",
+       y = "Predicted detections / night") +
+  bat_theme
+
+fig_cluster_ic
+fig_cluster_dist
+
+ggsave("output/figures/cluster_intensity_color.png", fig_cluster_ic,
+       width = 11, height = 5, dpi = 200, bg = "white")
+ggsave("output/figures/cluster_distance.png", fig_cluster_dist,
+       width = 8, height = 5, dpi = 200, bg = "white")
+```
+
 ## Community Analysis
 
 ```{r community, warning=FALSE, message=FALSE}
