@@ -491,7 +491,7 @@ ggsave("output/figures/model_intensity_color.png",
 
 ### Per-species intensity × color effects
 
-Each species gets its own **intensity** response, with a **common** colour effect. Likelihood-ratio tests show species differ strongly in their intensity response (species × intensity, p < 1e-16) but *not* in their colour response (species × colour, p = 0.43), and the full species × colour × intensity three-way is not worth its parameters (AIC and BIC both prefer dropping it). So we use `species * intensity + colour * intensity` — supported, better-fitting, and interpretable without a three-way. The red-vs-white gap is therefore consistent across species; the panels differ in their intensity shapes.
+Each species gets its own **intensity** response, with a **common** colour effect. Likelihood-ratio tests show species differ strongly in their intensity response (species × intensity, p \< 1e-16) but *not* in their colour response (species × colour, p = 0.43), and the full species × colour × intensity three-way is not worth its parameters (AIC and BIC both prefer dropping it). So we use `species * intensity + colour * intensity` — supported, better-fitting, and interpretable without a three-way. The red-vs-white gap is therefore consistent across species; the panels differ in their intensity shapes.
 
 ```{r model_effect_byspecies, warning=FALSE, message=FALSE, fig.width=13, fig.height=6.5}
 library(emmeans)
