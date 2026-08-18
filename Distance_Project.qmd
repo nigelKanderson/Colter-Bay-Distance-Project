@@ -491,15 +491,16 @@ ggsave("output/figures/model_intensity_color.png",
 
 ### Per-species intensity × color effects
 
-To see *which* species drive the red-vs-white pattern, fit a model with a species × colour × intensity interaction (so each species has its own response shape, unlike `species_glmm`, which is random-intercept only) and plot each species' predicted curve. This is the model-based analog of R/08's Fig 12.
+Each species gets its own **intensity** response, with a **common** colour effect. Likelihood-ratio tests show species differ strongly in their intensity response (species × intensity, p < 1e-16) but *not* in their colour response (species × colour, p = 0.43), and the full species × colour × intensity three-way is not worth its parameters (AIC and BIC both prefer dropping it). So we use `species * intensity + colour * intensity` — supported, better-fitting, and interpretable without a three-way. The red-vs-white gap is therefore consistent across species; the panels differ in their intensity shapes.
 
 ```{r model_effect_byspecies, warning=FALSE, message=FALSE, fig.width=13, fig.height=6.5}
 library(emmeans)
 
-# species-specific colour x intensity response (fixed 3-way interaction),
-# same zero-filled grid as species_glmm
+# species-specific intensity response + a common colour x intensity effect
+# (the 3-way species:color:intensity was significant but AIC/BIC-worse, and
+# species:color was n.s.); same zero-filled grid as species_glmm
 species_glmm_int <- glmmTMB(
-  detections ~ species * color * intensity +
+  detections ~ species * intensity + color * intensity +
     dist_km + mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
     (1 | site),
   data      = spp_night,
@@ -521,8 +522,8 @@ fig_eff_byspecies <- ggplot(
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"), name = "Light color") +
   facet_wrap(~ species, scales = "free_y", nrow = 2) +
-  labs(title = "Per-species intensity × color effect (model-based)",
-       subtitle = "Predicted detections/night ± 95% CI; species × color × intensity model; y-axes free",
+  labs(title = "Per-species intensity effect, with a common colour effect (model-based)",
+       subtitle = "Predicted detections/night ± 95% CI; species × intensity + colour × intensity (no 3-way); y-axes free",
        x = "Light intensity (%)", y = "Predicted detections / night") +
   bat_theme
 
