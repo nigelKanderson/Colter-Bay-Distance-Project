@@ -151,17 +151,43 @@ data_env <- data_env %>%
 focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
                "Mylu", "Myvo", "Myyu", "Myth", "Myev")
 
-# Overall stream = focal species + all compound (multi-species) labels. Compounds
-# are retained here for the OVERALL activity model and figures, but are dropped
-# from the per-species and community models (which use `data_env_focal`, built
-# after the trait join below). Non-focal single species stay excluded.
-data_env <- data_env %>%
-  filter(species %in% focal_spp | str_detect(species, "/"))
+# Acoustic guilds by call frequency. These partition the 10 focal species and
+# are reused by the guild-cluster models below. A label joins a guild only if
+# EVERY candidate species in it belongs to that guild.
+lowfreq_spp  <- c("Epfu", "Lano", "Laci")                  # low frequency
+medfreq_spp  <- c("Myev", "Myth")                          # medium frequency
+highfreq_spp <- c("Mylu", "Myvo", "Myci", "Myca", "Myyu")  # high frequency
+assign_cluster <- function(x) {
+  vapply(stringr::str_split(x, "/"), function(toks) {
+    if (all(toks %in% lowfreq_spp))       "LowFreq"
+    else if (all(toks %in% medfreq_spp))  "MedFreq"
+    else if (all(toks %in% highfreq_spp)) "HighFreq"
+    else NA_character_
+  }, character(1))
+}
+
+# Overall stream = focal single species + compounds that fall within ONE guild.
+# Cross-guild compounds (e.g. Mylu/Myev, Anpa/Epfu) and non-focal singles are
+# dropped, so the kept compounds match the guild definitions and the overall
+# total equals the sum of the three guilds. Report what gets dropped.
+.dropped <- data_env %>%
+  filter(is.na(assign_cluster(species))) %>%
+  mutate(kind = ifelse(str_detect(species, "/"),
+                       "cross-guild compound", "non-focal single")) %>%
+  group_by(kind) %>%
+  summarise(labels = n_distinct(species), detections = sum(detections),
+            .groups = "drop")
+message("Dropped (not within a single guild): ",
+        paste(sprintf("%s = %d detections (%d labels)",
+                      .dropped$kind, .dropped$detections, .dropped$labels),
+              collapse = " | "))
+
+data_env <- data_env %>% filter(!is.na(assign_cluster(species)))
 
 message("Overall data rows: ", nrow(data_env),
         "  |  single-species detections: ",
         sum(data_env$detections[!str_detect(data_env$species, "/")]),
-        "  |  compound labels: ",
+        "  |  within-guild compound labels: ",
         n_distinct(data_env$species[str_detect(data_env$species, "/")]),
         " (", sum(data_env$detections[str_detect(data_env$species, "/")]),
         " detections)")
@@ -281,25 +307,14 @@ summary(simple_model1)
 
 ## Guild-cluster models
 
-Rather than forcing ambiguous compound calls onto a single species, group every detection — single *or* compound — into the acoustic guild the classifier is confident about: a **low-frequency** guild (Epfu / Lano / Laci) and a **Myotis** guild (the seven Myotis). A detection joins a guild only if *every* candidate species in its label belongs to that guild; cross-guild calls (\~0.7% of detections) are dropped. This keeps \~99% of detections and models activity at the level SonoBat can actually resolve and it separates guilds that respond to distance in opposite directions (so a pooled total cancels them out).
+Rather than forcing ambiguous compound calls onto a single species, group every detection — single *or* compound — into the acoustic guild the classifier is confident about, by call frequency: **low** (Epfu / Lano / Laci), **medium** (Myev / Myth), and **high** (Mylu / Myvo / Myci / Myca / Myyu). A detection joins a guild only if *every* candidate species in its label belongs to that guild. Cross-guild compounds and non-focal singles (\~2.6% of detections) were already excluded in the data pipeline above, so `data_env` holds only within-guild labels and the three guilds sum to the overall total. This models activity at the level SonoBat can actually resolve — and it separates guilds that respond to distance differently (low-frequency activity concentrates near the lit parking lot, while the medium- and high-frequency guilds are more active farther out), which a pooled total would cancel out.
 
 ```{r cluster_setup, warning=FALSE, message=FALSE}
-lowfreq_spp <- c("Epfu", "Lano", "Laci")
-myotis_spp  <- c("Mylu", "Myvo", "Myev", "Myci", "Myca", "Myyu", "Myth")
-
-# a label joins a guild only if EVERY candidate species is in that guild
-assign_cluster <- function(x) {
-  vapply(stringr::str_split(x, "/"), function(toks) {
-    if (all(toks %in% lowfreq_spp)) "LowFreq"
-    else if (all(toks %in% myotis_spp)) "Myotis"
-    else NA_character_
-  }, character(1))
-}
-
-# per-guild detections per site-night (single + compound detections combined)
+# `assign_cluster` and the guild sets (lowfreq_spp / medfreq_spp / highfreq_spp)
+# are defined in the data pipeline above, where data_env was already restricted
+# to within-guild labels -- so every row here assigns to a guild.
 cl_det <- data_env %>%
   mutate(cluster = assign_cluster(species)) %>%
-  filter(!is.na(cluster)) %>%
   group_by(site, date, cluster) %>%
   summarise(detections = sum(detections), .groups = "drop")
 
@@ -307,10 +322,11 @@ cl_det <- data_env %>%
 cluster_night <- site_night %>%
   select(site, date, color, intensity, dist_km, mean_phase,
          pct_nonforest, brightness_dark, jd_c) %>%
-  tidyr::crossing(cluster = c("LowFreq", "Myotis")) %>%
+  tidyr::crossing(cluster = c("LowFreq", "MedFreq", "HighFreq")) %>%
   left_join(cl_det, by = c("site", "date", "cluster")) %>%
   mutate(detections = tidyr::replace_na(detections, 0),
-         site = factor(site), cluster = factor(cluster))
+         site = factor(site),
+         cluster = factor(cluster, levels = c("LowFreq", "MedFreq", "HighFreq")))
 
 # guild x colour x intensity, plus a guild-specific distance slope
 cluster_glmm <- glmmTMB(
@@ -330,7 +346,7 @@ emmeans::emtrends(cluster_glmm, ~ cluster, var = "dist_km")
 
 ### Guild responses to intensity × color and to distance
 
-```{r cluster_figs, warning=FALSE, message=FALSE, fig.width=11, fig.height=5}
+```{r cluster_figs, warning=FALSE, message=FALSE, fig.width=13, fig.height=5}
 library(emmeans)
 
 # (1) intensity x color by guild
@@ -355,7 +371,7 @@ fig_cluster_ic <- ggplot(
 # (2) distance response by guild (other covariates at their means, at 50% red)
 dgrid <- expand.grid(
   dist_km   = seq(min(cluster_night$dist_km), max(cluster_night$dist_km), length = 60),
-  cluster   = factor(c("LowFreq", "Myotis"), levels = levels(cluster_night$cluster)),
+  cluster   = factor(c("LowFreq", "MedFreq", "HighFreq"), levels = levels(cluster_night$cluster)),
   color     = factor("R",  levels = levels(cluster_night$color)),
   intensity = factor("50", levels = levels(cluster_night$intensity)),
   jd_c = 0,
@@ -370,12 +386,13 @@ dgrid$hi  <- exp(pr$fit + 1.96 * pr$se.fit)
 fig_cluster_dist <- ggplot(dgrid, aes(dist_km, fit, color = cluster, fill = cluster)) +
   geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, color = NA) +
   geom_line(linewidth = 1.1) +
-  scale_color_manual(values = c(LowFreq = col_navy, Myotis = col_red), name = NULL) +
-  scale_fill_manual(values = c(LowFreq = col_navy, Myotis = col_red), guide = "none") +
+  scale_color_manual(values = c(LowFreq = col_navy, MedFreq = col_purple, HighFreq = col_red), name = NULL) +
+  scale_fill_manual(values = c(LowFreq = col_navy, MedFreq = col_purple, HighFreq = col_red), guide = "none") +
+  scale_y_log10() +   # guilds span ~2 orders of magnitude; log keeps all slopes visible
   labs(title = "Guild response to distance",
-       subtitle = "Predicted detections/night ± 95% CI (at 50% red, other covariates at means)",
+       subtitle = "Predicted detections/night ± 95% CI (at 50% red, other covariates at means); log scale",
        x = "Distance from Colter Bay parking lot (km)",
-       y = "Predicted detections / night") +
+       y = "Predicted detections / night (log)") +
   bat_theme
 
 fig_cluster_ic
