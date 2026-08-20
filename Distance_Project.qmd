@@ -307,7 +307,7 @@ summary(simple_model1)
 
 ## Guild-cluster models
 
-Rather than forcing ambiguous compound calls onto a single species, group every detection — single *or* compound — into the acoustic guild the classifier is confident about, by call frequency: **low** (Epfu / Lano / Laci), **medium** (Myev / Myth), and **high** (Mylu / Myvo / Myci / Myca / Myyu). A detection joins a guild only if *every* candidate species in its label belongs to that guild. Cross-guild compounds and non-focal singles (\~2.6% of detections) were already excluded in the data pipeline above, so `data_env` holds only within-guild labels and the three guilds sum to the overall total. This models activity at the level SonoBat can actually resolve — and it separates guilds that respond to distance differently (low-frequency activity concentrates near the lit parking lot, while the medium- and high-frequency guilds are more active farther out), which a pooled total would cancel out.
+Rather than forcing ambiguous compound calls onto a single species, group every detection into the acoustic guild the classifier is confident about, by call frequency: **low** (Epfu / Lano / Laci), **medium** (Myev / Myth), and **high** (Mylu / Myvo / Myci / Myca / Myyu). A detection joins a guild only if *every* candidate species in its label belongs to that guild. Cross-guild compounds and non-focal singles (\~2.6% of detections) were already excluded in the data pipeline above, so `data_env` holds only within-guild labels and the three guilds sum to the overall total. This models activity at the level SonoBat can actually resolve and it separates guilds that respond to distance differently (low-frequency activity concentrates near the lit parking lot, while the medium- and high-frequency guilds are more active farther out), which a pooled total would cancel out.
 
 ```{r cluster_setup, warning=FALSE, message=FALSE}
 # `assign_cluster` and the guild sets (lowfreq_spp / medfreq_spp / highfreq_spp)
@@ -330,7 +330,7 @@ cluster_night <- site_night %>%
 
 # guild x colour x intensity, plus a guild-specific distance slope
 cluster_glmm <- glmmTMB(
-  detections ~ cluster * color * intensity + cluster * dist_km +
+  detections ~ cluster * intensity + cluster * dist_km + color +
     mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
     (1 | site),
   data      = cluster_night,
@@ -562,42 +562,6 @@ community$mv_anova
 community$fig_c1   # dbRDA ordination biplot
 community$fig_c2   # Species activity heatmap (color × intensity)
 community$fig_c3   # Species activity heatmap (distance)
-```
-
-## Diagnostics
-
-```{r diagnostics, warning=FALSE, message=FALSE}
-library(corrplot)
-
-# Covariate correlation matrix
-vars <- data_env %>%
-  select(detections, pct_nonforest, jd, mean_phase, dist_km)
-corrplot(cor(vars, use = "complete.obs"))
-
-# Site-level means
-site_means <- data_env %>%
-  group_by(site, dist_km) %>%
-  summarise(mean_det = mean(detections, na.rm = TRUE), .groups = "drop")
-
-# Scatter with smooth
-ggplot(site_means, aes(x = dist_km, y = mean_det)) +
-  geom_smooth(method = "lm", se = TRUE, color = "#2E86AB",
-              fill = "#DDEAF5", linewidth = 1) +
-  geom_point(size = 3.5, color = "#333333") +
-  ggrepel::geom_text_repel(aes(label = site), size = 3, color = "#666666") +
-  labs(
-    title    = "Bat Detections vs Distance from Light Source",
-    subtitle = "Site-level means with linear trend",
-    x        = "Distance from light (km)",
-    y        = "Mean detections per night"
-  ) +
-  bat_theme
-
-# Correlation test
-cor.test(site_means$dist_km, site_means$mean_det, method = "spearman")
-
-
-# (Distance post-hoc contrasts moved to posthoc chunk below)
 ```
 
 ## Post-hoc Contrasts
