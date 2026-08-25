@@ -983,6 +983,63 @@ bm_effects$fig_forest
 bm_effects$forest_df
 ```
 
+## Robustness / Sensitivity Analysis
+
+The three far sites (\~7 km) sit in a large gap beyond the rest (0–2 km), and
+GRTE15 in particular is a high-detection outlier. Refit the key models — the
+overall bat model, the guild model, and the moth activity model — with these
+sites removed, and compare the colour and distance effects. Colour effects are
+expected to hold; the distance/guild slopes are the ones likely to hinge on the
+far sites.
+
+```{r robustness_analysis, warning=FALSE, message=FALSE}
+library(emmeans)
+
+far_sites <- c("GRTE13", "GRTE14", "GRTE15")   # the three far (~7 km) sites
+robust_scenarios <- list("Full data"      = character(0),
+                         "Drop GRTE15"     = "GRTE15",
+                         "Drop far sites"  = far_sites)
+
+# White-vs-Red ratio (+ p) from any model with a `color` term
+.color_wr <- function(m) {
+  ct <- as.data.frame(contrast(emmeans(m, ~ color, type = "response"),
+                               method = "revpairwise"))
+  sprintf("%.2f (p=%.3f)", ct$ratio[1], ct$p.value[1])
+}
+# marginal distance slope (log scale) via emtrends; `by` gives per-guild slopes
+.dist_slope <- function(m, by = NULL) {
+  et <- as.data.frame(if (is.null(by)) emtrends(m, ~ 1, var = "dist_km")
+                      else emtrends(m, reformulate(by), var = "dist_km"))
+  if (is.null(by)) sprintf("%.2f", et$dist_km.trend[1])
+  else setNames(round(et$dist_km.trend, 2), et[[by]])
+}
+
+robustness <- purrr::map_dfr(names(robust_scenarios), function(nm) {
+  drop <- robust_scenarios[[nm]]
+  keep <- function(df) droplevels(dplyr::filter(df, !site %in% drop))
+  # refit each model on the reduced data (same formula/family via update())
+  bat  <- update(simple_model1,        data = keep(site_night))
+  gld  <- update(cluster_glmm,         data = keep(cluster_night))
+  moth <- update(insect_general$model, data = keep(insect_total_env))
+  gs   <- .dist_slope(gld, by = "cluster")
+  tibble::tibble(
+    Scenario            = nm,
+    `Bat color (W/R)`   = .color_wr(bat),
+    `Bat dist slope`    = .dist_slope(bat),
+    `Guild color (W/R)` = .color_wr(gld),
+    `Guild dist L/M/H`  = paste(gs["LowFreq"], gs["MedFreq"], gs["HighFreq"], sep = " / "),
+    `Moth color (W/R)`  = .color_wr(moth),
+    `Moth dist slope`   = .dist_slope(moth)
+  )
+})
+
+knitr::kable(
+  robustness,
+  caption = paste("Sensitivity of colour and distance effects to removing the",
+                  "high-leverage far sites. Colour W/R = White-vs-Red ratio;",
+                  "distance slopes are on the log scale."))
+```
+
 ## Lamp Visual Modeling: Moth vs. Bat Perception
 
 ```{r lamp_visual_model, warning=FALSE, message=FALSE}
@@ -1002,7 +1059,9 @@ lamp_vis$fig_bat_abs
 ```{r thresholds, warning=FALSE, message=FALSE}
 source("R/04_Occurrence_Thresholds.R")
 
-occurrences <- run_thresholds(data_env, thresholds = c(30, 60, 120, 300))
+# Occurrence/threshold method is per single species -- exclude compound labels
+occurrences <- run_thresholds(data_env %>% filter(species %in% focal_spp),
+                              thresholds = c(30, 60, 120, 300))
 
 env_data <- data_env %>%
   distinct(site, date, dist_km, mean_phase,
@@ -1021,7 +1080,7 @@ data_300 <- occurrences %>% filter(threshold_sec == 300)
 ```{r threshold_models, warning=FALSE, message=FALSE}
 threshold_formula <- occurrences ~
   color * intensity +
-  intensity * dist_km +
+  dist_km +
   pct_nonforest +
   jd_c +
   I(jd_c^2) +

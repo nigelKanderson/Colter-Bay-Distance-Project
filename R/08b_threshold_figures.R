@@ -71,7 +71,12 @@ intensity_pal <- c("10"  = col_ivory,
                    "100" = col_navy)
 
 dist_order <- c("Close", "Medium", "Further", "Far")
-focal_spp  <- c("Laci", "Lano", "Mylu", "Epfu", "Myev", "Myvo", "Myyu", "Myci")
+# Inherit the qmd's 10-species focal set when sourced from the pipeline;
+# fall back to the same list so the script still runs standalone.
+if (!exists("focal_spp")) {
+  focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
+                 "Mylu", "Myvo", "Myyu", "Myth", "Myev")
+}
 
 dir.create("output/figures/threshold30", showWarnings = FALSE, recursive = TRUE)
 
