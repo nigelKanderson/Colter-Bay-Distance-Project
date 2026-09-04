@@ -985,12 +985,7 @@ bm_effects$forest_df
 
 ## Robustness / Sensitivity Analysis
 
-The three far sites (\~7 km) sit in a large gap beyond the rest (0–2 km), and
-GRTE15 in particular is a high-detection outlier. Refit the key models — the
-overall bat model, the guild model, and the moth activity model — with these
-sites removed, and compare the colour and distance effects. Colour effects are
-expected to hold; the distance/guild slopes are the ones likely to hinge on the
-far sites.
+The three far sites (\~7 km) sit in a large gap beyond the rest (0–2 km), and GRTE15 in particular is a high-detection outlier. Refit the key models — the overall bat model, the guild model, and the moth activity model — with these sites removed, and compare the colour and distance effects. Colour effects are expected to hold; the distance/guild slopes are the ones likely to hinge on the far sites.
 
 ```{r robustness_analysis, warning=FALSE, message=FALSE}
 library(emmeans)
