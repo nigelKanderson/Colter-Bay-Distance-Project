@@ -533,6 +533,118 @@ ggsave("output/figures/model_intensity_color_byspecies.png", fig_eff_byspecies,
        width = 13, height = 6.5, dpi = 200, bg = "white")
 ```
 
+### Per-species distance response
+
+Model-predicted detections across the distance gradient for each focal species, from the same zero-filled `spp_night` grid, now with a `species × dist_km` interaction (a common colour and intensity effect). **Caveat:** unlike the moth distance figures, the bat distance signal is fragile — it hinges on the three far (\~7 km) sites and GRTE15 in particular (see the robustness section), so read these as a near-vs-far *sort* (low-frequency bats near, Myotis far), not firm per-species slopes.
+
+```{r species_distance, warning=FALSE, message=FALSE, fig.width=12, fig.height=6}
+bat_spp_dist_glmm <- glmmTMB(
+  detections ~ species * dist_km + color + intensity + mean_phase +
+    pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site),
+  data = spp_night, ziformula = ~1, family = nbinom2())
+
+cat("=== Per-species distance slope (log detections / km) ===\n")
+print(as.data.frame(emtrends(bat_spp_dist_glmm, ~ species, var = "dist_km")) %>%
+        transmute(species, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
+
+dist_grid <- seq(min(spp_night$dist_km), max(spp_night$dist_km), length.out = 80)
+bat_spp_pred <- as.data.frame(
+  emmeans(bat_spp_dist_glmm, ~ species | dist_km,
+          at = list(dist_km = dist_grid), type = "response")) %>%
+  rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+  mutate(species = factor(species, levels = focal_spp))
+
+fig_bat_species_distance <- ggplot(bat_spp_pred, aes(dist_km, response)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = col_navy, alpha = 0.15) +
+  geom_line(color = col_navy, linewidth = 1) +
+  facet_wrap(~ species, scales = "free_y", nrow = 2) +
+  labs(title = "Predicted Bat Detections Across Distance, by Species",
+       subtitle = "Model-estimated marginal means ± 95% CI (negative-binomial GLMM)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night") +
+  bat_theme
+fig_bat_species_distance
+
+ggsave("output/figures/bat_species_distance_panels.png", fig_bat_species_distance,
+       width = 12, height = 6, dpi = 300, bg = "white")
+
+bat_spp_pal <- setNames(
+  c("#1B2A4A","#7A1C2E","#C9A84C","#4A1259","#2E7D5B","#B5651D",
+    "#3B6EA5","#9C3848","#6B8E23","#7A5195"), focal_spp)
+fig_bat_species_distance_combined <- ggplot(bat_spp_pred,
+    aes(dist_km, response, color = species, fill = species)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.08, color = NA) +
+  geom_line(linewidth = 1) + scale_y_log10() +
+  scale_color_manual(values = bat_spp_pal, name = "Species") +
+  scale_fill_manual(values = bat_spp_pal, name = "Species") +
+  labs(title = "Predicted Bat Detections Across Distance, by Species",
+       subtitle = "Model-estimated marginal means (log scale)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night (log scale)") +
+  bat_theme
+fig_bat_species_distance_combined
+
+ggsave("output/figures/bat_species_distance_combined.png",
+       fig_bat_species_distance_combined,
+       width = 9, height = 6, dpi = 300, bg = "white")
+```
+
+Robustness: refit the same per-species distance model with the three far (\~7 km) sites removed (GRTE13/14/15). The distance range collapses to 0–2 km and most slopes **flip sign** — the Myotis that rose toward far sites now decline with distance within the near cluster — confirming that the bat distance gradient is carried by the far sites rather than being a smooth trend.
+
+```{r species_distance_nofar, warning=FALSE, message=FALSE, fig.width=12, fig.height=6}
+spp_night_nofar <- spp_night %>%
+  filter(!site %in% c("GRTE13","GRTE14","GRTE15")) %>% droplevels()
+
+bat_spp_dist_glmm_nofar <- glmmTMB(
+  detections ~ species * dist_km + color + intensity + mean_phase +
+    pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site),
+  data = spp_night_nofar, ziformula = ~1, family = nbinom2())
+
+cat("=== Per-species distance slope, FAR SITES REMOVED (log detections / km) ===\n")
+print(as.data.frame(emtrends(bat_spp_dist_glmm_nofar, ~ species, var = "dist_km")) %>%
+        transmute(species, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
+
+dist_grid_nofar <- seq(min(spp_night_nofar$dist_km), max(spp_night_nofar$dist_km),
+                       length.out = 80)
+bat_spp_pred_nofar <- as.data.frame(
+  emmeans(bat_spp_dist_glmm_nofar, ~ species | dist_km,
+          at = list(dist_km = dist_grid_nofar), type = "response")) %>%
+  rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+  mutate(species = factor(species, levels = focal_spp))
+
+fig_bat_species_distance_nofar <- ggplot(bat_spp_pred_nofar, aes(dist_km, response)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = col_navy, alpha = 0.15) +
+  geom_line(color = col_navy, linewidth = 1) +
+  facet_wrap(~ species, scales = "free_y", nrow = 2) +
+  labs(title = "Predicted Bat Detections Across Distance, by Species",
+       subtitle = "Far sites (GRTE13/14/15) removed — marginal means ± 95% CI",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night") +
+  bat_theme
+fig_bat_species_distance_nofar
+
+ggsave("output/figures/bat_species_distance_panels_nofar.png",
+       fig_bat_species_distance_nofar,
+       width = 12, height = 6, dpi = 300, bg = "white")
+
+fig_bat_species_distance_combined_nofar <- ggplot(bat_spp_pred_nofar,
+    aes(dist_km, response, color = species, fill = species)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.08, color = NA) +
+  geom_line(linewidth = 1) + scale_y_log10() +
+  scale_color_manual(values = bat_spp_pal, name = "Species") +
+  scale_fill_manual(values = bat_spp_pal, name = "Species") +
+  labs(title = "Predicted Bat Detections Across Distance, by Species",
+       subtitle = "Far sites (GRTE13/14/15) removed — marginal means (log scale)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night (log scale)") +
+  bat_theme
+fig_bat_species_distance_combined_nofar
+
+ggsave("output/figures/bat_species_distance_combined_nofar.png",
+       fig_bat_species_distance_combined_nofar,
+       width = 9, height = 6, dpi = 300, bg = "white")
+```
+
 ## Community Analysis
 
 ```{r community, warning=FALSE, message=FALSE}
@@ -783,6 +895,170 @@ insect_general$fig_color_intensity
 insect_general$fig_dist_intensity
 ```
 
+```{r insect_box_70_100, warning=FALSE, message=FALSE, fig.width=7, fig.height=5}
+# Moth detections at the two highest intensities only (70% and 100%),
+# by light color -- the intensities where the white-vs-red split emerges.
+moth_hi <- insect_total_env %>%
+  filter(intensity %in% c("70", "100"))
+
+fig_moth_box_hi <- ggplot(moth_hi,
+                          aes(x = color, y = detections, fill = color)) +
+  geom_boxplot(width = 0.5, outlier.shape = NA, alpha = 0.85) +
+  geom_jitter(width = 0.12, height = 0, size = 1.6, alpha = 0.45,
+              color = "#333333") +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Detections at High Intensity, by Light Color",
+       subtitle = "Site-nights at 70% and 100% intensity combined",
+       x = "Light color", y = "Detections per site-night") +
+  bat_theme +
+  theme(legend.position = "none")
+
+fig_moth_box_hi
+
+ggsave("output/figures/moth_box_70_100.png", fig_moth_box_hi,
+       width = 7, height = 5, dpi = 300, bg = "white")
+```
+
+```{r insect_emm_70_100, warning=FALSE, message=FALSE, fig.width=7, fig.height=5}
+# Model-estimated counterpart to the raw boxplot above: marginal means of
+# moth detections by color, averaged over the 70% and 100% intensity levels,
+# from the fitted negative-binomial GLMM (covariates held at their means).
+emm_hi <- emmeans(insect_general$model, ~ color,
+                  at = list(intensity = c("70", "100")), type = "response")
+
+cat("=== High-intensity (70% & 100%) marginal means by color ===\n")
+print(summary(emm_hi))
+cat("\n=== White vs Red ratio ===\n")
+print(contrast(emm_hi, method = "revpairwise", type = "response"))
+
+emm_hi_df <- as.data.frame(emm_hi) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+fig_moth_emm_hi <- ggplot(emm_hi_df,
+                          aes(x = color, y = response, color = color)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.9) +
+  geom_point(size = 4) +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Detections at High Intensity (model-estimated)",
+       subtitle = "Marginal means ± 95% CI, averaged over 70% and 100% intensity",
+       x = "Light color", y = "Predicted detections per site-night") +
+  bat_theme +
+  theme(legend.position = "none")
+
+fig_moth_emm_hi
+
+ggsave("output/figures/moth_emm_70_100.png", fig_moth_emm_hi,
+       width = 7, height = 5, dpi = 300, bg = "white")
+```
+
+```{r insect_emm_50_70_100, warning=FALSE, message=FALSE, fig.width=7, fig.height=5}
+# Same model-estimated marginal means, now averaged over 50%, 70% and 100%.
+emm_hi3 <- emmeans(insect_general$model, ~ color,
+                   at = list(intensity = c("50", "70", "100")), type = "response")
+
+cat("=== Marginal means by color (50%, 70% & 100%) ===\n")
+print(summary(emm_hi3))
+cat("\n=== White vs Red ratio ===\n")
+print(contrast(emm_hi3, method = "revpairwise", type = "response"))
+
+emm_hi3_df <- as.data.frame(emm_hi3) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+fig_moth_emm_hi3 <- ggplot(emm_hi3_df,
+                           aes(x = color, y = response, color = color)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.9) +
+  geom_point(size = 4) +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Detections at Moderate-to-High Intensity (model-estimated)",
+       subtitle = "Marginal means ± 95% CI, averaged over 50%, 70% and 100% intensity",
+       x = "Light color", y = "Predicted detections per site-night") +
+  bat_theme +
+  theme(legend.position = "none")
+
+fig_moth_emm_hi3
+
+ggsave("output/figures/moth_emm_50_70_100.png", fig_moth_emm_hi3,
+       width = 7, height = 5, dpi = 300, bg = "white")
+```
+
+```{r insect_emm_10_30_50, warning=FALSE, message=FALSE, fig.width=7, fig.height=5}
+# Model-estimated marginal means for the LOW-to-moderate intensities (10, 30, 50).
+emm_lo <- emmeans(insect_general$model, ~ color,
+                  at = list(intensity = c("10", "30", "50")), type = "response")
+
+cat("=== Marginal means by color (10%, 30% & 50%) ===\n")
+print(summary(emm_lo))
+cat("\n=== White vs Red ratio ===\n")
+print(contrast(emm_lo, method = "revpairwise", type = "response"))
+
+emm_lo_df <- as.data.frame(emm_lo) %>%
+  rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL)
+
+fig_moth_emm_lo <- ggplot(emm_lo_df,
+                          aes(x = color, y = response, color = color)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.9) +
+  geom_point(size = 4) +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Detections at Low-to-Moderate Intensity (model-estimated)",
+       subtitle = "Marginal means ± 95% CI, averaged over 10%, 30% and 50% intensity",
+       x = "Light color", y = "Predicted detections per site-night") +
+  bat_theme +
+  theme(legend.position = "none")
+
+fig_moth_emm_lo
+
+ggsave("output/figures/moth_emm_10_30_50.png", fig_moth_emm_lo,
+       width = 7, height = 5, dpi = 300, bg = "white")
+```
+
+```{r insect_emm_panel, warning=FALSE, message=FALSE, fig.width=9, fig.height=5}
+# Panel: low (10/30/50) vs high (70/100) intensity marginal means, shared y-axis.
+emm_group <- function(levs, lab) {
+  as.data.frame(emmeans(insect_general$model, ~ color,
+                        at = list(intensity = levs), type = "response")) %>%
+    rename(lower_CL = asymp.LCL, upper_CL = asymp.UCL) %>%
+    mutate(grp = lab)
+}
+
+emm_panel <- bind_rows(
+  emm_group(c("10", "30", "50"), "Low intensity (10 / 30 / 50%)"),
+  emm_group(c("70", "100"),      "High intensity (70 / 100%)")
+) %>%
+  mutate(grp = factor(grp, levels = c("Low intensity (10 / 30 / 50%)",
+                                      "High intensity (70 / 100%)")))
+
+fig_moth_emm_panel <- ggplot(emm_panel,
+                             aes(x = color, y = response, color = color)) +
+  geom_errorbar(aes(ymin = lower_CL, ymax = upper_CL),
+                width = 0.15, linewidth = 0.9) +
+  geom_point(size = 4) +
+  facet_wrap(~ grp) +
+  scale_x_discrete(labels = c(R = "Red", W = "White")) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Detections by Light Color: Low vs High Intensity",
+       subtitle = "Model-estimated marginal means ± 95% CI (shared axis)",
+       x = "Light color", y = "Predicted detections per site-night") +
+  bat_theme +
+  theme(legend.position = "none")
+
+fig_moth_emm_panel
+
+ggsave("output/figures/moth_emm_panel_lo_hi.png", fig_moth_emm_panel,
+       width = 9, height = 5, dpi = 300, bg = "white")
+```
+
 ```{r insect_moon_phase, warning=FALSE, message=FALSE}
 source("R/22_moth_moon_phase.R")
 fig_moth_moon_phase <- plot_moth_moon_phase(insect_total_env, bat_theme, col_red, col_white)
@@ -832,6 +1108,296 @@ moth_family_results$fig_s4a
 source("R/21_moth_family_site.R")
 fig_moth_family_site <- plot_moth_family_site(insect_family_env, bat_theme, col_red, col_navy, col_ivory)
 fig_moth_family_site
+```
+
+```{r insect_family_composition, warning=FALSE, message=FALSE, fig.width=11, fig.height=6}
+# Family composition per site (share of detections), sites ordered by distance.
+fam_order <- insects$family %>% count(Family, wt = detections, sort = TRUE) %>% pull(Family)
+site_dist <- insect_family_env %>% distinct(site, dist_km)
+
+fam_comp <- insects$family %>%
+  group_by(site, Family) %>% summarise(det = sum(detections), .groups = "drop") %>%
+  left_join(site_dist, by = "site") %>%
+  group_by(site) %>% mutate(prop = det / sum(det)) %>% ungroup() %>%
+  mutate(Family = factor(Family, levels = fam_order))
+
+site_levels <- site_dist %>% arrange(dist_km) %>% pull(site)
+site_labs   <- site_dist %>% arrange(dist_km) %>%
+  mutate(lab = sprintf("%s\n(%.2f km)", site, dist_km))
+fam_comp <- fam_comp %>% mutate(site = factor(site, levels = site_levels))
+
+fam_comp_pal <- setNames(
+  c("#1B2A4A","#7A1C2E","#C9A84C","#4A1259","#2E7D5B",
+    "#B5651D","#3B6EA5","#9C3848","#6B8E23")[seq_along(fam_order)], fam_order)
+
+fig_moth_family_composition <- ggplot(fam_comp, aes(site, prop, fill = Family)) +
+  geom_col(width = 0.85, color = "white", linewidth = 0.2) +
+  scale_x_discrete(labels = setNames(site_labs$lab, site_labs$site)) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
+  scale_fill_manual(values = fam_comp_pal, name = "Family") +
+  labs(title = "Moth Family Composition by Site",
+       subtitle = "Share of total detections per site; sites ordered by distance from the parking lot",
+       x = NULL, y = "Share of detections") +
+  bat_theme + theme(axis.text.x = element_text(size = 10))
+fig_moth_family_composition
+
+ggsave("output/figures/moth_family_composition.png", fig_moth_family_composition,
+       width = 11, height = 6, dpi = 300, bg = "white")
+
+# companion: absolute stacked counts
+fig_moth_family_composition_counts <- ggplot(fam_comp, aes(site, det, fill = Family)) +
+  geom_col(width = 0.85, color = "white", linewidth = 0.2) +
+  scale_x_discrete(labels = setNames(site_labs$lab, site_labs$site)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.04))) +
+  scale_fill_manual(values = fam_comp_pal, name = "Family") +
+  labs(title = "Moth Detections by Family and Site",
+       subtitle = "Total detections per site (absolute); sites ordered by distance from the parking lot",
+       x = NULL, y = "Total detections") +
+  bat_theme + theme(axis.text.x = element_text(size = 10))
+fig_moth_family_composition_counts
+
+ggsave("output/figures/moth_family_composition_counts.png",
+       fig_moth_family_composition_counts,
+       width = 11, height = 6, dpi = 300, bg = "white")
+```
+
+```{r insect_family_distance, warning=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
+# Model-predicted detections across distance, per moth family.
+# Restrict to the well-sampled families (>=100 detections); the three rarest
+# (Euteliidae, Drepanidae, Crambidae; <=5 detections total) can't support a
+# family-specific distance response.
+fam6 <- c("Noctuidae","Lasiocampidae","Erebidae","Geometridae","Sphingidae","Notodontidae")
+
+fam_det6 <- insects$family %>% filter(Family %in% fam6) %>%
+  transmute(site, date, color, intensity, family = Family, detections)
+
+# zero-filled grid: every site-night x family (0 where a family was undetected)
+fam_night <- event_covariates %>%
+  mutate(jd_c = jd - mean(jd, na.rm = TRUE)) %>%
+  tidyr::crossing(family = fam6) %>%
+  left_join(fam_det6, by = c("site","date","color","intensity","family")) %>%
+  mutate(detections = tidyr::replace_na(detections, 0),
+         family    = factor(family, levels = fam6),
+         site      = factor(site),
+         color     = factor(color),
+         intensity = factor(intensity, levels = c("10","30","50","70","100")))
+
+# family-specific distance response; drop pct_nonforest/brightness_dark only if
+# the full model is unstable (the usual site-level over-parameterization guard)
+.fit_fam <- function(extra) glmmTMB(
+  as.formula(paste("detections ~ family * dist_km + color + intensity + mean_phase +",
+                   extra, "jd_c + I(jd_c^2) + (1 | site)")),
+  data = fam_night, ziformula = ~1, family = nbinom2())
+.stable <- function(m) isTRUE(m$sdr$pdHess) &&
+  !any(is.na(suppressWarnings(sqrt(diag(vcov(m)$cond)))))
+
+fam_dist_glmm <- .fit_fam("pct_nonforest + brightness_dark +")
+if (!.stable(fam_dist_glmm)) fam_dist_glmm <- .fit_fam("brightness_dark +")
+if (!.stable(fam_dist_glmm)) fam_dist_glmm <- .fit_fam("")
+
+cat("=== Per-family distance slope (log detections / km) ===\n")
+print(as.data.frame(emtrends(fam_dist_glmm, ~ family, var = "dist_km")) %>%
+        transmute(family, slope = round(dist_km.trend, 2),
+                  SE = round(SE, 2)))
+
+dist_grid <- seq(min(fam_night$dist_km), max(fam_night$dist_km), length.out = 80)
+fam_pred <- as.data.frame(
+  emmeans(fam_dist_glmm, ~ family | dist_km,
+          at = list(dist_km = dist_grid), type = "response")) %>%
+  rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+  mutate(family = factor(family, levels = fam6))
+
+fig_moth_family_distance <- ggplot(fam_pred, aes(dist_km, response)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = col_navy, alpha = 0.15) +
+  geom_line(color = col_navy, linewidth = 1) +
+  facet_wrap(~ family, scales = "free_y") +
+  labs(title = "Predicted Moth Detections Across Distance, by Family",
+       subtitle = "Model-estimated marginal means ± 95% CI (negative-binomial GLMM)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night") +
+  bat_theme
+fig_moth_family_distance
+
+ggsave("output/figures/moth_family_distance_panels.png", fig_moth_family_distance,
+       width = 10, height = 6.5, dpi = 300, bg = "white")
+
+# companion: all families on one log-scaled axis
+fam_pal <- setNames(c("#1B2A4A","#7A1C2E","#C9A84C","#4A1259","#2E7D5B","#B5651D"), fam6)
+fig_moth_family_distance_combined <- ggplot(fam_pred,
+    aes(dist_km, response, color = family, fill = family)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.12, color = NA) +
+  geom_line(linewidth = 1) +
+  scale_y_log10() +
+  scale_color_manual(values = fam_pal, name = "Family") +
+  scale_fill_manual(values = fam_pal, name = "Family") +
+  labs(title = "Predicted Moth Detections Across Distance, by Family",
+       subtitle = "Model-estimated marginal means (log scale)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night (log scale)") +
+  bat_theme
+fig_moth_family_distance_combined
+
+ggsave("output/figures/moth_family_distance_combined.png",
+       fig_moth_family_distance_combined,
+       width = 9, height = 6, dpi = 300, bg = "white")
+```
+
+```{r insect_genus_species_distance, warning=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
+# Same across-distance predictions at genus and species resolution.
+# Restrict to the 9 best-sampled taxa (>= 30 site-nights) at each level; for
+# genus, drop labels that are really subfamily/family placeholders (-inae/-idae).
+source("R/33_moth_taxonomy.R")   # add_species_bin()
+sp_tax <- add_species_bin(insects$specimens)
+
+make_taxon_distance <- function(level, out_tag, pretty,
+                                exclude_rx = NULL, n_top = 9, min_sitenights = 30,
+                                drop_sites = NULL) {
+  sfx <- if (is.null(drop_sites)) "" else "_nofar"
+  sub_note <- if (is.null(drop_sites))
+    "Model-estimated marginal means ± 95% CI (negative-binomial GLMM)" else
+    "Far sites (GRTE13/14/15) removed — marginal means ± 95% CI"
+  sub_note_log <- if (is.null(drop_sites))
+    "Model-estimated marginal means (log scale)" else
+    "Far sites (GRTE13/14/15) removed — marginal means (log scale)"
+  det <- sp_tax %>% filter(!is.na(.data[[level]])) %>% rename(taxon = all_of(level))
+  if (!is.null(exclude_rx)) det <- det %>% filter(!str_detect(taxon, exclude_rx))
+  keep <- det %>% group_by(taxon) %>%
+    summarise(d = n(), sn = n_distinct(paste(site, date)), .groups = "drop") %>%
+    filter(sn >= min_sitenights) %>% slice_max(d, n = n_top) %>% arrange(desc(d)) %>%
+    pull(taxon)
+
+  det_kept <- det %>% filter(taxon %in% keep) %>%
+    group_by(site, date, color, intensity, taxon) %>%
+    summarise(detections = n(), .groups = "drop")
+
+  grid <- event_covariates %>%
+    mutate(jd_c = jd - mean(jd, na.rm = TRUE)) %>%
+    tidyr::crossing(taxon = keep) %>%
+    left_join(det_kept, by = c("site","date","color","intensity","taxon")) %>%
+    mutate(detections = tidyr::replace_na(detections, 0),
+           taxon = factor(taxon, levels = keep), site = factor(site),
+           color = factor(color),
+           intensity = factor(intensity, levels = c("10","30","50","70","100")))
+  if (!is.null(drop_sites))
+    grid <- grid %>% filter(!site %in% drop_sites) %>% droplevels()
+
+  fit <- function(extra) glmmTMB(
+    as.formula(paste("detections ~ taxon * dist_km + color + intensity + mean_phase +",
+                     extra, "jd_c + I(jd_c^2) + (1 | site)")),
+    data = grid, ziformula = ~1, family = nbinom2())
+  stable <- function(m) isTRUE(m$sdr$pdHess) &&
+    !any(is.na(suppressWarnings(sqrt(diag(vcov(m)$cond)))))
+  m <- fit("pct_nonforest + brightness_dark +")
+  if (!stable(m)) m <- fit("brightness_dark +")
+  if (!stable(m)) m <- fit("")
+  cat("\n===", pretty, "distance slopes (log detections / km) ===\n")
+  print(as.data.frame(emtrends(m, ~ taxon, var = "dist_km")) %>%
+          transmute(taxon, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
+
+  dg <- seq(min(grid$dist_km), max(grid$dist_km), length.out = 80)
+  pred <- as.data.frame(emmeans(m, ~ taxon | dist_km, at = list(dist_km = dg),
+                                type = "response")) %>%
+    rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+    mutate(taxon = factor(taxon, levels = keep))
+
+  fig_fac <- ggplot(pred, aes(dist_km, response)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), fill = col_navy, alpha = 0.15) +
+    geom_line(color = col_navy, linewidth = 1) +
+    facet_wrap(~ taxon, scales = "free_y") +
+    labs(title = paste0("Predicted Moth Detections Across Distance, by ", pretty),
+         subtitle = sub_note,
+         x = "Distance from parking lot (km)",
+         y = "Predicted detections per site-night") +
+    bat_theme + theme(strip.text = element_text(face = "bold.italic", size = 11))
+  ggsave(sprintf("output/figures/moth_%s_distance_panels%s.png", out_tag, sfx), fig_fac,
+         width = 10, height = 6.5, dpi = 300, bg = "white")
+
+  pal <- setNames(c("#1B2A4A","#7A1C2E","#C9A84C","#4A1259","#2E7D5B","#B5651D",
+                    "#3B6EA5","#9C3848","#6B8E23")[seq_along(keep)], keep)
+  fig_all <- ggplot(pred, aes(dist_km, response, color = taxon, fill = taxon)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.10, color = NA) +
+    geom_line(linewidth = 1) + scale_y_log10() +
+    scale_color_manual(values = pal, name = pretty) +
+    scale_fill_manual(values = pal, name = pretty) +
+    labs(title = paste0("Predicted Moth Detections Across Distance, by ", pretty),
+         subtitle = sub_note_log,
+         x = "Distance from parking lot (km)",
+         y = "Predicted detections per site-night (log scale)") +
+    bat_theme + theme(legend.text = element_text(face = "italic"))
+  ggsave(sprintf("output/figures/moth_%s_distance_combined%s.png", out_tag, sfx), fig_all,
+         width = 9, height = 6, dpi = 300, bg = "white")
+  print(fig_fac)
+}
+
+# full data
+make_taxon_distance("Genus",       "genus",   "Genus",   exclude_rx = "(inae|idae)$")
+make_taxon_distance("Species_bin", "species", "Species")
+
+# robustness: three far (~7 km) sites removed
+far3 <- c("GRTE13","GRTE14","GRTE15")
+make_taxon_distance("Genus",       "genus",   "Genus",   exclude_rx = "(inae|idae)$",
+                    drop_sites = far3)
+make_taxon_distance("Species_bin", "species", "Species", drop_sites = far3)
+```
+
+```{r insect_family_distance_nofar, warning=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
+# Robustness: the family-level distance figure with the three far sites removed.
+# Reuses fam_night from the insect_family_distance chunk.
+fam_night_nofar <- fam_night %>%
+  filter(!site %in% c("GRTE13","GRTE14","GRTE15")) %>% droplevels()
+
+.fit_fam_nf <- function(extra) glmmTMB(
+  as.formula(paste("detections ~ family * dist_km + color + intensity + mean_phase +",
+                   extra, "jd_c + I(jd_c^2) + (1 | site)")),
+  data = fam_night_nofar, ziformula = ~1, family = nbinom2())
+.stable_nf <- function(m) isTRUE(m$sdr$pdHess) &&
+  !any(is.na(suppressWarnings(sqrt(diag(vcov(m)$cond)))))
+fam_dist_glmm_nofar <- .fit_fam_nf("pct_nonforest + brightness_dark +")
+if (!.stable_nf(fam_dist_glmm_nofar)) fam_dist_glmm_nofar <- .fit_fam_nf("brightness_dark +")
+if (!.stable_nf(fam_dist_glmm_nofar)) fam_dist_glmm_nofar <- .fit_fam_nf("")
+
+cat("=== Per-family distance slope, FAR SITES REMOVED (log detections / km) ===\n")
+print(as.data.frame(emtrends(fam_dist_glmm_nofar, ~ family, var = "dist_km")) %>%
+        transmute(family, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
+
+dg_nf <- seq(min(fam_night_nofar$dist_km), max(fam_night_nofar$dist_km), length.out = 80)
+fam_pred_nofar <- as.data.frame(
+  emmeans(fam_dist_glmm_nofar, ~ family | dist_km,
+          at = list(dist_km = dg_nf), type = "response")) %>%
+  rename(lower = asymp.LCL, upper = asymp.UCL) %>%
+  mutate(family = factor(family, levels = fam6))
+
+fig_moth_family_distance_nofar <- ggplot(fam_pred_nofar, aes(dist_km, response)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = col_navy, alpha = 0.15) +
+  geom_line(color = col_navy, linewidth = 1) +
+  facet_wrap(~ family, scales = "free_y") +
+  labs(title = "Predicted Moth Detections Across Distance, by Family",
+       subtitle = "Far sites (GRTE13/14/15) removed — marginal means ± 95% CI",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night") +
+  bat_theme
+fig_moth_family_distance_nofar
+
+ggsave("output/figures/moth_family_distance_panels_nofar.png",
+       fig_moth_family_distance_nofar,
+       width = 10, height = 6.5, dpi = 300, bg = "white")
+
+fig_moth_family_distance_combined_nofar <- ggplot(fam_pred_nofar,
+    aes(dist_km, response, color = family, fill = family)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.12, color = NA) +
+  geom_line(linewidth = 1) + scale_y_log10() +
+  scale_color_manual(values = fam_pal, name = "Family") +
+  scale_fill_manual(values = fam_pal, name = "Family") +
+  labs(title = "Predicted Moth Detections Across Distance, by Family",
+       subtitle = "Far sites (GRTE13/14/15) removed — marginal means (log scale)",
+       x = "Distance from parking lot (km)",
+       y = "Predicted detections per site-night (log scale)") +
+  bat_theme
+fig_moth_family_distance_combined_nofar
+
+ggsave("output/figures/moth_family_distance_combined_nofar.png",
+       fig_moth_family_distance_combined_nofar,
+       width = 9, height = 6, dpi = 300, bg = "white")
 ```
 
 ```{r insect_community, warning=FALSE, message=FALSE}
@@ -1161,114 +1727,3 @@ source("R/30_figure_panels_vector.R")
 
 ![Panel 8 — Human survey: (A) respondent clusters in factor space, (B) component scores by light.](output/figures/panels/panel8_human_survey.png)
 :::
-
-# Alternative Distance Gradient (`dist_km_alt`)
-
-This section re-runs every distance-involving analysis using an **alternative "nearest-source" distance gradient** (`R/31_alt_distance.R`): sites GRTE01, GRTE16, and GRTE17 are treated as sources (distance 0), and every other site's distance is the measured distance to its assigned source (GRTE01 or GRTE16). The original single-reference gradient above is unchanged; here we swap `dist_km` → `dist_km_alt` in copies of each dataset and refit. All figures from this section are written with an `alt_` prefix so they do not overwrite the originals.
-
-```{r alt_data, warning=FALSE, message=FALSE}
-source("R/31_alt_distance.R")
-
-recut <- function(df) {
-  df %>%
-    dplyr::mutate(
-      dist_km  = dist_km_alt,
-      dist_cat = dplyr::case_when(dist_km < 0.52 ~ "Close",
-                                  dist_km < 1    ~ "Medium",
-                                  dist_km < 2.1  ~ "Further",
-                                  TRUE           ~ "Far"))
-}
-data_env_alt          <- recut(add_alt_distance(data_env))
-insect_total_env_alt  <- recut(add_alt_distance(insect_total_env))
-insect_family_env_alt <- recut(add_alt_distance(insect_family_env))
-
-print(site_dist_alt)
-```
-
-## Bat Primary Model (alt distance)
-
-```{r alt_bat_model, warning=FALSE, message=FALSE}
-simple_model1_alt <- glmmTMB(
-  detections ~ color * intensity + intensity * dist_km + mean_phase +
-    pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site),
-  data = data_env_alt, ziformula = ~1, family = nbinom2())
-summary(simple_model1_alt)
-
-cat("\n=== Red vs. White at each intensity (alt) ===\n")
-pairs(emmeans(simple_model1_alt, ~ color | intensity, type = "response"), adjust = "holm")
-cat("\n=== Distance slope (per km) by intensity (alt) ===\n")
-emtrends(simple_model1_alt, ~ intensity, var = "dist_km")
-```
-
-```{r alt_bat_figs, warning=FALSE, message=FALSE}
-grid_alt <- seq(0, max(data_env_alt$dist_km, na.rm = TRUE), length.out = 40)
-emmeans(simple_model1_alt, ~ intensity | dist_km,
-        at = list(dist_km = grid_alt), type = "response") %>%
-  as.data.frame() %>%
-  dplyr::rename(lower = asymp.LCL, upper = asymp.UCL) %>%
-  dplyr::mutate(intensity = factor(intensity, levels = c("10","30","50","70","100"))) %>%
-  ggplot(aes(dist_km, response, color = intensity, fill = intensity)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.12, color = NA) +
-  geom_line(linewidth = 1.1) +
-  scale_color_manual(values = intensity_pal, name = "Intensity (%)") +
-  scale_fill_manual(values = intensity_pal, guide = "none") +
-  labs(title = "Bat activity vs. distance by intensity (alt gradient)",
-       subtitle = "Marginal predictions ± 95% CI from the zero-inflated NB GLMM",
-       x = "Distance to nearest source (km)", y = "Predicted detections per night") +
-  bat_theme
-```
-
-## Bat Community, Species, and Traits (alt distance)
-
-```{r alt_bat_community, warning=FALSE, message=FALSE}
-community_alt <- run_community_analysis(data_env_alt, bat_theme, col_red, col_white)
-community_alt$db_margin      # dbRDA marginal tests (alt)
-community_alt$mv_anova       # mvabund (alt)
-community_alt$fig_c3         # distance heatmap (alt)
-```
-
-```{r alt_bat_species, warning=FALSE, message=FALSE}
-sp_results_alt <- run_species_models(data_env_alt, bat_theme, col_red, col_white,
-                                     file_prefix = "alt_bat_")
-sp_results_alt$fig_s4a       # predicted detections ~ dist_km × color × intensity (alt)
-```
-
-```{r alt_bat_traits, warning=FALSE, message=FALSE}
-trait_results_alt <- run_trait_models(data_env_alt, bat_theme, col_navy, col_red, col_purple,
-                                      file_prefix = "alt_")
-trait_results_alt$fig_trait_dist
-```
-
-## Moth Models (alt distance)
-
-```{r alt_moth_model, warning=FALSE, message=FALSE}
-insect_general_alt <- run_insect_general_model(insect_total_env_alt, bat_theme, intensity_pal,
-                                               file_prefix = "alt_")
-summary(insect_general_alt$model)
-insect_general_alt$fig_dist_intensity
-```
-
-```{r alt_moth_family, warning=FALSE, message=FALSE}
-moth_family_results_alt <- run_species_models(
-  insect_family_env_alt, bat_theme, col_red, col_white,
-  taxon = "Moth", unit = "Family", file_prefix = "alt_moth_")
-moth_family_results_alt$fig_s4a
-```
-
-```{r alt_moth_community, warning=FALSE, message=FALSE}
-moth_community_alt <- run_community_analysis(
-  insect_family_env_alt, bat_theme, col_red, col_white,
-  taxon = "Moth", unit = "Family")
-moth_community_alt$db_margin
-moth_community_alt$mv_anova
-```
-
-## Bat vs. Moth Relative Effects (alt distance)
-
-```{r alt_bat_moth, warning=FALSE, message=FALSE}
-bm_effects_alt <- compare_bat_moth_effects(
-  simple_model1_alt, insect_general_alt$model, data_env_alt, insect_total_env_alt,
-  bat_theme, col_navy, col_purple, file_prefix = "alt_")
-bm_effects_alt$fig_distance
-bm_effects_alt$forest_df
-```
