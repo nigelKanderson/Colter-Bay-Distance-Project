@@ -54,7 +54,7 @@ dist_order <- c("Close", "Medium", "Further", "Far")
 # list (so the script still runs standalone) rather than a divergent local set.
 if (!exists("focal_spp")) {
   focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
-                 "Mylu", "Myvo", "Myyu", "Myth", "Myev")
+                 "Mylu", "Myvo", "Myyu", "Myev")
 }
 
 # Ensure jd_c exists (centered Julian day)

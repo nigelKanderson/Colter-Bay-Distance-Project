@@ -75,7 +75,7 @@ dist_order <- c("Close", "Medium", "Further", "Far")
 # fall back to the same list so the script still runs standalone.
 if (!exists("focal_spp")) {
   focal_spp <- c("Epfu", "Laci", "Lano", "Myca", "Myci",
-                 "Mylu", "Myvo", "Myyu", "Myth", "Myev")
+                 "Mylu", "Myvo", "Myyu", "Myev")
 }
 
 dir.create("output/figures/threshold30", showWarnings = FALSE, recursive = TRUE)
