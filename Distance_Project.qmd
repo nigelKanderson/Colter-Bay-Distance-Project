@@ -645,6 +645,64 @@ ggsave("output/figures/bat_species_distance_combined_nofar.png",
        width = 9, height = 6, dpi = 300, bg = "white")
 ```
 
+### Overall bat activity: intensity/colour GAM
+
+GAM counterpart to the moth intensity/colour GAM, on total nightly bat activity (`site_night$total_det`): intensity as a smooth with a separate curve per colour, site as a random effect. Only 5 distinct intensity values, so the smooth basis is capped at `k = 5`.
+
+```{r bat_gam_intensity_color, warning=FALSE, message=FALSE, fig.width=8, fig.height=5.5}
+library(mgcv)
+bat_gam_dat <- site_night %>%
+  mutate(intensity_num = as.numeric(as.character(intensity))) %>%
+  filter(!is.na(intensity_num), !is.na(color))
+
+bat_gam <- gam(
+  total_det ~ color + s(intensity_num, by = color, k = 5) +
+    s(dist_km, k = 5) + s(jd_c, k = 5) +
+    mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
+  data = bat_gam_dat, family = nb(), method = "REML")
+cat("=== Overall bat intensity/colour GAM ===\n"); print(summary(bat_gam))
+
+bat_gam_shared <- gam(
+  total_det ~ color + s(intensity_num, k = 5) + s(dist_km, k = 5) + s(jd_c, k = 5) +
+    mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
+  data = bat_gam_dat, family = nb(), method = "REML")
+cat("\nAIC (separate-by-colour vs shared intensity smooth):\n")
+print(AIC(bat_gam_shared, bat_gam))
+
+bat_pgrid <- expand_grid(intensity_num = seq(10, 100, by = 1),
+                         color = factor(c("R","W"), levels = levels(bat_gam_dat$color))) %>%
+  mutate(dist_km = mean(bat_gam_dat$dist_km), jd_c = 0,
+         mean_phase = mean(bat_gam_dat$mean_phase, na.rm = TRUE),
+         pct_nonforest = mean(bat_gam_dat$pct_nonforest, na.rm = TRUE),
+         brightness_dark = mean(bat_gam_dat$brightness_dark, na.rm = TRUE),
+         site = bat_gam_dat$site[1])
+bpr <- predict(bat_gam, newdata = bat_pgrid, type = "link", se.fit = TRUE, exclude = "s(site)")
+bilink <- family(bat_gam)$linkinv
+bat_pgrid <- bat_pgrid %>% mutate(fit = bilink(bpr$fit),
+                                  lo = bilink(bpr$fit - 1.96*bpr$se.fit),
+                                  hi = bilink(bpr$fit + 1.96*bpr$se.fit))
+bat_obs <- bat_gam_dat %>% group_by(color, intensity_num) %>%
+  summarise(mean_det = mean(total_det), .groups = "drop")
+
+fig_bat_gam <- ggplot(bat_pgrid, aes(intensity_num, fit, color = color, fill = color)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1.1) +
+  geom_point(data = bat_obs, aes(intensity_num, mean_det, color = color),
+             inherit.aes = FALSE, size = 2.4, alpha = 0.8) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Bat Activity vs. Light Intensity by Color (GAM)",
+       subtitle = "Negative-binomial GAM, smooth of intensity per color ± 95% CI; points = observed site-night means",
+       x = "Light intensity (%)", y = "Predicted detections per site-night") +
+  bat_theme + theme(legend.position = "top")
+fig_bat_gam
+
+ggsave("output/figures/bat_gam_intensity_color.png", fig_bat_gam,
+       width = 8, height = 5.5, dpi = 300, bg = "white")
+```
+
 ## Community Analysis
 
 ```{r community, warning=FALSE, message=FALSE}
@@ -1057,6 +1115,65 @@ fig_moth_emm_panel
 
 ggsave("output/figures/moth_emm_panel_lo_hi.png", fig_moth_emm_panel,
        width = 9, height = 5, dpi = 300, bg = "white")
+```
+
+```{r insect_gam_intensity_color, warning=FALSE, message=FALSE, fig.width=8, fig.height=5.5}
+# GAM alternative to the factor model: intensity as a smooth, a separate curve
+# per colour, so the intensity response can bend and differ by colour. Only 5
+# distinct intensity values, so the smooth basis is capped at k = 5. Site enters
+# as a random effect; the other covariates are controls.
+library(mgcv)
+gam_dat <- insect_total_env %>%
+  mutate(intensity_num = as.numeric(as.character(intensity))) %>%
+  filter(!is.na(intensity_num), !is.na(color))
+
+moth_gam <- gam(
+  detections ~ color + s(intensity_num, by = color, k = 5) +
+    s(dist_km, k = 5) + s(jd_c, k = 5) +
+    mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
+  data = gam_dat, family = nb(), method = "REML")
+cat("=== Moth intensity/colour GAM ===\n"); print(summary(moth_gam))
+
+# does the intensity smooth differ by colour? (vs. a single shared smooth)
+moth_gam_shared <- gam(
+  detections ~ color + s(intensity_num, k = 5) + s(dist_km, k = 5) + s(jd_c, k = 5) +
+    mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
+  data = gam_dat, family = nb(), method = "REML")
+cat("\nAIC (separate-by-colour vs shared intensity smooth):\n")
+print(AIC(moth_gam_shared, moth_gam))
+
+pgrid <- expand_grid(intensity_num = seq(10, 100, by = 1),
+                     color = factor(c("R","W"), levels = levels(gam_dat$color))) %>%
+  mutate(dist_km = mean(gam_dat$dist_km), jd_c = 0,
+         mean_phase = mean(gam_dat$mean_phase, na.rm = TRUE),
+         pct_nonforest = mean(gam_dat$pct_nonforest, na.rm = TRUE),
+         brightness_dark = mean(gam_dat$brightness_dark, na.rm = TRUE),
+         site = gam_dat$site[1])
+pr <- predict(moth_gam, newdata = pgrid, type = "link", se.fit = TRUE, exclude = "s(site)")
+ilink <- family(moth_gam)$linkinv
+pgrid <- pgrid %>% mutate(fit = ilink(pr$fit),
+                          lo = ilink(pr$fit - 1.96 * pr$se.fit),
+                          hi = ilink(pr$fit + 1.96 * pr$se.fit))
+obs <- gam_dat %>% group_by(color, intensity_num) %>%
+  summarise(mean_det = mean(detections), .groups = "drop")
+
+fig_moth_gam <- ggplot(pgrid, aes(intensity_num, fit, color = color, fill = color)) +
+  geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.15, color = NA) +
+  geom_line(linewidth = 1.1) +
+  geom_point(data = obs, aes(intensity_num, mean_det, color = color),
+             inherit.aes = FALSE, size = 2.4, alpha = 0.8) +
+  scale_color_manual(values = c(R = col_red, W = col_white),
+                     labels = c(R = "Red", W = "White"), name = "Light color") +
+  scale_fill_manual(values = c(R = col_red, W = col_white),
+                    labels = c(R = "Red", W = "White"), name = "Light color") +
+  labs(title = "Moth Activity vs. Light Intensity by Color (GAM)",
+       subtitle = "Negative-binomial GAM, smooth of intensity per color ± 95% CI; points = observed site-night means",
+       x = "Light intensity (%)", y = "Predicted detections per site-night") +
+  bat_theme + theme(legend.position = "top")
+fig_moth_gam
+
+ggsave("output/figures/moth_gam_intensity_color.png", fig_moth_gam,
+       width = 8, height = 5.5, dpi = 300, bg = "white")
 ```
 
 ```{r insect_moon_phase, warning=FALSE, message=FALSE}
