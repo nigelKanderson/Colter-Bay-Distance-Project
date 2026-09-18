@@ -819,31 +819,6 @@ ggsave("output/figures/fig9_dist_intensity.png",
        last_plot(), width = 8, height = 5, dpi = 300, bg = "white")
 ```
 
-## Morphology Trait Analysis
-
-```{r trait_models, warning=FALSE, message=FALSE}
-source("R/12_trait_models.R")
-trait_results <- run_trait_models(data_env_focal, bat_theme, col_navy, col_red, col_purple)
-
-for (trait in names(trait_results$trait_models)) {
-  cat("\n\n=== ", trait, " model ===\n")
-  print(summary(trait_results$trait_models[[trait]]))
-}
-```
-
-```{r trait_posthoc, warning=FALSE, message=FALSE}
-cat("=== Intensity effect at low/mean/high trait values ===\n")
-trait_results$df_trait_intensity
-
-cat("\n=== Distance slope at low/mean/high trait values ===\n")
-trait_results$df_trait_slope
-```
-
-```{r trait_figs, warning=FALSE, message=FALSE}
-trait_results$fig_trait_intensity
-trait_results$fig_trait_dist
-```
-
 ## Species Models
 
 ```{r species_models, warning=FALSE, message=FALSE}
