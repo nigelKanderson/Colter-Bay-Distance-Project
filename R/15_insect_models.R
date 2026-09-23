@@ -17,6 +17,19 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal,
     insect_env$jd_c <- insect_env$jd - mean(insect_env$jd, na.rm = TRUE)
   }
 
+  # ── input sanity checks ──────────────────────────────────────────────────
+  .req <- c("detections", "color", "intensity", "dist_km", "mean_phase",
+            "pct_nonforest", "brightness_dark", "jd_c", "site")
+  stopifnot(
+    "run_insect_general_model: input is not a data frame" = is.data.frame(insect_env),
+    "run_insect_general_model: input has no rows"         = nrow(insect_env) > 0,
+    "run_insect_general_model: missing required columns"  = all(.req %in% names(insect_env)),
+    "run_insect_general_model: detections must be non-negative integers" =
+      all(insect_env$detections >= 0 & insect_env$detections == floor(insect_env$detections), na.rm = TRUE),
+    "run_insect_general_model: distance out of range"     =
+      all(insect_env$dist_km >= 0 & insect_env$dist_km <= 8, na.rm = TRUE)
+  )
+
   model <- glmmTMB(
     detections ~
       color * intensity +

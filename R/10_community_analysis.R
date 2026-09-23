@@ -18,6 +18,18 @@ run_community_analysis <- function(data_env, bat_theme, col_red, col_white,
   if (inherits(data_env, "sf")) {
     data_env <- sf::st_drop_geometry(data_env)
   }
+
+  # ── input sanity checks ──────────────────────────────────────────────────
+  .req <- c("species", "detections", "site", "color", "intensity", "dist_km")
+  stopifnot(
+    "run_community_analysis: input is not a data frame" = is.data.frame(data_env),
+    "run_community_analysis: input has no rows"         = nrow(data_env) > 0,
+    "run_community_analysis: missing required columns"  = all(.req %in% names(data_env)),
+    "run_community_analysis: need >= 2 taxa"            = dplyr::n_distinct(data_env$species) >= 2,
+    "run_community_analysis: need >= 2 sites"           = dplyr::n_distinct(data_env$site) >= 2,
+    "run_community_analysis: detections must be non-negative" =
+      all(data_env$detections >= 0, na.rm = TRUE)
+  )
   data_env <- as.data.frame(data_env)
 
   cat("data_env columns:", paste(sort(names(data_env)), collapse = ", "), "\n")

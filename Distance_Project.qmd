@@ -449,6 +449,59 @@ species_glmm <- glmmTMB(
 summary(species_glmm)
 ```
 
+### Data-integrity sanity checks
+
+Assert the core invariants of the bat data pipeline before interpreting any model. These fail loudly (`stopifnot`) if the data being processed is not what the analysis assumes — e.g. an out-of-region alias slipped through, a guild set changed, a zero-fill grid is the wrong size, or a join dropped/duplicated site-nights.
+
+```{r sanity_checks_bats, warning=FALSE, message=TRUE}
+.n_sn  <- nrow(dplyr::distinct(data_env, site, date))
+.toks  <- unlist(strsplit(unique(as.character(data_env$species)), "/"))
+
+stopifnot(
+  # focal set & guild partition
+  "focal_spp should be 9 species"                 = length(focal_spp) == 9,
+  "Myth must not be in focal_spp"                 = !("Myth" %in% focal_spp),
+  "guild sets must be disjoint"                    = length(intersect(lowfreq_spp, c(medfreq_spp, highfreq_spp))) == 0 &&
+                                                       length(intersect(medfreq_spp, highfreq_spp)) == 0,
+  "guild sets must partition focal_spp"            = setequal(c(lowfreq_spp, medfreq_spp, highfreq_spp), focal_spp),
+  "medium-frequency guild is Myev only"           = identical(sort(medfreq_spp), "Myev"),
+
+  # alias reclassification removed out-of-region tokens (Labo->Mylu, Myse->Myev)
+  "Labo should be reclassified away"              = !("Labo" %in% .toks),
+  "Myse should be reclassified away"              = !("Myse" %in% .toks),
+
+  # every retained label maps to exactly one guild (cluster filter worked)
+  "every data_env label maps to a guild"          = all(!is.na(assign_cluster(data_env$species))),
+
+  # distance & treatment sanity
+  "distances are non-negative"                    = all(data_env$dist_km >= 0, na.rm = TRUE),
+  "distances within plausible range (<= 8 km)"    = all(data_env$dist_km <= 8, na.rm = TRUE),
+  "intensity has the 5 expected levels"           = setequal(levels(data_env$intensity), c("10","30","50","70","100")),
+  "colour is R/W"                                 = setequal(levels(data_env$color), c("R","W")),
+
+  # site_night: one row per site-night, totals preserved, no missing covariates/treatment
+  "site_night has one row per site-night"         = nrow(site_night) == .n_sn,
+  "site_night preserves total detections"         = sum(site_night$total_det) == sum(data_env$detections),
+  "site_night covariates complete"                = all(!is.na(dplyr::select(site_night, dist_km, mean_phase, pct_nonforest, brightness_dark))),
+  "site_night treatment complete"                 = all(!is.na(site_night$color)) && all(!is.na(site_night$intensity)),
+
+  # cluster_night: zero-filled site-night x 3 guilds, totals preserved
+  "cluster_night is site-night x 3 guilds"        = nrow(cluster_night) == .n_sn * 3,
+  "cluster_night has no NA detections"            = all(!is.na(cluster_night$detections)),
+  "guild totals equal the overall total"          = sum(cluster_night$detections) == sum(data_env$detections),
+
+  # spp_night: zero-filled site-night x focal species, focal totals preserved
+  "spp_night is site-night x focal species"       = nrow(spp_night) == .n_sn * length(focal_spp),
+  "spp_night has no NA detections"                = all(!is.na(spp_night$detections)),
+  "spp_night preserves focal-species totals"      = sum(spp_night$detections) == sum(data_env_focal$detections)
+)
+
+message("Bat sanity checks passed: ", .n_sn, " site-nights across ",
+        dplyr::n_distinct(data_env$site), " sites; ", length(focal_spp),
+        " focal species; 3 guilds; distance ",
+        paste(round(range(data_env$dist_km, na.rm = TRUE), 2), collapse = "-"), " km.")
+```
+
 ### Model-based intensity × color effects
 
 Figure-3-style effect plots, but from the fitted models: predicted response by light intensity and colour with 95% CIs (estimated marginal means, other covariates held at their means, averaged over the random effects).
@@ -904,6 +957,43 @@ insect_total_env <- insect_events %>%
 message("Moth sampling events: ", nrow(insect_total_env),
         "  |  Sites: ", n_distinct(insect_total_env$site),
         "  |  Date range: ", paste(range(insect_total_env$date), collapse = " to "))
+```
+
+### Data-integrity sanity checks (moths)
+
+Assert the moth data is what the models assume before fitting. The moth unit is a sampling **event** (site $\times$ date $\times$ colour $\times$ intensity); note one date has two events at a site, so there are slightly more events than unique site-dates.
+
+```{r sanity_checks_moths, warning=FALSE, message=TRUE}
+stopifnot(
+  # one row per sampling event; counts are non-negative integers
+  "insect_total_env is one row per event"   = nrow(insect_total_env) ==
+                                                 dplyr::n_distinct(paste(insect_total_env$site, insect_total_env$date,
+                                                                         insect_total_env$color, insect_total_env$intensity)),
+  "moth detections are non-negative integers" = all(insect_total_env$detections >= 0) &&
+                                                 all(insect_total_env$detections == floor(insect_total_env$detections)),
+
+  # covariates present and in range
+  "moth distances present and in range"     = all(!is.na(insect_total_env$dist_km)) &&
+                                                 all(insect_total_env$dist_km >= 0 & insect_total_env$dist_km <= 8),
+  "moth site-night covariates complete"     = all(!is.na(insect_total_env$mean_phase)) &&
+                                                 all(!is.na(insect_total_env$pct_nonforest)) &&
+                                                 all(!is.na(insect_total_env$brightness_dark)),
+
+  # treatment factor levels
+  "moth intensity has 5 expected levels"    = setequal(as.character(unique(insect_total_env$intensity)), c("10","30","50","70","100")),
+  "moth colour is R/W"                      = setequal(as.character(unique(insect_total_env$color)), c("R","W")),
+
+  # taxonomic detection frames are consistent with the specimen table
+  "family counts == specimens with family" = sum(insects$family$detections) == sum(!is.na(insects$specimens$Family)),
+  "family detections positive integers"    = all(insects$family$detections >= 1) &&
+                                                 all(insects$family$detections == floor(insects$family$detections)),
+  "specimen table is non-empty"            = nrow(insects$specimens) > 0
+)
+
+message("Moth sanity checks passed: ", nrow(insect_total_env), " events across ",
+        dplyr::n_distinct(insect_total_env$site), " sites; ",
+        dplyr::n_distinct(insects$family$Family), " families; ",
+        nrow(insects$specimens), " specimens.")
 ```
 
 ## Moth General Activity Model

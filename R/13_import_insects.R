@@ -66,5 +66,16 @@ import_insects <- function(path, sheet = "Sheet2") {
     group_by(site, date, color, intensity, Subfamily) %>%
     summarise(detections = n(), .groups = "drop")
 
+  # ── output sanity checks ─────────────────────────────────────────────────
+  stopifnot(
+    "import_insects: no specimen records parsed"       = nrow(specimens) > 0,
+    "import_insects: missing expected specimen columns" =
+      all(c("site", "date", "color", "intensity", "Family") %in% names(specimens)),
+    "import_insects: family counts must sum to specimens with a family" =
+      sum(family$detections) == sum(!is.na(specimens$Family)),
+    "import_insects: colour codes should be R/W" =
+      all(unique(specimens$color) %in% c("R", "W"))
+  )
+
   list(specimens = specimens, total = total, family = family, subfamily = subfamily)
 }
