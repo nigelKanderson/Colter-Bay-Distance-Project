@@ -10,9 +10,6 @@ library(stringr)
 
 # -----------------------------------------------------------------------------
 # SonoBat v30.1 detections for the distance project.
-# The complete v30.1 set is staged locally (matches the prior analysis cache and
-# avoids the flaky Google Drive mount). To re-pull from Drive instead, point
-# `sonobat_dir` at the Drive .../grandteton_distanceproject v30.1 folder.
 # -----------------------------------------------------------------------------
 sonobat_dir <- "data/sonobat_compare/v30"
 
@@ -162,5 +159,5 @@ if (nrow(data_raw) == 0 || !"species" %in% names(data_raw))
        "Check that the input files are SonoBatch outputs with Prob/SppAccp/Filename.")
 
 message("Imported ", nrow(data_raw), " detection rows across ",
-        dplyr::n_distinct(data_raw$species), " species from ",
+        dplyr::n_distinct(data_raw$species), " species/compounds from ",
         dplyr::n_distinct(data_raw$site), " sites.")
