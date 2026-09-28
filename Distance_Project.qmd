@@ -326,7 +326,7 @@ cluster_night <- site_night %>%
 
 # guild x colour x intensity, plus a guild-specific distance slope
 cluster_glmm <- glmmTMB(
-  detections ~ cluster * intensity + cluster * dist_km + color +
+  detections ~ color * intensity + cluster * dist_km + color +
     mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
     (1 | site),
   data      = cluster_night,
