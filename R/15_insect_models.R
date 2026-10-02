@@ -40,7 +40,8 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal,
       brightness_dark +
       (1 | site),
     data      = insect_env,
-    ziformula = ~1,
+    # No ziformula: moth nightly totals have no structural zeros (every event has
+    # >=1 detection), so a zero-inflation term is unidentified and AIC-worse.
     family    = nbinom2()
   )
 
