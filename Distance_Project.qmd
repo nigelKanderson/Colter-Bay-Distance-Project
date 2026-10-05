@@ -596,6 +596,16 @@ cat("=== Per-species distance slope (log detections / km) ===\n")
 print(as.data.frame(emtrends(bat_spp_dist_glmm, ~ species, var = "dist_km")) %>%
         transmute(species, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
 
+# per-species distance-slope p-values with multiple-comparison correction (9 species)
+.sl <- as.data.frame(emtrends(bat_spp_dist_glmm, ~ species, var = "dist_km"))
+.p  <- 2 * pnorm(-abs(.sl$dist_km.trend / .sl$SE))
+knitr::kable(tibble::tibble(Species = as.character(.sl$species),
+                            Slope = round(.sl$dist_km.trend, 3),
+                            p_raw = round(.p, 3),
+                            p_Holm = round(p.adjust(.p, "holm"), 3),
+                            p_FDR = round(p.adjust(.p, "BH"), 3)) %>% dplyr::arrange(Slope),
+             caption = "Bat per-species distance slopes: raw and multiple-comparison-corrected p-values.")
+
 dist_grid <- seq(min(spp_night$dist_km), max(spp_night$dist_km), length.out = 80)
 bat_spp_pred <- as.data.frame(
   emmeans(bat_spp_dist_glmm, ~ species | dist_km,
@@ -652,6 +662,16 @@ bat_spp_dist_glmm_nofar <- glmmTMB(
 cat("=== Per-species distance slope, FAR SITES REMOVED (log detections / km) ===\n")
 print(as.data.frame(emtrends(bat_spp_dist_glmm_nofar, ~ species, var = "dist_km")) %>%
         transmute(species, slope = round(dist_km.trend, 2), SE = round(SE, 2)))
+
+# per-species distance-slope p-values with multiple-comparison correction (9 species)
+.sln <- as.data.frame(emtrends(bat_spp_dist_glmm_nofar, ~ species, var = "dist_km"))
+.pn  <- 2 * pnorm(-abs(.sln$dist_km.trend / .sln$SE))
+knitr::kable(tibble::tibble(Species = as.character(.sln$species),
+                            Slope = round(.sln$dist_km.trend, 3),
+                            p_raw = round(.pn, 3),
+                            p_Holm = round(p.adjust(.pn, "holm"), 3),
+                            p_FDR = round(p.adjust(.pn, "BH"), 3)) %>% dplyr::arrange(Slope),
+             caption = "Bat per-species distance slopes, far sites removed: raw and multiple-comparison-corrected p-values.")
 
 dist_grid_nofar <- seq(min(spp_night_nofar$dist_km), max(spp_night_nofar$dist_km),
                        length.out = 80)
