@@ -288,7 +288,7 @@ library(glmmTMB)
 simple_model1 <- glmmTMB(
   total_det ~
     color * intensity +
-    dist_km +
+    dist_km * intensity +
     mean_phase +
     pct_nonforest +
     brightness_dark +
@@ -989,7 +989,7 @@ message("Moth family-level rows: ", nrow(insect_family_env),
 ```
 
 ```{r insect_genus_species_distance, warning=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
-# Same across-distance predictions at genus and species resolution.
+# Same across-distance predictions at subfamily, genus, and species resolution.
 # Restrict to the 9 best-sampled taxa (>= 30 site-nights) at each level; for
 # genus, drop labels that are really subfamily/family placeholders (-inae/-idae).
 source("R/33_moth_taxonomy.R")   # add_species_bin()
@@ -1076,14 +1076,429 @@ make_taxon_distance <- function(level, out_tag, pretty,
 }
 
 # full data
+make_taxon_distance("Subfamily",   "subfamily", "Subfamily")
 make_taxon_distance("Genus",       "genus",   "Genus",   exclude_rx = "(inae|idae)$")
 make_taxon_distance("Species_bin", "species", "Species")
 
 # robustness: three far (~7 km) sites removed
 far3 <- c("GRTE13","GRTE14","GRTE15")
+make_taxon_distance("Subfamily",   "subfamily", "Subfamily", drop_sites = far3)
 make_taxon_distance("Genus",       "genus",   "Genus",   exclude_rx = "(inae|idae)$",
                     drop_sites = far3)
 make_taxon_distance("Species_bin", "species", "Species", drop_sites = far3)
+```
+
+### Significant-taxa distance hierarchy
+
+Synthesises the per-taxon distance results into one taxonomic tree. At each level (family → subfamily → genus → species) we test every taxon with ≥30 site-nights for a distance slope (joint `taxon × dist_km` NB-GLMM), keep those with *p* < 0.05, and draw each as a miniature of its model-predicted detections-vs-distance curve (±95% CI, auto-scaled within its box). Nodes are coloured by direction (more active away from vs. toward the lot) and linked to their nearest significant ancestor. *p* is uncorrected across the many taxa, so single-star nodes should be read cautiously.
+
+```{r moth_sig_hierarchy, warning=FALSE, message=FALSE, fig.width=14, fig.height=8}
+# taxonomic lineage lookups (modal parent per taxon)
+.tax <- sp_tax %>% filter(!is.na(Family)) %>% count(Family, Subfamily, Genus, Species_bin, name = "nn")
+.first_by <- function(df, key, cols) df %>% group_by(across(all_of(key))) %>%
+  slice_max(nn, n = 1, with_ties = FALSE) %>% ungroup() %>% select(all_of(c(key, cols)))
+.sub2 <- .first_by(.tax %>% filter(!is.na(Subfamily)) %>% count(Subfamily, Family, wt = nn, name = "nn"), "Subfamily", "Family")
+.gen2 <- .first_by(.tax %>% filter(!is.na(Genus)) %>% count(Genus, Subfamily, Family, wt = nn, name = "nn"), "Genus", c("Subfamily", "Family"))
+.sp2  <- .first_by(.tax %>% filter(!is.na(Species_bin)) %>% count(Species_bin, Genus, Subfamily, Family, wt = nn, name = "nn"), "Species_bin", c("Genus", "Subfamily", "Family"))
+.stbl <- function(m) !is.null(m) && isTRUE(m$sdr$pdHess) && !any(is.na(suppressWarnings(sqrt(diag(vcov(m)$cond)))))
+.pstar <- function(p) ifelse(is.na(p), "", ifelse(p < .001, "***", ifelse(p < .01, "**", ifelse(p < .05, "*", ""))))
+INT_LV <- c("10", "30", "50", "70", "100")
+
+# per-level distance model -> per-taxon slope/p and predicted distance curve
+hier_level <- function(level, drop_sites = NULL, exclude_rx = NULL, min_sn = 30) {
+  det <- sp_tax %>% filter(!is.na(.data[[level]])) %>% rename(taxon = all_of(level))
+  if (!is.null(exclude_rx)) det <- det %>% filter(!str_detect(taxon, exclude_rx))
+  keep <- det %>% group_by(taxon) %>% summarise(sn = n_distinct(paste(site, date)), .groups = "drop") %>%
+    filter(sn >= min_sn) %>% pull(taxon)
+  if (length(keep) < 1) return(NULL)
+  det_kept <- det %>% filter(taxon %in% keep) %>%
+    group_by(site, date, color, intensity, taxon) %>% summarise(detections = n(), .groups = "drop")
+  grid <- event_covariates %>% mutate(jd_c = jd - mean(jd, na.rm = TRUE)) %>%
+    tidyr::crossing(taxon = keep) %>%
+    left_join(det_kept, by = c("site", "date", "color", "intensity", "taxon")) %>%
+    mutate(detections = tidyr::replace_na(detections, 0), taxon = factor(taxon, levels = keep),
+           site = factor(site), color = factor(color), intensity = factor(intensity, levels = INT_LV))
+  if (!is.null(drop_sites)) grid <- grid %>% filter(!site %in% drop_sites) %>% droplevels()
+  cand <- c("mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2)",
+            "mean_phase + brightness_dark + jd_c + I(jd_c^2)", "mean_phase + jd_c + I(jd_c^2)",
+            "mean_phase + jd_c", "jd_c")
+  m <- NULL
+  for (rhs in cand) {
+    mi <- tryCatch(suppressWarnings(glmmTMB(
+      as.formula(paste("detections ~ taxon * dist_km + color + intensity +", rhs, "+ (1 | site)")),
+      data = grid, ziformula = ~1, family = nbinom2())), error = function(e) NULL)
+    if (is.null(m) && !is.null(mi)) m <- mi
+    if (.stbl(mi)) { m <- mi; break }
+  }
+  if (is.null(m)) return(NULL)
+  s <- as.data.frame(emtrends(m, ~ taxon, var = "dist_km"))
+  sumry <- tibble(taxon = as.character(s$taxon), est = s$dist_km.trend,
+                  p = 2 * pnorm(-abs(s$dist_km.trend / s$SE)))
+  dg <- seq(min(grid$dist_km), max(grid$dist_km), length.out = 40)
+  cv <- as.data.frame(emmeans(m, ~ taxon | dist_km, at = list(dist_km = dg), type = "response")) %>%
+    transmute(taxon = as.character(taxon), dist_km, response, lower = asymp.LCL, upper = asymp.UCL)
+  list(sumry = sumry, curves = cv)
+}
+
+hier_nodes <- function(drop_sites = NULL) {
+  lv <- list(Family = hier_level("Family", drop_sites), Subfamily = hier_level("Subfamily", drop_sites),
+             Genus = hier_level("Genus", drop_sites, exclude_rx = "(inae|idae)$"),
+             Species_bin = hier_level("Species_bin", drop_sites))
+  yy <- c(Family = 4, Subfamily = 3, Genus = 2, Species_bin = 1)
+  nd <- bind_rows(lapply(names(lv), function(l) { x <- lv[[l]]; if (is.null(x)) return(NULL)
+    x$sumry %>% filter(!is.na(p), p < 0.05) %>% mutate(lev = l, y = yy[l]) }))
+  curves <- bind_rows(lapply(names(lv), function(l) { x <- lv[[l]]; if (is.null(x)) return(NULL)
+    x$curves %>% mutate(lev = l) }))
+  if (nrow(nd) == 0) return(list(nd = nd, curves = curves))
+  nd$Family <- NA; nd$Subfamily <- NA; nd$Genus <- NA; nd$Species_bin <- NA
+  for (i in seq_len(nrow(nd))) { t <- nd$taxon[i]; l <- nd$lev[i]
+    if (l == "Family") nd$Family[i] <- t
+    if (l == "Subfamily") { nd$Subfamily[i] <- t; r <- .sub2[.sub2$Subfamily == t, ]; if (nrow(r)) nd$Family[i] <- r$Family[1] }
+    if (l == "Genus") { nd$Genus[i] <- t; r <- .gen2[.gen2$Genus == t, ]; if (nrow(r)) { nd$Subfamily[i] <- r$Subfamily[1]; nd$Family[i] <- r$Family[1] } }
+    if (l == "Species_bin") { nd$Species_bin[i] <- t; r <- .sp2[.sp2$Species_bin == t, ]; if (nrow(r)) { nd$Genus[i] <- r$Genus[1]; nd$Subfamily[i] <- r$Subfamily[1]; nd$Family[i] <- r$Family[1] } } }
+  nd$key <- paste(nd$lev, nd$taxon, sep = ":"); nd$stars <- .pstar(nd$p)
+  nd$dir <- ifelse(nd$est > 0, "Away from lot", "Toward lot")
+  haskey <- function(lv2, t) if (is.na(t)) NA else { k <- paste0(lv2, ":", t); if (k %in% nd$key) k else NA }
+  nd$parent <- NA_character_
+  for (i in seq_len(nrow(nd))) { l <- nd$lev[i]
+    anc <- switch(l,
+      Species_bin = c(haskey("Genus", nd$Genus[i]), haskey("Subfamily", nd$Subfamily[i]), haskey("Family", nd$Family[i])),
+      Genus = c(haskey("Subfamily", nd$Subfamily[i]), haskey("Family", nd$Family[i])),
+      Subfamily = c(haskey("Family", nd$Family[i])), Family = NA_character_)
+    anc <- anc[!is.na(anc)]; if (length(anc)) nd$parent[i] <- anc[1] }
+  list(nd = nd, curves = curves)
+}
+
+.SPX <- 1.6; .BOXW <- 1.15; .BOXH <- 0.56
+.PAL_D <- c("Away from lot" = "#2C7FB8", "Toward lot" = "#D95F02")
+hier_layout <- function(nd) {
+  fam <- unique(na.omit(nd$Family)); sub <- unique(na.omit(nd$Subfamily))
+  gen <- unique(na.omit(nd$Genus)); spp <- unique(na.omit(nd$Species_bin))
+  nd$k1 <- match(nd$Family, fam); nd$k2 <- match(nd$Subfamily, sub); nd$k3 <- match(nd$Genus, gen); nd$k4 <- match(nd$Species_bin, spp)
+  nd <- nd %>% mutate(across(c(k1, k2, k3, k4), ~tidyr::replace_na(., 0)))
+  nd <- nd[order(nd$k1, nd$k2, nd$k3, nd$k4), ]
+  ch <- split(nd$key, nd$parent); env <- new.env(); env$cnt <- 0; env$x <- setNames(rep(NA_real_, nrow(nd)), nd$key)
+  assign_x <- function(k) { kids <- ch[[k]]
+    if (is.null(kids)) { env$cnt <- env$cnt + 1; env$x[k] <- env$cnt }
+    else { kids <- kids[order(match(kids, nd$key))]; for (c in kids) assign_x(c); env$x[k] <- mean(env$x[kids]) } }
+  roots <- nd$key[is.na(nd$parent)]; roots <- roots[order(match(roots, nd$key))]; for (r in roots) assign_x(r)
+  nd$x <- env$x[nd$key] * .SPX; nd
+}
+hier_plot <- function(res, title) {
+  nd <- res$nd; curves <- res$curves; tiers <- data.frame(y = 4:1)
+  if (nrow(nd) == 0) return(ggplot() + annotate("text", 0, 0, label = "No significant taxa") + theme_void() + ggtitle(title))
+  nd <- hier_layout(nd)
+  cv <- curves %>% semi_join(nd %>% select(lev, taxon), by = c("lev", "taxon")) %>%
+    left_join(nd %>% select(lev, taxon, key, nx = x, ny = y, dir), by = c("lev", "taxon")) %>%
+    group_by(key) %>% mutate(lo = min(lower, na.rm = TRUE), hi = max(upper, na.rm = TRUE),
+      rng = ifelse(hi - lo <= 0, 1, hi - lo), xr = (dist_km - min(dist_km)) / (max(dist_km) - min(dist_km)),
+      X = nx + (xr - 0.5) * .BOXW, Yl = ny + ((response - lo) / rng - 0.5) * .BOXH,
+      Ylo = ny + ((lower - lo) / rng - 0.5) * .BOXH, Yhi = ny + ((upper - lo) / rng - 0.5) * .BOXH) %>%
+    ungroup() %>% arrange(key, X)
+  box <- nd %>% transmute(key, dir, xmin = x - .BOXW/2, xmax = x + .BOXW/2, ymin = y - .BOXH/2, ymax = y + .BOXH/2)
+  seg <- nd %>% filter(!is.na(parent)) %>% left_join(nd %>% select(parent = key, px = x, py = y), by = "parent")
+  lab <- nd %>% mutate(italic = ifelse(lev %in% c("Genus", "Species_bin"), "italic", "plain"),
+                       lab2 = paste0(taxon, " ", stars), ly = y - .BOXH/2 - 0.11)
+  ggplot() +
+    geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
+    { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py, xend = x, yend = y), color = "#C4C4C4", linewidth = 0.45) } +
+    geom_rect(data = box, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, color = dir), fill = "white", linewidth = 0.5) +
+    geom_ribbon(data = cv, aes(x = X, ymin = Ylo, ymax = Yhi, group = key, fill = dir), alpha = 0.22) +
+    geom_line(data = cv, aes(x = X, y = Yl, group = key, color = dir), linewidth = 0.7) +
+    geom_text(data = lab, aes(x = x, y = ly, label = lab2, fontface = italic), size = 2.7, vjust = 1, color = "#222222") +
+    scale_color_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
+    scale_fill_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
+    scale_y_continuous(breaks = 4:1, labels = c("Family", "Subfamily", "Genus", "Species"), limits = c(0.3, 4.7)) +
+    coord_cartesian(clip = "off") +
+    labs(title = title, subtitle = "each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor") +
+    theme_void(base_family = "Arial") +
+    theme(plot.title = element_text(face = "bold", size = 14), plot.subtitle = element_text(size = 9, color = "#555555"),
+          axis.text.y = element_text(size = 10, face = "bold", color = "#333333", hjust = 1), legend.position = "top",
+          legend.title = element_text(face = "bold", size = 9), legend.text = element_text(size = 9), plot.margin = margin(8, 14, 8, 8))
+}
+
+for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)"),
+                list(drop = far3, sfx = "_nofar", ttl = "Far sites removed (11 near sites)"))) {
+  res <- hier_nodes(sc$drop)
+  p <- hier_plot(res, paste0("Moth significant-taxa hierarchy (distance) — ", sc$ttl))
+  nleaf <- if (nrow(res$nd)) sum(!(res$nd$key %in% res$nd$parent)) else 1
+  ggsave(sprintf("output/figures/moth_sig_hierarchy_distance%s.png", sc$sfx), p,
+         width = max(13, nleaf * 1.9), height = 8.5, dpi = 300, bg = "white", limitsize = FALSE)
+  print(p)
+}
+```
+
+### Bayesian distance hierarchy (brms, partial pooling)
+
+A Bayesian counterpart to the hierarchy above. A single negative-binomial model **partially pools the distance slope up the taxonomy** — `(1 + dist_c | Family/Subfamily/Genus/Species)` — so each taxon's slope borrows strength from its relatives and sparsely-sampled taxa are regularised toward their group mean (no per-taxon multiple testing). "Significance" becomes the posterior **probability of direction**, P(dir) ≥ 0.95 (`*` ≥0.95, `**` ≥0.975, `***` ≥0.99). The model is fit on all species with ≥5 site-nights but, as above, only taxa with ≥30 site-nights of their own data are displayed.
+
+Fits are cached under `output/brms_fits/`: the first knit fits three models (~15 min each via cmdstanr), later knits reuse the cache. Delete the cache files to force a refit. Requires `brms` + a working `cmdstan`; if unavailable the section is skipped.
+
+```{r moth_brms_hierarchy, warning=FALSE, message=FALSE, fig.width=12, fig.height=7.5}
+.brms_ok <- requireNamespace("brms", quietly = TRUE) &&
+  requireNamespace("cmdstanr", quietly = TRUE) &&
+  !is.null(tryCatch(cmdstanr::cmdstan_version(), error = function(e) NULL))
+
+if (!.brms_ok) {
+  message("brms/cmdstan not available — skipping Bayesian hierarchy. Install brms + cmdstan to enable.")
+} else {
+  suppressMessages({ library(brms); library(posterior) })
+  dir.create("output/brms_fits", showWarnings = FALSE, recursive = TRUE)
+
+  # species-level zero-filled grid (>=5 site-nights) with full lineage + scaled covariates
+  brms_build_grid <- function(drop_sites = NULL) {
+    ev <- insect_events %>%
+      transmute(site, date = as.character(as.Date(date)), color, intensity,
+                dist_km, jd, mean_phase, pct_nonforest, brightness_dark)
+    spp <- sp_tax %>%
+      filter(!is.na(Species_bin), !is.na(Family), !is.na(Subfamily), !is.na(Genus)) %>%
+      mutate(date = as.character(as.Date(date)))
+    if (!is.null(drop_sites)) { ev <- ev %>% filter(!site %in% drop_sites)
+                                spp <- spp %>% filter(!site %in% drop_sites) }
+    keep <- spp %>% group_by(Species_bin) %>%
+      summarise(sn = n_distinct(paste(site, date)), .groups = "drop") %>%
+      filter(sn >= 5) %>% pull(Species_bin)
+    lin <- spp %>% filter(Species_bin %in% keep) %>%
+      distinct(Species_bin, Genus, Subfamily, Family) %>%
+      group_by(Species_bin) %>% slice(1) %>% ungroup()
+    det <- spp %>% filter(Species_bin %in% keep) %>%
+      group_by(site, date, color, intensity, Species_bin) %>%
+      summarise(detections = n(), .groups = "drop")
+    grid <- ev %>% tidyr::crossing(Species_bin = keep) %>%
+      left_join(det, by = c("site","date","color","intensity","Species_bin")) %>%
+      mutate(detections = tidyr::replace_na(detections, 0)) %>%
+      left_join(lin, by = "Species_bin") %>%
+      mutate(across(c(Family, Subfamily, Genus, Species_bin, site, color), factor),
+             intensity = factor(intensity, levels = c("10","30","50","70","100")),
+             jd_c = jd - mean(jd, na.rm = TRUE),
+             dist_c = dist_km - mean(dist_km, na.rm = TRUE),
+             mphase_z = as.numeric(scale(mean_phase)),
+             nonf_z   = as.numeric(scale(pct_nonforest)),
+             bdark_z  = as.numeric(scale(brightness_dark)))
+    grid
+  }
+
+  brms_fit_hier <- function(grid, cache) {
+    form <- bf(detections ~ dist_c + color + intensity + mphase_z + nonf_z + bdark_z +
+                 jd_c + I(jd_c^2) + (1 | site) +
+                 (1 + dist_c | Family/Subfamily/Genus/Species_bin))
+    pri <- c(prior(normal(0, 1), class = b), prior(exponential(1), class = sd),
+             prior(lkj(2), class = cor))
+    brm(form, data = grid, family = negbinomial(), prior = pri,
+        chains = 4, iter = 2000, warmup = 1000, cores = 4, backend = "cmdstanr",
+        adapt_delta = 0.9, max_treedepth = 10, seed = 1, refresh = 0, file = cache)
+  }
+
+  # extract partially-pooled slopes + posterior-predicted curves; draw the tree
+  brms_hier_plot <- function(fit, grid, title, min_sn = 30, pthr = 0.95) {
+    lin <- grid %>% distinct(Family, Subfamily, Genus, Species_bin) %>%
+      mutate(across(everything(), as.character))
+    dr <- posterior::as_draws_df(fit)
+    getc <- function(nm) if (nm %in% names(dr)) dr[[nm]] else rep(0, nrow(dr))
+    b0 <- dr[["b_dist_c"]]; a0 <- dr[["b_Intercept"]]
+    dgc <- seq(min(grid$dist_c), max(grid$dist_c), length.out = 40)
+    cumab <- function(lev, f, s, g, sp) {
+      a <- a0 + getc(sprintf("r_Family[%s,Intercept]", f))
+      b <- b0 + getc(sprintf("r_Family[%s,dist_c]", f))
+      if (lev %in% c("Subfamily","Genus","Species_bin")) {
+        a <- a + getc(sprintf("r_Family:Subfamily[%s_%s,Intercept]", f, s))
+        b <- b + getc(sprintf("r_Family:Subfamily[%s_%s,dist_c]", f, s)) }
+      if (lev %in% c("Genus","Species_bin")) {
+        a <- a + getc(sprintf("r_Family:Subfamily:Genus[%s_%s_%s,Intercept]", f, s, g))
+        b <- b + getc(sprintf("r_Family:Subfamily:Genus[%s_%s_%s,dist_c]", f, s, g)) }
+      if (lev == "Species_bin") {
+        a <- a + getc(sprintf("r_Family:Subfamily:Genus:Species_bin[%s_%s_%s_%s,Intercept]", f, s, g, sp))
+        b <- b + getc(sprintf("r_Family:Subfamily:Genus:Species_bin[%s_%s_%s_%s,dist_c]", f, s, g, sp)) }
+      list(a = a, b = b)
+    }
+    lvtab <- list(
+      Family      = lin %>% distinct(Family) %>% mutate(S = NA, G = NA, SP = NA, taxon = Family),
+      Subfamily   = lin %>% distinct(Family, Subfamily) %>% mutate(G = NA, SP = NA, taxon = Subfamily) %>% rename(S = Subfamily),
+      Genus       = lin %>% distinct(Family, Subfamily, Genus) %>% mutate(SP = NA, taxon = Genus) %>% rename(S = Subfamily, G = Genus),
+      Species_bin = lin %>% mutate(taxon = Species_bin) %>% rename(S = Subfamily, G = Genus, SP = Species_bin))
+    yy <- c(Family = 4, Subfamily = 3, Genus = 2, Species_bin = 1)
+    nodes <- list(); curves <- list()
+    for (lev in names(lvtab)) { tb <- lvtab[[lev]]
+      for (i in seq_len(nrow(tb))) {
+        f <- tb$Family[i]; s <- tb$S[i]; g <- tb$G[i]; sp <- tb$SP[i]; tx <- tb$taxon[i]
+        ab <- cumab(lev, f, s, g, sp); b <- ab$b; pdir <- mean(b > 0); pd <- max(pdir, 1 - pdir)
+        nodes[[length(nodes)+1]] <- tibble(lev = lev, taxon = tx, y = yy[lev],
+          Family = f, Subfamily = s, Genus = g, Species_bin = sp,
+          slope = median(b), lo = quantile(b, .025), hi = quantile(b, .975), pdir = pdir, pd = pd)
+        mu <- exp(outer(ab$b, dgc) + ab$a)
+        curves[[length(curves)+1]] <- tibble(lev = lev, taxon = tx, xx = dgc,
+          response = apply(mu, 2, median), lower = apply(mu, 2, quantile, .025), upper = apply(mu, 2, quantile, .975))
+      } }
+    ND <- bind_rows(nodes); CV <- bind_rows(curves)
+    pres <- grid %>% filter(detections > 0)
+    snlk <- bind_rows(
+      pres %>% group_by(taxon = Family)      %>% summarise(sn = n_distinct(paste(site, date)), .groups="drop") %>% mutate(lev = "Family"),
+      pres %>% group_by(taxon = Subfamily)   %>% summarise(sn = n_distinct(paste(site, date)), .groups="drop") %>% mutate(lev = "Subfamily"),
+      pres %>% group_by(taxon = Genus)       %>% summarise(sn = n_distinct(paste(site, date)), .groups="drop") %>% mutate(lev = "Genus"),
+      pres %>% group_by(taxon = Species_bin) %>% summarise(sn = n_distinct(paste(site, date)), .groups="drop") %>% mutate(lev = "Species_bin")) %>%
+      mutate(taxon = as.character(taxon))
+    ND <- ND %>% left_join(snlk, by = c("lev","taxon")) %>% filter(sn >= min_sn, pd >= pthr)
+    if (nrow(ND) == 0)
+      return(ggplot() + annotate("text", 0, 0, label = "No credibly-directional taxa") + theme_void() + ggtitle(title))
+    ND$dir <- ifelse(ND$slope > 0, "Away from lot", "Toward lot")
+    ND$stars <- ifelse(ND$pd >= .99, "***", ifelse(ND$pd >= .975, "**", "*"))
+    ND$key <- paste(ND$lev, ND$taxon, sep = ":")
+    hk <- function(l, t) if (is.na(t)) NA else { k <- paste0(l, ":", t); if (k %in% ND$key) k else NA }
+    ND$parent <- NA_character_
+    for (i in seq_len(nrow(ND))) { l <- ND$lev[i]
+      anc <- switch(l,
+        Species_bin = c(hk("Genus", ND$Genus[i]), hk("Subfamily", ND$Subfamily[i]), hk("Family", ND$Family[i])),
+        Genus = c(hk("Subfamily", ND$Subfamily[i]), hk("Family", ND$Family[i])),
+        Subfamily = c(hk("Family", ND$Family[i])), Family = NA)
+      anc <- anc[!is.na(anc)]; if (length(anc)) ND$parent[i] <- anc[1] }
+    SPX <- 1.6; BOXW <- 1.15; BOXH <- 0.56; PAL <- c("Away from lot" = "#2C7FB8", "Toward lot" = "#D95F02")
+    fam <- unique(na.omit(ND$Family)); sub <- unique(na.omit(ND$Subfamily)); gen <- unique(na.omit(ND$Genus)); spl <- unique(na.omit(ND$Species_bin))
+    ND$k1 <- match(ND$Family, fam); ND$k2 <- match(ND$Subfamily, sub); ND$k3 <- match(ND$Genus, gen); ND$k4 <- match(ND$Species_bin, spl)
+    ND <- ND %>% mutate(across(c(k1, k2, k3, k4), ~tidyr::replace_na(., 0))); ND <- ND[order(ND$k1, ND$k2, ND$k3, ND$k4), ]
+    ch <- split(ND$key, ND$parent); env <- new.env(); env$cnt <- 0; env$x <- setNames(rep(NA_real_, nrow(ND)), ND$key)
+    ax <- function(k) { kids <- ch[[k]]
+      if (is.null(kids)) { env$cnt <- env$cnt + 1; env$x[k] <- env$cnt }
+      else { kids <- kids[order(match(kids, ND$key))]; for (c in kids) ax(c); env$x[k] <- mean(env$x[kids]) } }
+    roots <- ND$key[is.na(ND$parent)]; roots <- roots[order(match(roots, ND$key))]; for (r in roots) ax(r)
+    ND$x <- env$x[ND$key] * SPX
+    cv <- CV %>% semi_join(ND %>% select(lev, taxon), by = c("lev","taxon")) %>%
+      left_join(ND %>% select(lev, taxon, key, nx = x, ny = y, dir), by = c("lev","taxon")) %>%
+      group_by(key) %>% mutate(lo2 = min(lower), hi2 = max(upper), rng = ifelse(hi2 - lo2 <= 0, 1, hi2 - lo2),
+        xr = (xx - min(xx)) / (max(xx) - min(xx)), X = nx + (xr - 0.5) * BOXW,
+        Yl = ny + ((response - lo2) / rng - 0.5) * BOXH,
+        Ylo = ny + ((lower - lo2) / rng - 0.5) * BOXH, Yhi = ny + ((upper - lo2) / rng - 0.5) * BOXH) %>%
+      ungroup() %>% arrange(key, X)
+    box <- ND %>% transmute(key, dir, xmin = x - BOXW/2, xmax = x + BOXW/2, ymin = y - BOXH/2, ymax = y + BOXH/2)
+    seg <- ND %>% filter(!is.na(parent)) %>% left_join(ND %>% select(parent = key, px = x, py = y), by = "parent")
+    lab <- ND %>% mutate(italic = ifelse(lev %in% c("Genus","Species_bin"), "italic", "plain"),
+                         lab2 = paste0(taxon, " ", stars), ly = y - BOXH/2 - 0.12)
+    tiers <- data.frame(y = 4:1)
+    ggplot() +
+      geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
+      { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py, xend = x, yend = y), color = "#C4C4C4", linewidth = 0.45) } +
+      geom_rect(data = box, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, color = dir), fill = "white", linewidth = 0.5) +
+      geom_ribbon(data = cv, aes(x = X, ymin = Ylo, ymax = Yhi, group = key, fill = dir), alpha = 0.22) +
+      geom_line(data = cv, aes(x = X, y = Yl, group = key, color = dir), linewidth = 0.7) +
+      geom_text(data = lab, aes(x = x, y = ly, label = lab2, fontface = italic), size = 2.7, vjust = 1, color = "#222222") +
+      scale_color_manual(values = PAL, name = "More active:", drop = FALSE) +
+      scale_fill_manual(values = PAL, name = "More active:", drop = FALSE) +
+      scale_y_continuous(breaks = 4:1, labels = c("Family","Subfamily","Genus","Species"), limits = c(0.3, 4.7)) +
+      coord_cartesian(clip = "off") +
+      labs(title = title,
+           subtitle = "Nodes = taxa with P(direction) ≥ 0.95 (* ≥0.95, ** ≥0.975, *** ≥0.99); inset = posterior-predicted detections vs distance (auto-scaled) ±95% CrI") +
+      theme_void(base_family = "Arial") +
+      theme(plot.title = element_text(face = "bold", size = 14), plot.subtitle = element_text(size = 8.5, color = "#555555"),
+            axis.text.y = element_text(size = 10, face = "bold", color = "#333333", hjust = 1), legend.position = "top",
+            legend.title = element_text(face = "bold", size = 9), legend.text = element_text(size = 9), plot.margin = margin(8, 14, 8, 8))
+  }
+
+  brms_scn <- list(
+    list(drop = NULL,                              sfx = "full",   ttl = "full data, all 14 sites"),
+    list(drop = c("GRTE13","GRTE14","GRTE15"),     sfx = "nofar",  ttl = "far sites removed, 11 near sites"),
+    list(drop = "GRTE15",                          sfx = "site15", ttl = "GRTE15 removed"))
+  for (sc in brms_scn) {
+    g  <- brms_build_grid(sc$drop)
+    ft <- brms_fit_hier(g, sprintf("output/brms_fits/moth_hier_%s", sc$sfx))
+    pp <- brms_hier_plot(ft, g, paste0("Moth distance hierarchy — brms partially-pooled slopes (", sc$ttl, ")"))
+    ggsave(sprintf("output/figures/moth_sig_hierarchy_brms_%s.png", sc$sfx), pp,
+           width = 12, height = 7.5, dpi = 300, bg = "white", limitsize = FALSE)
+    print(pp)
+  }
+}
+```
+
+### Moth color × intensity, by subfamily
+
+Subfamily-resolution counterpart to the overall color × intensity model (storyboard panel 2.7). Each facet is one well-sampled subfamily; the White-vs-Red contrast is held common across subfamilies and marked at each intensity.
+
+```{r insect_subfamily_colorintensity, warning=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
+# Color x intensity marginal means at subfamily resolution (full + far-removed).
+make_taxon_ci <- function(level, out_tag, pretty, exclude_rx = NULL,
+                          n_top = 9, min_sitenights = 30, drop_sites = NULL) {
+  sfx <- if (is.null(drop_sites)) "" else "_nofar"
+  det <- sp_tax %>% filter(!is.na(.data[[level]])) %>% rename(taxon = all_of(level))
+  if (!is.null(exclude_rx)) det <- det %>% filter(!str_detect(taxon, exclude_rx))
+  keep <- det %>% group_by(taxon) %>%
+    summarise(d = n(), sn = n_distinct(paste(site, date)), .groups = "drop") %>%
+    filter(sn >= min_sitenights) %>% slice_max(d, n = n_top) %>% arrange(desc(d)) %>%
+    pull(taxon)
+
+  det_kept <- det %>% filter(taxon %in% keep) %>%
+    group_by(site, date, color, intensity, taxon) %>%
+    summarise(detections = n(), .groups = "drop")
+
+  grid <- event_covariates %>%
+    mutate(jd_c = jd - mean(jd, na.rm = TRUE)) %>%
+    tidyr::crossing(taxon = keep) %>%
+    left_join(det_kept, by = c("site","date","color","intensity","taxon")) %>%
+    mutate(detections = tidyr::replace_na(detections, 0),
+           taxon = factor(taxon, levels = keep), site = factor(site),
+           color = factor(color),
+           intensity = factor(intensity, levels = c("10","30","50","70","100")))
+  if (!is.null(drop_sites))
+    grid <- grid %>% filter(!site %in% drop_sites) %>% droplevels()
+
+  stable <- function(m) !is.null(m) && isTRUE(m$sdr$pdHess) &&
+    !any(is.na(suppressWarnings(sqrt(diag(vcov(m)$cond)))))
+  # Progressively simpler mean structures until SEs are estimable. Fine
+  # taxonomic resolution on the far-removed (11-site) data can over-parameterise;
+  # habitat covariates and the date quadratic are the first to drop.
+  cand <- c(
+    "mean_phase + pct_nonforest + brightness_dark + dist_km + jd_c + I(jd_c^2)",
+    "mean_phase + brightness_dark + dist_km + jd_c + I(jd_c^2)",
+    "mean_phase + dist_km + jd_c + I(jd_c^2)",
+    "mean_phase + dist_km + jd_c",
+    "dist_km + jd_c")
+  m <- NULL
+  for (rhs in cand) {
+    mi <- tryCatch(suppressWarnings(glmmTMB(
+      as.formula(paste("detections ~ taxon * intensity + color * intensity +",
+                       rhs, "+ (1 | site)")),
+      data = grid, ziformula = ~1, family = nbinom2())), error = function(e) NULL)
+    if (is.null(m) && !is.null(mi)) m <- mi   # keep last fitted as a floor
+    if (stable(mi)) { m <- mi; break }
+  }
+
+  # White-vs-Red ratio at each intensity (common across taxa)
+  cc <- as.data.frame(contrast(emmeans(m, ~ color | intensity, type = "response"),
+                               method = "revpairwise")) %>%
+    mutate(stars = ifelse(p.value < .001, "***",
+                   ifelse(p.value < .01, "**",
+                   ifelse(p.value < .05, "*", ""))),
+           intensity = factor(intensity, levels = c("10","30","50","70","100")))
+  cat("\n===", pretty, "White/Red ratio by intensity ===\n")
+  print(cc %>% transmute(intensity, ratio = round(ratio, 2),
+                         p = signif(p.value, 3), stars))
+
+  e <- as.data.frame(emmeans(m, ~ color * intensity | taxon, type = "response"))
+  names(e)[names(e) %in% c("response","rate","emmean")] <- "est"
+  e <- e %>% mutate(taxon = factor(taxon, levels = keep))
+
+  fig <- ggplot(e, aes(factor(intensity), est, color = color, group = color)) +
+    geom_line(linewidth = 0.6, position = position_dodge(0.3)) +
+    geom_point(size = 1.6, position = position_dodge(0.3)) +
+    geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), width = 0.15,
+                  position = position_dodge(0.3)) +
+    geom_text(data = cc, aes(x = intensity, y = Inf, label = stars),
+              inherit.aes = FALSE, vjust = 1.3, size = 3.4, color = "#111111") +
+    scale_color_manual(values = c(R = col_red, W = col_white),
+                       labels = c(R = "Red", W = "White"), name = "Light color") +
+    scale_y_continuous(expand = expansion(mult = c(0.05, 0.15))) +
+    facet_wrap(~ taxon, scales = "free_y") +
+    labs(title = paste0("Moth Detections by Light Color × Intensity, by ", pretty),
+         subtitle = if (is.null(drop_sites))
+           "Marginal means ± 95% CI; asterisks: White vs Red (common across taxa)" else
+           "Far sites (GRTE13/14/15) removed; asterisks: White vs Red (common across taxa)",
+         x = "Intensity (%)", y = "Predicted detections per site-night") +
+    bat_theme + theme(strip.text = element_text(face = "bold.italic", size = 11),
+                      legend.position = "top")
+  ggsave(sprintf("output/figures/moth_%s_colorintensity_panels%s.png", out_tag, sfx),
+         fig, width = 10, height = 6.5, dpi = 300, bg = "white")
+  print(fig)
+}
+
+make_taxon_ci("Subfamily", "subfamily", "Subfamily")
+make_taxon_ci("Subfamily", "subfamily", "Subfamily", drop_sites = far3)
 ```
 
 ```{r insect_community, warning=FALSE, message=FALSE}
