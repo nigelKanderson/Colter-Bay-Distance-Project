@@ -1090,7 +1090,7 @@ make_taxon_distance("Species_bin", "species", "Species", drop_sites = far3)
 
 ### Significant-taxa distance hierarchy
 
-Synthesises the per-taxon distance results into one taxonomic tree. At each level (family → subfamily → genus → species) we test every taxon with ≥30 site-nights for a distance slope (joint `taxon × dist_km` NB-GLMM), keep those with *p* < 0.05, and draw each as a miniature of its model-predicted detections-vs-distance curve (±95% CI, auto-scaled within its box). Nodes are coloured by direction (more active away from vs. toward the lot) and linked to their nearest significant ancestor. *p* is uncorrected across the many taxa, so single-star nodes should be read cautiously.
+Synthesises the per-taxon distance results into one taxonomic tree. At each level (family → subfamily → genus → species) we test every taxon with ≥30 site-nights for a distance slope (joint `taxon × dist_km` NB-GLMM), keep those with *p* \< 0.05, and draw each as a miniature of its model-predicted detections-vs-distance curve (±95% CI, auto-scaled within its box). Nodes are coloured by direction (more active away from vs. toward the lot) and linked to their nearest significant ancestor. *p* is uncorrected across the many taxa, so single-star nodes should be read cautiously.
 
 ```{r moth_sig_hierarchy, warning=FALSE, message=FALSE, fig.width=14, fig.height=8}
 # taxonomic lineage lookups (modal parent per taxon)
@@ -1230,9 +1230,9 @@ for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)"),
 
 ### Bayesian distance hierarchy (brms, partial pooling)
 
-A Bayesian counterpart to the hierarchy above. A single negative-binomial model **partially pools the distance slope up the taxonomy** — `(1 + dist_c | Family/Subfamily/Genus/Species)` — so each taxon's slope borrows strength from its relatives and sparsely-sampled taxa are regularised toward their group mean (no per-taxon multiple testing). "Significance" becomes the posterior **probability of direction**, P(dir) ≥ 0.95 (`*` ≥0.95, `**` ≥0.975, `***` ≥0.99). The model is fit on all species with ≥5 site-nights but, as above, only taxa with ≥30 site-nights of their own data are displayed.
+A Bayesian counterpart to the hierarchy above. A single negative-binomial model **partially pools the distance slope up the taxonomy**, `(1 + dist_c | Family/Subfamily/Genus/Species)`, so each taxon's slope borrows strength from its relatives and sparsely-sampled taxa are regularised toward their group mean (no per-taxon multiple testing). "Significance" becomes the posterior **probability of direction**, P(dir) ≥ 0.95 (`*` ≥0.95, `**` ≥0.975, `***` ≥0.99). The model is fit on all species with ≥5 site-nights but, as above, only taxa with ≥30 site-nights of their own data are displayed.
 
-Fits are cached under `output/brms_fits/`: the first knit fits three models (~15 min each via cmdstanr), later knits reuse the cache. Delete the cache files to force a refit. Requires `brms` + a working `cmdstan`; if unavailable the section is skipped.
+Fits are cached under `output/brms_fits/`: the first knit fits three models (\~15 min each via cmdstanr), later knits reuse the cache. Delete the cache files to force a refit. Requires `brms` + a working `cmdstan`; if unavailable the section is skipped.
 
 ```{r moth_brms_hierarchy, warning=FALSE, message=FALSE, fig.width=12, fig.height=7.5}
 .brms_ok <- requireNamespace("brms", quietly = TRUE) &&
