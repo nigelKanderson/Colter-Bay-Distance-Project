@@ -303,7 +303,7 @@ summary(simple_model1)
 
 ## Guild-cluster models
 
-Rather than forcing ambiguous compound calls onto a single species, group every detection into the acoustic guild by call frequency: **low** (Epfu / Lano / Laci), **medium** (Myev), and **high** (Mylu / Myvo / Myci / Myca / Myyu). The medium-frequency guild is a single species, so it is labelled **Myev**. A detection joins a guild only if *every* candidate species in its label belongs to that guild. `data_env` holds only within-guild labels and the three guilds sum to the overall total. This models activity at the level SonoBat can actually resolve and it separates guilds that respond to distance differently (low-frequency activity concentrates near the lit parking lot, while the medium- and high-frequency guilds are more active farther out), which a pooled total would cancel out.
+Rather than forcing ambiguous compound calls onto a single species, group every detection into the acoustic guild by call frequency: **low** (Epfu / Lano / Laci), **medium** (Myev), and **high** (Mylu / Myvo / Myci / Myca / Myyu). The medium-frequency guild is a single species, so it is labeled **Myev**. A detection joins a guild only if *every* candidate species in its label belongs to that guild. `data_env` holds only within-guild labels and the three guilds sum to the overall total. This models activity at the level SonoBat can actually resolve and it separates guilds that respond to distance differently (low-frequency activity concentrates near the lit parking lot, while the medium- and high-frequency guilds are more active farther out), which a pooled total would cancel out.
 
 ```{r cluster_setup, warning=FALSE, message=FALSE}
 # `assign_cluster` and the guild sets (lowfreq_spp / medfreq_spp / highfreq_spp)
@@ -324,7 +324,7 @@ cluster_night <- site_night %>%
          site = factor(site),
          cluster = factor(cluster, levels = c("LowFreq", "Myev", "HighFreq")))
 
-# guild x colour x intensity, plus a guild-specific distance slope
+# guild x color x intensity, plus a guild-specific distance slope
 cluster_glmm <- glmmTMB(
   detections ~ color * intensity + cluster * dist_km + color +
     mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) +
@@ -425,7 +425,7 @@ spp_night <- site_night %>%
          site    = factor(site),
          species = factor(species))
 
-# Random intercepts for site and species. (A per-species colour slope,
+# Random intercepts for site and species. (A per-species color slope,
 # (1 + color | species), was singular here, so intercepts only.)
 species_glmm <- glmmTMB(
   detections ~
@@ -472,7 +472,7 @@ stopifnot(
   "distances are non-negative"                    = all(data_env$dist_km >= 0, na.rm = TRUE),
   "distances within plausible range (<= 8 km)"    = all(data_env$dist_km <= 8, na.rm = TRUE),
   "intensity has the 5 expected levels"           = setequal(levels(data_env$intensity), c("10","30","50","70","100")),
-  "colour is R/W"                                 = setequal(levels(data_env$color), c("R","W")),
+  "color is R/W"                                 = setequal(levels(data_env$color), c("R","W")),
 
   # site_night: one row per site-night, totals preserved, no missing covariates/treatment
   "site_night has one row per site-night"         = nrow(site_night) == .n_sn,
@@ -499,7 +499,7 @@ message("Bat sanity checks passed: ", .n_sn, " site-nights across ",
 
 ### Model-based intensity × color effects
 
-Figure-3-style effect plots, but from the fitted models: predicted response by light intensity and colour with 95% CIs (estimated marginal means, other covariates held at their means, averaged over the random effects).
+Figure-3-style effect plots, but from the fitted models: predicted response by light intensity and color with 95% CIs (estimated marginal means, other covariates held at their means, averaged over the random effects).
 
 ```{r model_effect_figs, warning=FALSE, message=FALSE, fig.width=8, fig.height=9}
 library(emmeans)
@@ -540,12 +540,12 @@ ggsave("output/figures/model_intensity_color.png",
 
 ### Per-species intensity × color effects
 
-Each species gets its own **intensity** response, with a **common** colour effect. Likelihood-ratio tests show species differ strongly in their intensity response (species × intensity, p \< 1e-16) but *not* in their colour response (species × colour, p = 0.43), and the full species × colour × intensity three-way is not worth its parameters (AIC and BIC both prefer dropping it). So we use `species * intensity + colour * intensity` — supported, better-fitting, and interpretable without a three-way. The red-vs-white gap is therefore consistent across species; the panels differ in their intensity shapes.
+Each species gets its own **intensity** response, with a **common** color effect. Likelihood-ratio tests show species differ strongly in their intensity response (species × intensity, p \< 1e-16) but *not* in their color response (species × color, p = 0.43), and the full species × color × intensity three-way is not worth its parameters (AIC and BIC both prefer dropping it). So we use `species * intensity + color * intensity` — supported, better-fitting, and interpretable without a three-way. The red-vs-white gap is therefore consistent across species; the panels differ in their intensity shapes.
 
 ```{r model_effect_byspecies, warning=FALSE, message=FALSE, fig.width=13, fig.height=6.5}
 library(emmeans)
 
-# species-specific intensity response + a common colour x intensity effect
+# species-specific intensity response + a common color x intensity effect
 # (the 3-way species:color:intensity was significant but AIC/BIC-worse, and
 # species:color was n.s.); same zero-filled grid as species_glmm
 species_glmm_int <- glmmTMB(
@@ -571,8 +571,8 @@ fig_eff_byspecies <- ggplot(
   scale_color_manual(values = c(R = col_red, W = col_white),
                      labels = c(R = "Red", W = "White"), name = "Light color") +
   facet_wrap(~ species, scales = "free_y", nrow = 2) +
-  labs(title = "Per-species intensity effect, with a common colour effect (model-based)",
-       subtitle = "Predicted detections/night ± 95% CI; species × intensity + colour × intensity (no 3-way); y-axes free",
+  labs(title = "Per-species intensity effect, with a common color effect (model-based)",
+       subtitle = "Predicted detections/night ± 95% CI; species × intensity + color × intensity (no 3-way); y-axes free",
        x = "Light intensity (%)", y = "Predicted detections / night") +
   bat_theme
 
@@ -584,7 +584,7 @@ ggsave("output/figures/model_intensity_color_byspecies.png", fig_eff_byspecies,
 
 ### Per-species distance response
 
-Model-predicted detections across the distance gradient for each focal species, from the same zero-filled `spp_night` grid, now with a `species × dist_km` interaction (a common colour and intensity effect). **Caveat:** unlike the moth distance figures, the bat distance signal is fragile — it hinges on the three far (\~7 km) sites and GRTE15 in particular (see the robustness section), so read these as a near-vs-far *sort* (low-frequency bats near, Myotis far), not firm per-species slopes.
+Model-predicted detections across the distance gradient for each focal species, from the same zero-filled `spp_night` grid, now with a `species × dist_km` interaction (a common color and intensity effect). **Caveat:** unlike the moth distance figures, the bat distance signal is fragile — it hinges on the three far (\~7 km) sites and GRTE15 in particular (see the robustness section), so read these as a near-vs-far *sort* (low-frequency bats near, Myotis far), not firm per-species slopes.
 
 ```{r species_distance, warning=FALSE, message=FALSE, fig.width=12, fig.height=6}
 bat_spp_dist_glmm <- glmmTMB(
@@ -714,14 +714,15 @@ ggsave("output/figures/bat_species_distance_combined_nofar.png",
        width = 9, height = 6, dpi = 300, bg = "white")
 ```
 
-### Overall bat activity: intensity/colour GAM
+### Overall bat activity: intensity/color GAM
 
-GAM counterpart to the moth intensity/colour GAM, on total nightly bat activity (`site_night$total_det`): intensity as a smooth with a separate curve per colour, site as a random effect. Only 5 distinct intensity values, so the smooth basis is capped at `k = 5`.
+GAM counterpart to the moth intensity/color GAM, on total nightly bat activity (`site_night$total_det`): intensity as a smooth with a separate curve per color, site as a random effect. Only 5 distinct intensity values, so the smooth basis is capped at `k = 5`.
 
 ```{r bat_gam_intensity_color, warning=FALSE, message=FALSE, fig.width=8, fig.height=5.5}
 library(mgcv)
 bat_gam_dat <- site_night %>%
-  mutate(intensity_num = as.numeric(as.character(intensity))) %>%
+  mutate(intensity_num = as.numeric(as.character(intensity)),
+         site = factor(site)) %>%   # s(site, bs = "re") needs a factor
   filter(!is.na(intensity_num), !is.na(color))
 
 bat_gam <- gam(
@@ -729,13 +730,13 @@ bat_gam <- gam(
     s(dist_km, k = 5) + s(jd_c, k = 5) +
     mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
   data = bat_gam_dat, family = nb(), method = "REML")
-cat("=== Overall bat intensity/colour GAM ===\n"); print(summary(bat_gam))
+cat("=== Overall bat intensity/color GAM ===\n"); print(summary(bat_gam))
 
 bat_gam_shared <- gam(
   total_det ~ color + s(intensity_num, k = 5) + s(dist_km, k = 5) + s(jd_c, k = 5) +
     mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
   data = bat_gam_dat, family = nb(), method = "REML")
-cat("\nAIC (separate-by-colour vs shared intensity smooth):\n")
+cat("\nAIC (separate-by-color vs shared intensity smooth):\n")
 print(AIC(bat_gam_shared, bat_gam))
 
 bat_pgrid <- expand_grid(intensity_num = seq(10, 100, by = 1),
@@ -853,7 +854,7 @@ message("Moth sampling events: ", nrow(insect_total_env),
 
 ### Data-integrity sanity checks (moths)
 
-Assert the moth data is what the models assume before fitting. The moth unit is a sampling **event** (site $\times$ date $\times$ colour $\times$ intensity); note one date has two events at a site, so there are slightly more events than unique site-dates.
+Assert the moth data is what the models assume before fitting. The moth unit is a sampling **event** (site $\times$ date $\times$ color $\times$ intensity); note one date has two events at a site, so there are slightly more events than unique site-dates.
 
 ```{r sanity_checks_moths, warning=FALSE, message=TRUE}
 stopifnot(
@@ -873,7 +874,7 @@ stopifnot(
 
   # treatment factor levels
   "moth intensity has 5 expected levels"    = setequal(as.character(unique(insect_total_env$intensity)), c("10","30","50","70","100")),
-  "moth colour is R/W"                      = setequal(as.character(unique(insect_total_env$color)), c("R","W")),
+  "moth color is R/W"                      = setequal(as.character(unique(insect_total_env$color)), c("R","W")),
 
   # taxonomic detection frames are consistent with the specimen table
   "family counts == specimens with family" = sum(insects$family$detections) == sum(!is.na(insects$specimens$Family)),
@@ -913,7 +914,7 @@ insect_general$fig_dist_intensity
 
 ```{r insect_gam_intensity_color, warning=FALSE, message=FALSE, fig.width=8, fig.height=5.5}
 # GAM alternative to the factor model: intensity as a smooth, a separate curve
-# per colour, so the intensity response can bend and differ by colour. Only 5
+# per color, so the intensity response can bend and differ by color. Only 5
 # distinct intensity values, so the smooth basis is capped at k = 5. Site enters
 # as a random effect; the other covariates are controls.
 library(mgcv)
@@ -926,14 +927,14 @@ moth_gam <- gam(
     s(dist_km, k = 5) + s(jd_c, k = 5) +
     mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
   data = gam_dat, family = nb(), method = "REML")
-cat("=== Moth intensity/colour GAM ===\n"); print(summary(moth_gam))
+cat("=== Moth intensity/color GAM ===\n"); print(summary(moth_gam))
 
-# does the intensity smooth differ by colour? (vs. a single shared smooth)
+# does the intensity smooth differ by color? (vs. a single shared smooth)
 moth_gam_shared <- gam(
   detections ~ color + s(intensity_num, k = 5) + s(dist_km, k = 5) + s(jd_c, k = 5) +
     mean_phase + pct_nonforest + brightness_dark + s(site, bs = "re"),
   data = gam_dat, family = nb(), method = "REML")
-cat("\nAIC (separate-by-colour vs shared intensity smooth):\n")
+cat("\nAIC (separate-by-color vs shared intensity smooth):\n")
 print(AIC(moth_gam_shared, moth_gam))
 
 pgrid <- expand_grid(intensity_num = seq(10, 100, by = 1),
@@ -1090,7 +1091,7 @@ make_taxon_distance("Species_bin", "species", "Species", drop_sites = far3)
 
 ### Significant-taxa distance hierarchy
 
-Synthesises the per-taxon distance results into one taxonomic tree. At each level (family → subfamily → genus → species) we test every taxon with ≥30 site-nights for a distance slope (joint `taxon × dist_km` NB-GLMM), keep those with *p* \< 0.05, and draw each as a miniature of its model-predicted detections-vs-distance curve (±95% CI, auto-scaled within its box). Nodes are coloured by direction (more active away from vs. toward the lot) and linked to their nearest significant ancestor. *p* is uncorrected across the many taxa, so single-star nodes should be read cautiously.
+Synthesises the per-taxon distance results into one taxonomic tree. At each level (family → subfamily → genus → species) we test every taxon with ≥30 site-nights for a distance slope (joint `taxon × dist_km` NB-GLMM), keep those with *p* \< 0.05 (and, in the `_BH` versions, those with Benjamini–Hochberg-adjusted *p* \< 0.05 across all taxa tested), and draw each as a miniature of its model-predicted detections-vs-distance curve (±95% CI, auto-scaled within its box). Nodes are colored by direction (more active away from vs. toward the lot) and linked to their nearest significant ancestor. *p* is uncorrected across the many taxa, so single-star nodes should be read cautiously.
 
 ```{r moth_sig_hierarchy, warning=FALSE, message=FALSE, fig.width=14, fig.height=8}
 # taxonomic lineage lookups (modal parent per taxon)
@@ -1140,13 +1141,21 @@ hier_level <- function(level, drop_sites = NULL, exclude_rx = NULL, min_sn = 30)
   list(sumry = sumry, curves = cv)
 }
 
-hier_nodes <- function(drop_sites = NULL) {
-  lv <- list(Family = hier_level("Family", drop_sites), Subfamily = hier_level("Subfamily", drop_sites),
-             Genus = hier_level("Genus", drop_sites, exclude_rx = "(inae|idae)$"),
-             Species_bin = hier_level("Species_bin", drop_sites))
+hier_levels <- function(drop_sites = NULL) {
+  list(Family = hier_level("Family", drop_sites), Subfamily = hier_level("Subfamily", drop_sites),
+       Genus = hier_level("Genus", drop_sites, exclude_rx = "(inae|idae)$"),
+       Species_bin = hier_level("Species_bin", drop_sites))
+}
+# p_adjust: "none" (uncorrected) or a p.adjust method, applied across ALL taxa tested at all
+# four levels in that dataset; nodes are kept, and starred, on the (adjusted) p
+# trend: optional "Level:Taxon" keys to draw as non-significant trends (dashed boxes, labeled with raw p)
+hier_nodes <- function(drop_sites = NULL, p_adjust = "none", lv = hier_levels(drop_sites), trend = character(0)) {
   yy <- c(Family = 4, Subfamily = 3, Genus = 2, Species_bin = 1)
-  nd <- bind_rows(lapply(names(lv), function(l) { x <- lv[[l]]; if (is.null(x)) return(NULL)
-    x$sumry %>% filter(!is.na(p), p < 0.05) %>% mutate(lev = l, y = yy[l]) }))
+  allp <- bind_rows(lapply(names(lv), function(l) { x <- lv[[l]]; if (is.null(x)) return(NULL)
+    x$sumry %>% filter(!is.na(p)) %>% mutate(lev = l) }))
+  allp <- allp %>% mutate(p_raw = p, p = p.adjust(p, method = p_adjust))
+  nd <- allp %>% filter(p < 0.05 | paste(lev, taxon, sep = ":") %in% trend) %>%
+    mutate(y = yy[lev], trend = !(p < 0.05))
   curves <- bind_rows(lapply(names(lv), function(l) { x <- lv[[l]]; if (is.null(x)) return(NULL)
     x$curves %>% mutate(lev = l) }))
   if (nrow(nd) == 0) return(list(nd = nd, curves = curves))
@@ -1156,7 +1165,7 @@ hier_nodes <- function(drop_sites = NULL) {
     if (l == "Subfamily") { nd$Subfamily[i] <- t; r <- .sub2[.sub2$Subfamily == t, ]; if (nrow(r)) nd$Family[i] <- r$Family[1] }
     if (l == "Genus") { nd$Genus[i] <- t; r <- .gen2[.gen2$Genus == t, ]; if (nrow(r)) { nd$Subfamily[i] <- r$Subfamily[1]; nd$Family[i] <- r$Family[1] } }
     if (l == "Species_bin") { nd$Species_bin[i] <- t; r <- .sp2[.sp2$Species_bin == t, ]; if (nrow(r)) { nd$Genus[i] <- r$Genus[1]; nd$Subfamily[i] <- r$Subfamily[1]; nd$Family[i] <- r$Family[1] } } }
-  nd$key <- paste(nd$lev, nd$taxon, sep = ":"); nd$stars <- .pstar(nd$p)
+  nd$key <- paste(nd$lev, nd$taxon, sep = ":"); nd$stars <- ifelse(nd$trend, "", .pstar(nd$p))
   nd$dir <- ifelse(nd$est > 0, "Away from lot", "Toward lot")
   haskey <- function(lv2, t) if (is.na(t)) NA else { k <- paste0(lv2, ":", t); if (k %in% nd$key) k else NA }
   nd$parent <- NA_character_
@@ -1184,9 +1193,21 @@ hier_layout <- function(nd) {
   roots <- nd$key[is.na(nd$parent)]; roots <- roots[order(match(roots, nd$key))]; for (r in roots) assign_x(r)
   nd$x <- env$x[nd$key] * .SPX; nd
 }
-hier_plot <- function(res, title) {
+hier_plot <- function(res, title,
+                      subtitle = "each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor") {
   nd <- res$nd; curves <- res$curves; tiers <- data.frame(y = 4:1)
-  if (nrow(nd) == 0) return(ggplot() + annotate("text", 0, 0, label = "No significant taxa") + theme_void() + ggtitle(title))
+  if (nrow(nd) == 0) return(   # empty tree: same frame and styling as a populated one
+    ggplot() +
+      geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
+      annotate("text", x = 5, y = 2.5, label = "No taxa with a significant distance slope",
+               size = 4.5, color = "#666666", fontface = "italic") +
+      scale_y_continuous(breaks = 4:1, labels = c("Family", "Subfamily", "Genus", "Species"), limits = c(0.3, 4.7)) +
+      coord_cartesian(xlim = c(0, 10)) +
+      labs(title = title, subtitle = subtitle) +
+      theme_void(base_family = "Arial") +
+      theme(plot.title = element_text(face = "bold", size = 14), plot.subtitle = element_text(size = 9, color = "#555555"),
+            axis.text.y = element_text(size = 10, face = "bold", color = "#333333", hjust = 1),
+            plot.margin = margin(8, 14, 8, 8)))
   nd <- hier_layout(nd)
   cv <- curves %>% semi_join(nd %>% select(lev, taxon), by = c("lev", "taxon")) %>%
     left_join(nd %>% select(lev, taxon, key, nx = x, ny = y, dir), by = c("lev", "taxon")) %>%
@@ -1195,37 +1216,60 @@ hier_plot <- function(res, title) {
       X = nx + (xr - 0.5) * .BOXW, Yl = ny + ((response - lo) / rng - 0.5) * .BOXH,
       Ylo = ny + ((lower - lo) / rng - 0.5) * .BOXH, Yhi = ny + ((upper - lo) / rng - 0.5) * .BOXH) %>%
     ungroup() %>% arrange(key, X)
-  box <- nd %>% transmute(key, dir, xmin = x - .BOXW/2, xmax = x + .BOXW/2, ymin = y - .BOXH/2, ymax = y + .BOXH/2)
+  box <- nd %>% transmute(key, dir, trend, xmin = x - .BOXW/2, xmax = x + .BOXW/2, ymin = y - .BOXH/2, ymax = y + .BOXH/2)
   seg <- nd %>% filter(!is.na(parent)) %>% left_join(nd %>% select(parent = key, px = x, py = y), by = "parent")
   lab <- nd %>% mutate(italic = ifelse(lev %in% c("Genus", "Species_bin"), "italic", "plain"),
-                       lab2 = paste0(taxon, " ", stars), ly = y - .BOXH/2 - 0.11)
+                       lab2 = ifelse(trend, sprintf("%s (trend, p = %.2f)", taxon, p_raw), paste0(taxon, " ", stars)),
+                       ly = y - .BOXH/2 - 0.11)
   ggplot() +
     geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
-    { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py, xend = x, yend = y), color = "#C4C4C4", linewidth = 0.45) } +
-    geom_rect(data = box, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, color = dir), fill = "white", linewidth = 0.5) +
+    { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py, xend = x, yend = y, linetype = trend), color = "#C4C4C4", linewidth = 0.45) } +
+    geom_rect(data = box, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, color = dir, linetype = trend), fill = "white", linewidth = 0.5) +
+    scale_linetype_manual(values = c(`FALSE` = "solid", `TRUE` = "22"), guide = "none") +
     geom_ribbon(data = cv, aes(x = X, ymin = Ylo, ymax = Yhi, group = key, fill = dir), alpha = 0.22) +
     geom_line(data = cv, aes(x = X, y = Yl, group = key, color = dir), linewidth = 0.7) +
     geom_text(data = lab, aes(x = x, y = ly, label = lab2, fontface = italic), size = 2.7, vjust = 1, color = "#222222") +
     scale_color_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
     scale_fill_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
     scale_y_continuous(breaks = 4:1, labels = c("Family", "Subfamily", "Genus", "Species"), limits = c(0.3, 4.7)) +
-    coord_cartesian(clip = "off") +
-    labs(title = title, subtitle = "each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor") +
+    # keep box proportions in sparse trees: x-range spans at least ~7 node slots
+    coord_cartesian(xlim = c(min(nd$x) - .BOXW, max(max(nd$x) + .BOXW, min(nd$x) + 6.5 * .SPX)), clip = "off") +
+    labs(title = title, subtitle = subtitle) +
     theme_void(base_family = "Arial") +
     theme(plot.title = element_text(face = "bold", size = 14), plot.subtitle = element_text(size = 9, color = "#555555"),
           axis.text.y = element_text(size = 10, face = "bold", color = "#333333", hjust = 1), legend.position = "top",
           legend.title = element_text(face = "bold", size = 9), legend.text = element_text(size = 9), plot.margin = margin(8, 14, 8, 8))
 }
 
-for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)"),
-                list(drop = far3, sfx = "_nofar", ttl = "Far sites removed (11 near sites)"))) {
-  res <- hier_nodes(sc$drop)
-  p <- hier_plot(res, paste0("Moth significant-taxa hierarchy (distance) — ", sc$ttl))
-  nleaf <- if (nrow(res$nd)) sum(!(res$nd$key %in% res$nd$parent)) else 1
-  ggsave(sprintf("output/figures/moth_sig_hierarchy_distance%s.png", sc$sfx), p,
-         width = max(13, nleaf * 1.9), height = 8.5, dpi = 300, bg = "white", limitsize = FALSE)
-  print(p)
+# trend: Arctia, the strongest opposite-direction (toward-lot) genus (p = 0.068 uncorrected),
+# drawn as a dashed trend box in the far-sites-removed BH figure
+for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)", trend = character(0)),
+                list(drop = far3, sfx = "_nofar", ttl = "Far sites removed (11 near sites)", trend = "Genus:Arctia"))) {
+  lv <- hier_levels(sc$drop)
+  for (adj in c("none", "BH")) {
+    res <- hier_nodes(p_adjust = adj, lv = lv, trend = if (adj == "BH") sc$trend else character(0))
+    ttl <- paste0("Moth significant-taxa hierarchy (distance) — ", sc$ttl,
+                  if (adj == "BH") ", BH-corrected" else "")
+    sub <- paste0("each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor",
+                  if (adj == "BH") paste0("\nshown: taxa with Benjamini–Hochberg-adjusted p < 0.05 across all taxa tested (asterisks from adjusted p)",
+                                          if (length(sc$trend)) "; dashed box = non-significant trend (uncorrected p)" else "") else "")
+    p <- hier_plot(res, ttl, sub)
+    nleaf <- if (nrow(res$nd)) sum(!(res$nd$key %in% res$nd$parent)) else 1
+    ggsave(sprintf("output/figures/moth_sig_hierarchy_distance%s%s.png", sc$sfx, if (adj == "BH") "_BH" else ""), p,
+           width = max(13, nleaf * 1.9), height = 8.5, dpi = 300, bg = "white", limitsize = FALSE)
+    print(p)
+  }
 }
+```
+
+### Moth hierarchy plate: full data and far sites removed (storyboard)
+
+Stacks the Benjamini–Hochberg-corrected full-data and far-sites-removed hierarchies above (`*_BH.png`, taxa with BH-adjusted p < 0.05 across all taxa tested in that dataset) into one two-panel storyboard figure (no refitting).
+
+```{r moth_hierarchy_plate, warning=FALSE, message=FALSE}
+source("R/50_moth_hierarchy_panel.R")
+make_moth_hierarchy_panel()
+knitr::include_graphics("output/figures/fig_moth_hierarchy_full_nofar.png")
 ```
 
 ### Bayesian distance hierarchy (brms, partial pooling)
@@ -1240,7 +1284,7 @@ Fits are cached under `output/brms_fits/`: the first knit fits three models (\~1
   !is.null(tryCatch(cmdstanr::cmdstan_version(), error = function(e) NULL))
 
 if (!.brms_ok) {
-  message("brms/cmdstan not available — skipping Bayesian hierarchy. Install brms + cmdstan to enable.")
+  message("brms/cmdstan not available, skipping Bayesian hierarchy. Install brms + cmdstan to enable.")
 } else {
   suppressMessages({ library(brms); library(posterior) })
   dir.create("output/brms_fits", showWarnings = FALSE, recursive = TRUE)
@@ -1528,6 +1572,19 @@ ggsave("output/figures/moth_fig_dist_heatmap.png", moth_community$fig_c3,
        width = 7, height = 6, dpi = 300, bg = "white")
 ```
 
+### Bat and moth community composition: storyboard figure
+
+Runs the community analysis for bats (9 focal species) and moths (9 families) on the full data and with the far sites removed, then plots (A) the share of community variation each predictor explains on its own (marginal dbRDA) and (B) each taxon's response (mvabund coefficients and per-taxon tests). The four fits take about 20 minutes, so they are cached in `output/community_fits.rds`; delete that file to refit.
+
+```{r community_panels, warning=FALSE, message=FALSE, fig.width=13, fig.height=14}
+source("R/52_community_panels.R")
+comm_fits <- if (file.exists("output/community_fits.rds")) readRDS("output/community_fits.rds") else
+  fit_community_sets(data_env_focal, insect_family_env, bat_theme, col_red, col_white)
+comm_panels <- make_community_panels(comm_fits, bat_theme)
+comm_panels$importance
+comm_panels$plate
+```
+
 ## Moth Taxonomic Levels & Richness
 
 Extends the family-level moth analysis to **subfamily, genus, and species** resolution. For each level we test whether light color, intensity, and distance restructure the community (dbRDA / PERMANOVA / mvabund), and we model **taxonomic richness** per site-night (species / genus / subfamily), adjusted for catch size. `mvabund` uses fewer bootstraps at the higher-dimensional levels (159 genera, 253 species) to keep knit time reasonable.
@@ -1636,9 +1693,92 @@ bm_effects$fig_forest
 bm_effects$forest_df
 ```
 
+### Bat vs. moth % change plate (storyboard)
+
+Six-panel bat vs. moth comparison for the storyboard: distance, distance × intensity and distance × color, each for the full data and with the three far (\~7 km) sites removed. Each taxon's general model is refit with an added color × distance term (needed for the distance × color row), so all panels come from one model per taxon and dataset.
+
+```{r bat_moth_pct_panels, warning=FALSE, message=FALSE, fig.width=13, fig.height=12.5}
+source("R/42_bat_moth_pct_panels.R")
+bm_pct <- make_bat_moth_pct_panels(simple_model1, insect_general$model,
+                                   site_night, insect_total_env, bat_theme)
+bm_pct$plate
+
+# does the added color x distance term earn its place? (negative = better)
+c(bat  = AIC(bm_pct$models$full$Bat)  - AIC(simple_model1),
+  moth = AIC(bm_pct$models$full$Moth) - AIC(insect_general$model))
+```
+
+### White vs. red and predicted detections (storyboard)
+
+White vs. red % change in bat and moth detections at each intensity (top row), and model-predicted bat detections per night and moths per sampling event at each intensity, red vs. white, from the same bat and moth models as the % change plate (full data and far sites removed).
+
+```{r predicted_detections, warning=FALSE, message=FALSE, fig.width=12, fig.height=13.5}
+source("R/49_predicted_detections.R")
+pred_det <- make_predicted_detections(simple_model1, insect_general$model, site_night, insect_total_env, bat_theme)
+pred_det$converged
+pred_det$plate
+```
+
+### Moth distance trend by color and intensity (storyboard)
+
+Within 0–2.1 km (far sites removed), does the moth distance gradient depend on the color × intensity combination? Refits the storyboard moth model with a color × intensity × distance term, tests it by likelihood ratio, and plots the per-km trend for each color at each intensity.
+
+```{r moth_color_intensity_distance, warning=FALSE, message=FALSE, fig.width=8.5, fig.height=5.5}
+source("R/43_moth_color_intensity_distance.R")
+moth_cid <- make_moth_color_intensity_panel(insect_general$model, insect_total_env, bat_theme)
+moth_cid$lrt
+moth_cid$table
+moth_cid$plot
+```
+
+### Bat vs. moth white vs. red at each intensity (storyboard)
+
+White vs. red % change in bat and moth detections at each intensity: full data and far sites removed (storyboard bat and moth models, at mean distance).
+
+```{r bat_moth_white_vs_red, warning=FALSE, message=FALSE, fig.width=11, fig.height=5.6}
+source("R/47_bat_moth_white_vs_red_panel.R")
+bm_wr <- make_bat_moth_white_vs_red_panel(simple_model1, insect_general$model,
+                                          site_night, insect_total_env, bat_theme)
+bm_wr$converged
+bm_wr$tables
+bm_wr$plate
+```
+
+### Bat guild % change plate (storyboard)
+
+Six-panel plate for the three call-frequency guilds (low frequency, Myev, high frequency): distance, distance × intensity and distance × color, for the full data and with the far sites removed. Each guild gets its own zero-inflated NB GLMM on the zero-filled guild-night data, with the same structure as the bat vs. moth plate; plotted on a log scale labeled in % change.
+
+```{r bat_guild_pct_panels, warning=FALSE, message=FALSE, fig.width=13, fig.height=12.5}
+source("R/45_bat_guild_pct_panels.R")
+guild_pct <- make_bat_guild_pct_panels(cluster_night, bat_theme)
+guild_pct$converged
+guild_pct$plate
+```
+
+### Bat guilds and species: white vs. red (storyboard)
+
+White vs. red % change in detections: the three guilds at each intensity (from the per-guild models above) and each focal species at 100% and 50% intensity (per-species GLMMs on the zero-filled species-night data, same structure, single-species detections only), for the full data and with the far sites removed.
+
+```{r bat_guild_species_white_vs_red, warning=FALSE, message=FALSE, fig.width=13, fig.height=16.5}
+source("R/48_species_white_vs_red_100.R")
+spp_wr100 <- fit_species_white_vs_red_100(spp_night)
+spp_wr100
+make_guild_species_white_vs_red(guild_pct$models, spp_wr100, bat_theme)
+```
+
+### Bat guild predicted detections (storyboard)
+
+Expected detections per night for each guild at each intensity, red vs. white, from the per-guild models (including the zero-inflation component), full data and far sites removed.
+
+```{r guild_predicted_detections, warning=FALSE, message=FALSE, fig.width=12, fig.height=13}
+source("R/49_predicted_detections.R")
+guild_pred <- make_guild_predicted_detections(guild_pct$models, bat_theme)
+guild_pred$plate
+```
+
 ## Robustness / Sensitivity Analysis
 
-The three far sites (\~7 km) sit in a large gap beyond the rest (0–2 km), and GRTE15 in particular is a high-detection outlier. Refit the key models — the overall bat model, the guild model, and the moth activity model — with these sites removed, and compare the colour and distance effects. Colour effects are expected to hold; the distance/guild slopes are the ones likely to hinge on the far sites.
+The three far sites (\~7 km) sit in a large gap beyond the rest (0–2 km), and GRTE15 in particular is a high-detection outlier. Refit the key models — the overall bat model, the guild model, and the moth activity model — with these sites removed, and compare the color and distance effects. Color effects are expected to hold; the distance/guild slopes are the ones likely to hinge on the far sites.
 
 ```{r robustness_analysis, warning=FALSE, message=FALSE}
 library(emmeans)
@@ -1683,9 +1823,94 @@ robustness <- purrr::map_dfr(names(robust_scenarios), function(nm) {
 
 knitr::kable(
   robustness,
-  caption = paste("Sensitivity of colour and distance effects to removing the",
-                  "high-leverage far sites. Colour W/R = White-vs-Red ratio;",
+  caption = paste("Sensitivity of color and distance effects to removing the",
+                  "high-leverage far sites. Color W/R = White-vs-Red ratio;",
                   "distance slopes are on the log scale."))
+```
+
+### GRTE05 sensitivity
+
+GRTE05 sits \~116 m from the lit GRTE16 yet records \~2% of GRTE16's bat calls on the same nights (median ratio over 24 shared nights), while its nightly totals still track GRTE16 (r ≈ 0.58). It also has the most near-empty nights (8 nights \< 5 calls; no other site has more than 1), a two-week gap in early July, and an unusually narrow species mix (93% `Mylu`). Moth catches there are typical. This pattern points to reduced detector sensitivity or a cluttered placement rather than real bat avoidance, so the key models are refit with and without GRTE05. The second table swaps `brightness_dark` for `brightness_white100` (sky brightness with the lot lights on at white 100%). GRTE09 and GRTE10 have no white100 photos, so both white and dark versions there are fit on the 12 sites that have them; ΔAIC compares white vs dark on identical data. Brightness effects are reported per 1 SD of the covariate (log scale).
+
+```{r grte05_sensitivity, warning=FALSE, message=FALSE}
+# brightness coefficient rescaled to per-SD of the covariate in the fitted data
+.bright_sd <- function(m, term) {
+  ct <- summary(m)$coefficients$cond
+  s  <- sd(model.frame(m)[[term]])
+  sprintf("%.2f (p=%.3f)", ct[term, "Estimate"] * s, ct[term, "Pr(>|z|)"])
+}
+.drop_site <- function(df, drop) droplevels(dplyr::filter(df, !site %in% drop))
+
+grte05_scenarios <- list("Full data" = character(0), "Drop GRTE05" = "GRTE05")
+
+# --- existing (dark-brightness) models, all 14 sites -------------------------
+grte05_dark <- purrr::map_dfr(names(grte05_scenarios), function(nm) {
+  drop <- grte05_scenarios[[nm]]
+  bat  <- update(simple_model1,        data = .drop_site(site_night, drop))
+  gld  <- update(cluster_glmm,         data = .drop_site(cluster_night, drop))
+  spp  <- update(species_glmm,         data = .drop_site(spp_night, drop))
+  moth <- update(insect_general$model, data = .drop_site(insect_total_env, drop))
+  gs   <- .dist_slope(gld, by = "cluster")
+  tibble::tibble(
+    Scenario                   = nm,
+    `Bat color (W/R)`          = .color_wr(bat),
+    `Bat dist slope`           = .dist_slope(bat),
+    `Bat brightness_dark`      = .bright_sd(bat, "brightness_dark"),
+    `Guild color (W/R)`        = .color_wr(gld),
+    `Guild dist Low/Myev/High` = paste(gs["LowFreq"], gs["Myev"], gs["HighFreq"], sep = " / "),
+    `Species brightness_dark`  = .bright_sd(spp, "brightness_dark"),
+    `Moth color (W/R)`         = .color_wr(moth),
+    `Moth dist slope`          = .dist_slope(moth),
+    `Moth brightness_dark`     = .bright_sd(moth, "brightness_dark")
+  )
+})
+
+knitr::kable(grte05_dark,
+  caption = paste("Key effects with and without GRTE05 (dark-brightness models,",
+                  "all sites). Color W/R = White-vs-Red ratio; distance slopes",
+                  "and brightness effects are on the log scale."))
+
+# --- white100 vs dark brightness, 12 sites with white100 photos --------------
+sky_white <- read_csv("data/sky_brightness_measurements.csv", show_col_types = FALSE) %>%
+  mutate(site = toupper(site)) %>%
+  select(site, brightness_white100)
+white_sites <- sky_white$site[!is.na(sky_white$brightness_white100)]
+.add_white <- function(df) {
+  df %>%
+    select(-any_of("brightness_white100")) %>%
+    mutate(site = as.character(site)) %>%
+    filter(site %in% white_sites) %>%
+    left_join(sky_white, by = "site") %>%
+    mutate(site = factor(site))
+}
+.swap <- . ~ . - brightness_dark + brightness_white100
+
+grte05_white <- purrr::map_dfr(names(grte05_scenarios), function(nm) {
+  drop <- grte05_scenarios[[nm]]
+  fits <- list(
+    Bat     = list(m = simple_model1,        d = site_night),
+    Guild   = list(m = cluster_glmm,         d = cluster_night),
+    Species = list(m = species_glmm,         d = spp_night),
+    Moth    = list(m = insect_general$model, d = insect_total_env)
+  )
+  purrr::imap_dfr(fits, function(f, model_nm) {
+    d     <- .drop_site(.add_white(f$d), drop)
+    dark  <- update(f$m, data = d)
+    white <- update(f$m, .swap, data = d)
+    tibble::tibble(
+      Scenario         = nm,
+      Model            = model_nm,
+      Sites            = dplyr::n_distinct(d$site),
+      `brightness_dark`     = .bright_sd(dark,  "brightness_dark"),
+      `brightness_white100` = .bright_sd(white, "brightness_white100"),
+      `ΔAIC (white − dark)` = round(AIC(white) - AIC(dark), 1)
+    )
+  })
+})
+
+knitr::kable(grte05_white,
+  caption = paste("Dark vs white100 brightness, with and without GRTE05, on the",
+                  "sites with white100 photos. Negative ΔAIC favors white100."))
 ```
 
 ## Lamp Visual Modeling: Moth vs. Bat Perception

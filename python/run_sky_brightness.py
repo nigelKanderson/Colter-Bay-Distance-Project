@@ -11,6 +11,10 @@ Run from the Distance_Project root:
     source ../night_sky_project/environment/bin/activate
     python python/run_sky_brightness.py
 
+To rebuild only the per-site summary from the existing per-image CSV
+(e.g. after editing EXCLUDE_IMAGES; no raw CR2s or DiCaLum needed):
+    python python/run_sky_brightness.py --aggregate-only
+
 ── CAMERA / LENS ─────────────────────────────────────────────────────────────
 cameras: 0=EOS6D  1=EOS60D  2=M100  3=M200  4=SonyA7S
 lenses:  0=Sigma8mm  1=Sigma4.5mm  2=Samyang8mm  3=Samyang24mm
@@ -21,11 +25,24 @@ lenses:  0=Sigma8mm  1=Sigma4.5mm  2=Samyang8mm  3=Samyang24mm
 CAMERA_IDX = 0   # EOS6D   ← change if different from ColterBay
 LENS_IDX   = 0   # Sigma8mm ← change if different from ColterBay
 
+# ── EXCLUDED IMAGES ──────────────────────────────────────────────────────────
+# Kept in the per-image CSV but left out of the per-site averages.
+EXCLUDE_IMAGES = {
+    # Transient bright source in frame only: mean 68.1 DSU (p2/p3 ~4.9),
+    # pixel SD 473, median also raised. Inflated GRTE11 white100 from ~4.9 to 25.9.
+    "grte11_distance_white100_p1.CR2",
+    # Transient bright source in frame only: mean 19.1 DSU (p2 4.4, p3 2.9),
+    # pixel SD 340. Inflated GRTE17 dark from ~3.7 to 8.8.
+    "grte17_distance_dark_p1.CR2",
+}
+
 # ── FILENAME CONVENTION ───────────────────────────────────────────────────────
 # Expected pattern: grte_<SITE>_dark_p<N>.CR2
 # e.g. grte_grte01_dark_p1.CR2  →  site = "GRTE01"
 # If your filenames differ, update extract_site() below.
 # ─────────────────────────────────────────────────────────────────────────────
+
+import sys
 
 import numpy as np
 import pandas as pd
@@ -42,18 +59,29 @@ RAW_DIR = Path(
 )
 OUT_DIR = _PROJECT_ROOT / "data"
 
-try:
-    import dicalum
-except ImportError:
-    raise ImportError(
-        "DiCaLum not installed.\n"
-        "Activate the venv and run:  python -m pip install dicalum==4.0b7"
-    )
+def _import_raw_deps():
+    global dicalum, exifread
+    try:
+        import dicalum
+    except ImportError:
+        raise ImportError(
+            "DiCaLum not installed.\n"
+            "Activate the venv and run:  python -m pip install dicalum==4.0b7"
+        )
+    try:
+        import exifread
+    except ImportError:
+        raise ImportError("exifread not installed.  Run:  python -m pip install exifread")
 
-try:
-    import exifread
-except ImportError:
-    raise ImportError("exifread not installed.  Run:  python -m pip install exifread")
+    # Hide the Tk window DiCaLum opens at import
+    dicalum.TopWin.withdraw()
+
+    dicalum.dclinst.camera = CAMERA_IDX
+    dicalum.dclinst.lens   = LENS_IDX
+    dicalum.setvig()
+    print(f"Camera : {dicalum.cameras[CAMERA_IDX]}")
+    print(f"Lens   : {dicalum.lenses[LENS_IDX]}")
+    print(f"Vignetting matrix set — {dicalum.dcldat.V.shape}\n")
 
 
 def read_exif(filepath: Path):
@@ -69,17 +97,6 @@ def read_exif(filepath: Path):
         return float(val) if val else 0.0
 
     return parse("EXIF ISOSpeedRatings"), parse("EXIF FNumber"), parse("EXIF ExposureTime")
-
-
-# Hide the Tk window DiCaLum opens at import
-dicalum.TopWin.withdraw()
-
-dicalum.dclinst.camera = CAMERA_IDX
-dicalum.dclinst.lens   = LENS_IDX
-dicalum.setvig()
-print(f"Camera : {dicalum.cameras[CAMERA_IDX]}")
-print(f"Lens   : {dicalum.lenses[LENS_IDX]}")
-print(f"Vignetting matrix set — {dicalum.dcldat.V.shape}\n")
 
 
 def parse_filename(filename_stem: str) -> tuple[str, str]:
@@ -148,27 +165,11 @@ def process_file(cr2_path: Path) -> dict | None:
         return None
 
 
-def main():
-    if not RAW_DIR.exists():
-        raise FileNotFoundError(f"RAW_DIR not found:\n  {RAW_DIR}\nCheck the path at the top of this script.")
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    cr2_files = sorted(RAW_DIR.glob("*.CR2")) + sorted(RAW_DIR.glob("*.cr2"))
-    if not cr2_files:
-        print(f"No CR2 files found in:\n  {RAW_DIR}")
-        return
-
-    print(f"Found {len(cr2_files)} CR2 files\n")
-    results = [r for f in cr2_files if (r := process_file(f)) is not None]
-
-    if not results:
-        print("No files processed successfully.")
-        return
-
-    df_img   = pd.DataFrame(results)
-    img_csv  = OUT_DIR / "sky_brightness_per_image.csv"
-    df_img.to_csv(img_csv, index=False)
+def summarise_sites(df_img: pd.DataFrame) -> pd.DataFrame:
+    excluded = df_img["filename"].isin(EXCLUDE_IMAGES)
+    for f in df_img.loc[excluded, "filename"]:
+        print(f"  Excluding from site averages: {f}")
+    df_img = df_img.loc[~excluded]
 
     # Average p1/p2/p3 per site × condition, then pivot wide
     df_by_cond = (
@@ -199,10 +200,44 @@ def main():
 
     df_sites = df_mean.merge(df_med, on="site", how="left")
 
+    return df_sites
+
+
+def main():
+    img_csv = OUT_DIR / "sky_brightness_per_image.csv"
+
+    if "--aggregate-only" in sys.argv:
+        df_img = pd.read_csv(img_csv)
+        n_images = len(df_img)
+    else:
+        _import_raw_deps()
+        if not RAW_DIR.exists():
+            raise FileNotFoundError(f"RAW_DIR not found:\n  {RAW_DIR}\nCheck the path at the top of this script.")
+
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+        cr2_files = sorted(RAW_DIR.glob("*.CR2")) + sorted(RAW_DIR.glob("*.cr2"))
+        if not cr2_files:
+            print(f"No CR2 files found in:\n  {RAW_DIR}")
+            return
+
+        print(f"Found {len(cr2_files)} CR2 files\n")
+        results = [r for f in cr2_files if (r := process_file(f)) is not None]
+
+        if not results:
+            print("No files processed successfully.")
+            return
+
+        df_img = pd.DataFrame(results)
+        df_img.to_csv(img_csv, index=False)
+        n_images = len(results)
+
+    df_sites = summarise_sites(df_img)
+
     site_csv = OUT_DIR / "sky_brightness_measurements.csv"
     df_sites.to_csv(site_csv, index=False)
 
-    print(f"\nDone! {len(results)} images processed | {df_sites.shape[0]} sites")
+    print(f"\nDone! {n_images} images | {df_sites.shape[0]} sites")
     print(f"  Per-image : {img_csv}")
     print(f"  Per-site  : {site_csv}\n")
     print(df_sites.to_string(index=False))
