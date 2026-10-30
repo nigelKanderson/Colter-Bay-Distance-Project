@@ -4,16 +4,18 @@
 # 42_bat_moth_pct_panels.R):
 #   Rows: white vs red % change at each intensity, bats vs moths (A-B; 47_*.R engine) |
 #         predicted bats, detections per night (C-D) | predicted moths, per sampling event (E-F)
-#   Cols: full data (14 sites) | far sites (GRTE13/14/15) removed (11 sites)
+#   Cols: GRTE15 excluded (13 sites) | far sites (GRTE13/14/15) removed (11 sites)
 # Points = marginal means on the response scale (other covariates at their means, mean
 # distance), 95% CIs; asterisks = white vs red differs at that intensity (* p<0.05,
 # ** p<0.01, *** p<0.001; Holm-adjusted across the 5 intensities). y-axis shared within each row.
 # Colors: storyboard crimson (red light) and darkened gold (white light; color-blind checked).
 # Output: output/figures/fig_predicted_detections.png
 
+source("R/storyboard_sites.R")   # SB_FULL_DROP, SB_FAR_DROP, SB_LABELS
+
 make_predicted_detections <- function(bat_model, moth_model, site_night, insect_total_env, bat_theme,
-                                      far_sites = c("GRTE13", "GRTE14", "GRTE15"),
-                                      col_red = "#7A1C2E", col_white = "#A8842A",
+                                      far_sites = SB_FAR_DROP,
+                                      col_red = "#B2182B", col_white = "#A8842A",
                                       file = "output/figures/fig_predicted_detections.png") {
   library(emmeans)
   library(tidyverse)
@@ -22,13 +24,10 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
   int_levels <- c("10", "30", "50", "70", "100")
   stars  <- function(p) case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "")
   add_dc <- . ~ . + color:dist_km
-  drop   <- function(df) droplevels(filter(df, !site %in% far_sites))
-  fits <- list(
-    full  = list(Bat  = update(bat_model,  add_dc, data = site_night),
-                 Moth = update(moth_model, add_dc, data = insect_total_env)),
-    nofar = list(Bat  = update(bat_model,  add_dc, data = drop(site_night)),
-                 Moth = update(moth_model, add_dc, data = drop(insect_total_env)))
-  )
+  drop   <- function(df, sites) droplevels(filter(df, !site %in% sites))
+  fits <- lapply(SB_SETS, function(sites)
+    list(Bat  = update(bat_model,  add_dc, data = drop(site_night, sites)),
+         Moth = update(moth_model, add_dc, data = drop(insect_total_env, sites))))
 
   tabs <- map(fits, ~ imap(.x, function(m, tx) {
     em  <- emmeans(m, ~ color | intensity, type = "response")
@@ -44,7 +43,7 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
   row_max <- function(tx) max(unlist(map(tabs, ~ .x[[tx]]$est$hi)))
   dodge <- position_dodge(0.45)
   ylab  <- c(Bat = "Predicted bat detections per night", Moth = "Predicted moths per sampling event")
-  col_labels <- c(full = "Full data (14 sites)", nofar = "Far sites removed (11 sites)")
+  col_labels <- SB_LABELS
 
   panel <- function(ds, tx) {
     r   <- tabs[[ds]][[tx]]
@@ -53,10 +52,12 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
     ggplot(r$est, aes(intensity, y, color = color, group = color)) +
       geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.18, linewidth = 0.6, position = dodge) +
       geom_line(linewidth = 0.5, alpha = 0.5, position = dodge) +
-      geom_point(size = 2.8, position = dodge) +
+      geom_point(aes(fill = color), shape = 21, size = 4.4, stroke = 1, position = dodge) +
       geom_text(data = top, aes(intensity, top, label = stars(p)), inherit.aes = FALSE,
                 vjust = -0.3, size = 4.2, color = "#222222") +
-      scale_color_manual(values = c(Red = col_red, White = col_white), name = "Light color") +
+      # red light = red point; white light = white point with a black outline
+      scale_color_manual(values = c(Red = col_red, White = "black"), name = "Light color") +
+      scale_fill_manual(values = c(Red = col_red, White = "white"), name = "Light color") +
       scale_y_continuous(limits = c(0, row_max(tx) * 1.1), expand = expansion(mult = c(0, 0.02))) +
       labs(title = paste(ifelse(tx == "Bat", "Bats", "Moths"), "·", col_labels[[ds]]),
            x = "Light intensity (%)", y = ylab[[tx]]) +
@@ -68,21 +69,21 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
   # top row: white vs red % change, bats vs moths, from the same models
   source("R/47_bat_moth_white_vs_red_panel.R")
   wr <- white_vs_red_plate(fits, pal = c(Bat = "#0072B2", Moth = "#D55E00"), bat_theme = bat_theme,
-                           title = NULL, subtitle = NULL, file = NULL, col_labels = col_labels)$panels
+                           title = NULL, subtitle = NULL, file = NULL, col_labels = col_labels,
+                           intensity_by_fill = TRUE)$panels
   wr <- imap(wr, ~ .x + labs(title = paste("White vs. red, bats vs. moths ·", col_labels[[.y]])) +
-               scale_color_manual(values = c(Bat = "#0072B2", Moth = "#D55E00"), name = "Taxon") +
                theme(plot.title = element_text(size = 11), axis.text = element_text(size = 10),
                      axis.title = element_text(size = 11)))
 
-  plate <- (wr$full | wr$nofar) /
-           (panel("full", "Bat") | panel("nofar", "Bat")) /
-           (panel("full", "Moth") | panel("nofar", "Moth")) +
+  ks <- names(fits)
+  plate <- wrap_plots(c(wr[ks], lapply(ks, panel, tx = "Bat"), lapply(ks, panel, tx = "Moth")),
+                      ncol = length(ks)) +
     plot_layout(guides = "collect") +
     plot_annotation(
       tag_levels = "A",
       title = "Bat vs. moth: white vs. red light and predicted detections",
-      subtitle = paste0("Same GLMMs as the % change figure. A–B: % change in detections under white vs. red at each intensity. ",
-                        "C–F: predicted detections (marginal means, other covariates\nat their averages and the mean distance). ",
+      subtitle = paste0("Same GLMMs as the % change figure. Top row: % change in detections under white vs. red at each intensity. ",
+                        "Lower rows: predicted detections (marginal means, other covariates\nat their averages and the mean distance). ",
                         "95% CIs; y-axis shared within each row. ",
                         "Asterisks: white vs. red differs at that intensity (* p < 0.05, ** p < 0.01, *** p < 0.001; Holm-adjusted across intensities)."),
       theme = theme(plot.title = element_text(face = "bold", size = 15),
@@ -90,7 +91,7 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
     theme(legend.position = "top", plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 12, height = 13.5, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(6 * length(ks), 12), height = 13.5, dpi = 300, bg = "white")
 
   list(plate = plate, tables = tabs, models = fits,
        converged = map(fits, ~ map_lgl(.x, ~ isTRUE(.x$sdr$pdHess))))
@@ -103,7 +104,7 @@ make_predicted_detections <- function(bat_model, moth_model, site_night, insect_
 #   Rows: low frequency | Myev | high frequency;  Cols: full data | far sites removed
 # Output: output/figures/fig_guild_predicted_detections.png
 make_guild_predicted_detections <- function(guild_fits, bat_theme,
-                                            col_red = "#7A1C2E", col_white = "#A8842A",
+                                            col_red = "#B2182B", col_white = "#A8842A",
                                             file = "output/figures/fig_guild_predicted_detections.png") {
   library(glmmTMB)
   library(emmeans)
@@ -112,7 +113,7 @@ make_guild_predicted_detections <- function(guild_fits, bat_theme,
 
   int_levels <- c("10", "30", "50", "70", "100")
   stars <- function(p) case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "")
-  col_labels <- c(full = "Full data (14 sites)", nofar = "Far sites removed (11 sites)")
+  col_labels <- SB_LABELS
 
   tabs <- map(guild_fits, ~ imap(.x, function(m, g) {
     keep_p <- if (length(fixef(m)$zi)) 1 - plogis(fixef(m)$zi[["(Intercept)"]]) else 1
@@ -137,7 +138,7 @@ make_guild_predicted_detections <- function(guild_fits, bat_theme,
     ggplot(r$est, aes(intensity, y, color = color, group = color)) +
       geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.18, linewidth = 0.6, position = dodge) +
       geom_line(linewidth = 0.5, alpha = 0.5, position = dodge) +
-      geom_point(size = 2.8, position = dodge) +
+      geom_point(size = 4, position = dodge) +
       geom_text(data = top, aes(intensity, top, label = stars(p)), inherit.aes = FALSE,
                 vjust = -0.3, size = 4.2, color = "#222222") +
       scale_color_manual(values = c(Red = col_red, White = col_white), name = "Light color") +
@@ -149,8 +150,9 @@ make_guild_predicted_detections <- function(guild_fits, bat_theme,
             axis.title = element_text(size = 11))
   }
 
-  rows  <- map(guilds, ~ panel("full", .x) | panel("nofar", .x))
-  plate <- wrap_plots(rows, ncol = 1) +
+  ks    <- names(guild_fits)
+  plate <- wrap_plots(unlist(lapply(guilds, function(g) lapply(ks, panel, g = g)), recursive = FALSE),
+                      ncol = length(ks)) +
     plot_layout(guides = "collect") +
     plot_annotation(
       tag_levels = "A",
@@ -164,6 +166,6 @@ make_guild_predicted_detections <- function(guild_fits, bat_theme,
     theme(legend.position = "top", plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 12, height = 13, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(6 * length(ks), 12), height = 13, dpi = 300, bg = "white")
   list(plate = plate, tables = tabs)
 }

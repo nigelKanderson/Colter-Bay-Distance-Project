@@ -1,27 +1,33 @@
 # 42_bat_moth_pct_panels.R
 # Bat vs. moth % change comparison, 6-panel plate for the storyboard.
 #   Rows: distance | distance x intensity | distance x color
-#   Cols: full data | far sites (GRTE13/14/15, ~7 km) removed
+#   Cols: all 14 sites | GRTE15 excluded (13) | far sites GRTE13/14/15 removed (11) (R/storyboard_sites.R)
 # Each taxon's general model (bat `simple_model1`, moth `insect_general$model`) is
 # refit with an added color x distance term so every panel, including the
 # distance x color row, comes from one model per taxon and dataset.
 #   distance            : % change in detections vs the nearest site, along the gradient
-#   distance x intensity: % change per km, at each intensity
-#   distance x color   : % change per km, under red and under white
+#   distance x intensity: % change per km, at each intensity (intensity_by_fill = TRUE puts the
+#                         series on the x-axis with a purple intensity ramp; used for bat vs moth and the guilds)
+#   distance x color   : % change per km, under red and under white (color_by_light = TRUE puts
+#                        the series on the x-axis with red / white points; used for bat vs moth and the guilds)
 # All bands/bars are 95% CIs from the model's log-scale estimate and SE; asterisks mark
 # estimates that differ from 0 (* p<0.05, ** p<0.01, *** p<0.001; Wald z). Per-intensity and per-color
 # slopes (C-F) are Holm-adjusted within each series and panel; the single gradient test (A-B) is not.
-# Taxon colors are the Okabe-Ito blue/vermilion pair (color-blind safe); both taxa use
+# Taxon colors are the Okabe-Ito blue/orange pair (color-blind safe); both taxa use
 # circles, with solid vs dashed lines as the redundant cue on the distance curves.
 # Output: output/figures/fig_bat_moth_pct_panels.png (+ list of plots and tables)
 #
 # pct_panel_plate() is the shared engine (also used by 45_bat_guild_pct_panels.R): it takes
 # fitted models per series for the full and far-removed data and draws the 6-panel plate.
 
+source("R/storyboard_sites.R")   # SB_FULL_DROP, SB_FAR_DROP, SB_LABELS
+source("R/pct_arrows.R")         # direction arrows next to the 0 line
+
 pct_panel_plate <- function(fits, dist_range, pal, lty, bat_theme, title, subtitle, file,
                             height = 12.5, log_y = FALSE, extra_panels = NULL,
-                            col_labels = c(full = "Full data (14 sites)",
-                                           nofar = "Far sites removed (11 sites)")) {
+                            arrow_up = "Higher farther\nfrom the lot", arrow_down = "Higher near\nthe lot",
+                            col_labels = SB_LABELS, color_by_light = FALSE,
+                            intensity_by_fill = FALSE) {
   library(emmeans)
   library(tidyverse)
   library(patchwork)
@@ -102,7 +108,7 @@ pct_panel_plate <- function(fits, dist_range, pal, lty, bat_theme, title, subtit
       zero +
       geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.12, color = NA) +
       geom_line(aes(linetype = series), linewidth = 1) +
-      geom_point(data = ends, aes(shape = series), size = 2.8) +
+      geom_point(data = ends, aes(shape = series), size = 4) +
       ggrepel::geom_text_repel(data = ends, aes(label = paste0(series, " ", stars(p))),
                                size = 3.6, color = "#222222", show.legend = FALSE,
                                direction = "y", hjust = 0, nudge_x = 0.04 * diff(range(g$dist_km)),
@@ -113,8 +119,9 @@ pct_panel_plate <- function(fits, dist_range, pal, lty, bat_theme, title, subtit
                                                 b[b <= max(g$dist_km) + 1e-9] }) +     # past the data
       series_scales + y_scale +
       guides(color = "none", fill = "none", linetype = "none", shape = "none") +  # direct-labeled
-      coord_cartesian(ylim = row_lims("gradient")) +
-      labs(title = ttl, x = "Distance from lot (km)",
+      coord_cartesian(ylim = row_lims("gradient"), clip = "off") +
+      pct_arrows_y(arrow_up, arrow_down, zero = base) +
+      labs(title = ttl, x = SB_DIST_LABEL,
            y = "% change vs nearest site") +
       bat_theme
   }
@@ -122,36 +129,80 @@ pct_panel_plate <- function(fits, dist_range, pal, lty, bat_theme, title, subtit
     ggplot(tabs[[ds]][[key]], aes(level, pct, color = series, shape = series, group = series)) +
       zero +
       geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.18, linewidth = 0.6, position = dodge) +
-      geom_point(size = 2.8, position = dodge) +
+      geom_point(size = 4, position = dodge) +
       geom_text(aes(y = hi, label = stars(p)), position = dodge,
                 vjust = -0.15, size = 4.2, color = "#222222", show.legend = FALSE) +
       series_scales + y_scale +
-      coord_cartesian(ylim = row_lims(key)) +
+      coord_cartesian(ylim = row_lims(key), clip = "off") +
+      pct_arrows_y(arrow_up, arrow_down, zero = base) +
+      (if (key == "dist_col") red_tick_box(levels(tabs[[ds]][[key]]$level), bottom = if (log_y) 0 else -Inf)) +
       labs(title = ttl, x = xlab, y = ylab) +
       bat_theme
   }
 
-  # left column = first dataset in `fits`, right column = second
-  k1 <- names(fits)[1]; k2 <- names(fits)[2]
-  l1 <- col_labels[[k1]]; l2 <- col_labels[[k2]]
-  panels <- list(
-    A = p_gradient(k1, paste("Distance ·", l1)),
-    B = p_gradient(k2, paste("Distance ·", l2)),
-    C = p_points(k1, "dist_int", paste("Distance × intensity ·", l1),
-                 "Light intensity (%)", "% change per km"),
-    D = p_points(k2, "dist_int", paste("Distance × intensity ·", l2),
-                 "Light intensity (%)", "% change per km"),
-    E = p_points(k1, "dist_col", paste("Distance × color ·", l1),
-                 "Light color", "% change per km"),
-    F = p_points(k2, "dist_col", paste("Distance × color ·", l2),
-                 "Light color", "% change per km")
-  )
-  panels <- c(panels, extra_panels)   # optional extra rows appended below E-F (tagged G, H, ...)
+  # distance x color with the series on the x-axis and light color as the points
+  # (red = red point, white = white point with a black outline)
+  p_by_light <- function(ds, ttl, ylab) {
+    light_fill <- c(Red = "#B2182B", White = "white")
+    light_line <- c(Red = "#B2182B", White = "black")
+    ld <- position_dodge(0.45)
+    ggplot(tabs[[ds]]$dist_col, aes(series, pct, group = level)) +
+      zero +
+      geom_errorbar(aes(ymin = lo, ymax = hi, color = level), width = 0.18, linewidth = 0.6, position = ld) +
+      geom_point(aes(color = level, fill = level), shape = 21, size = 4.4, stroke = 1, position = ld) +
+      geom_text(aes(y = hi, label = stars(p)), position = ld,
+                vjust = -0.15, size = 4.2, color = "#222222", show.legend = FALSE) +
+      scale_color_manual(values = light_line, name = "Light color") +
+      scale_fill_manual(values = light_fill, name = "Light color") +
+      y_scale +
+      coord_cartesian(ylim = row_lims("dist_col"), clip = "off") +
+      pct_arrows_y(arrow_up, arrow_down, zero = base) +
+      labs(title = ttl, x = NULL, y = ylab) +
+      bat_theme
+  }
+
+  # distance x intensity with the series on the x-axis and intensity as a light-to-dark purple
+  # ramp (color-blind safe: lightness rises steadily with intensity); dark outlines and error bars
+  # keep the palest level visible
+  p_by_intensity <- function(ds, ttl, ylab) {
+    idodge <- position_dodge(0.75)
+    ggplot(tabs[[ds]]$dist_int, aes(series, pct, group = level)) +
+      zero +
+      geom_errorbar(aes(ymin = lo, ymax = hi), color = "#444444", width = 0.12, linewidth = 0.5,
+                    position = idodge) +
+      geom_point(aes(fill = level), shape = 21, color = "#222222", size = 4.4, stroke = 0.8,
+                 position = idodge) +
+      geom_text(aes(y = hi, label = stars(p)), position = idodge,
+                vjust = -0.15, size = 4.2, color = "#222222", show.legend = FALSE) +
+      scale_fill_manual(values = SB_INT_FILL, name = "Light intensity (%)") +
+      y_scale +
+      coord_cartesian(ylim = row_lims("dist_int"), clip = "off") +
+      pct_arrows_y(arrow_up, arrow_down, zero = base) +
+      labs(title = ttl, x = NULL, y = ylab) +
+      bat_theme
+  }
+
+  # one column per dataset in `fits` (in order); rows = distance | x intensity | x color
+  ks <- names(fits)
+  panels <- c(
+    lapply(ks, function(k) p_gradient(k, paste("Distance ·", col_labels[[k]]))),
+    lapply(ks, function(k) {
+      ttl <- paste("Distance × intensity ·", col_labels[[k]])
+      if (intensity_by_fill) p_by_intensity(k, ttl, "% change per km")
+      else p_points(k, "dist_int", ttl, "Light intensity (%)", "% change per km")
+    }),
+    lapply(ks, function(k) {
+      ttl <- paste("Distance × color ·", col_labels[[k]])
+      if (color_by_light) p_by_light(k, ttl, "% change per km")
+      else p_points(k, "dist_col", ttl, "Light color", "% change per km")
+    }))
+  panels <- c(panels, extra_panels)   # optional extra rows appended below (tagged in order)
   panels <- map(panels, ~ .x + theme(plot.title = element_text(size = 11),
                                      axis.text  = element_text(size = 10),
-                                     axis.title = element_text(size = 11)))
+                                     axis.title = element_text(size = 11)) +
+                  pct_arrow_margin_y())
 
-  plate <- wrap_plots(panels, ncol = 2, guides = "collect") +
+  plate <- wrap_plots(panels, ncol = length(ks), guides = "collect") +
     plot_annotation(
       tag_levels = "A", title = title, subtitle = subtitle,
       theme = theme(plot.title = element_text(face = "bold", size = 15),
@@ -159,15 +210,15 @@ pct_panel_plate <- function(fits, dist_range, pal, lty, bat_theme, title, subtit
     theme(legend.position = "top", plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 13, height = height, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(7.3 * length(ks), 12), height = height, dpi = 300, bg = "white")
 
   list(plate = plate, panels = panels, tables = tabs, models = fits)
 }
 
-# `drop_sets`: two named site vectors to drop (left and right column); `col_labels` the
-# matching column titles. Default = full data vs far sites removed.
-default_drop_sets  <- list(full = character(0), nofar = c("GRTE13", "GRTE14", "GRTE15"))
-default_col_labels <- c(full = "Full data (14 sites)", nofar = "Far sites removed (11 sites)")
+# `drop_sets`: named site vectors to drop, one per column; `col_labels` the matching column
+# titles. Default = the storyboard site sets (R/storyboard_sites.R).
+default_drop_sets  <- SB_SETS
+default_col_labels <- SB_LABELS
 
 make_bat_moth_pct_panels <- function(bat_model, moth_model, site_night, insect_total_env,
                                      bat_theme, col_bat = "#0072B2", col_moth = "#D55E00",
@@ -186,10 +237,10 @@ make_bat_moth_pct_panels <- function(bat_model, moth_model, site_night, insect_t
   pct_panel_plate(
     fits, dist_range,
     pal = c(Bat = col_bat, Moth = col_moth), lty = c(Bat = "solid", Moth = "22"),
-    bat_theme = bat_theme, col_labels = col_labels,
+    bat_theme = bat_theme, col_labels = col_labels, color_by_light = TRUE, intensity_by_fill = TRUE,
     title    = title,
     subtitle = paste0("Each taxon's negative binomial GLMM with color × intensity, intensity × distance ",
                       "and color × distance terms; 95% CIs. Rows share a y-axis.\n",
-                      "Asterisks: estimate differs from 0 (* p < 0.05, ** p < 0.01, *** p < 0.001); C–F Holm-adjusted within each taxon and panel."),
+                      "Asterisks: estimate differs from 0 (* p < 0.05, ** p < 0.01, *** p < 0.001); per-intensity and per-color rows Holm-adjusted within each taxon and panel."),
     file = file)
 }

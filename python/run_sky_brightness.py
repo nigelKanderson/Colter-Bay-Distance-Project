@@ -200,6 +200,18 @@ def summarise_sites(df_img: pd.DataFrame) -> pd.DataFrame:
 
     df_sites = df_mean.merge(df_med, on="site", how="left")
 
+    # Site brightness used in the models: the DARKEST lights-off photo per site (min of the
+    # per-image mean DSU), so transient light (headlights, a lamp in one frame) can't raise it.
+    # The 3-photo average is kept as brightness_dark_mean.
+    df_min = (df_img.loc[df_img["condition"] == "dark"]
+              .groupby("site", as_index=False)["mean_dsu"].min()
+              .rename(columns={"mean_dsu": "brightness_dark_min"}))
+    df_sites = (df_sites.rename(columns={"brightness_dark": "brightness_dark_mean"})
+                .merge(df_min, on="site", how="left"))
+    df_sites["brightness_dark"] = df_sites["brightness_dark_min"]
+    first = ["site", "brightness_dark", "brightness_dark_mean"]
+    df_sites = df_sites[first + [c for c in df_sites.columns if c not in first]]
+
     return df_sites
 
 

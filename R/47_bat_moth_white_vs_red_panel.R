@@ -1,10 +1,10 @@
 # 47_bat_moth_white_vs_red_panel.R
 # % change in detections under white vs. red light at each intensity, two panels:
-#   A  full data (14 sites)
+#   A  GRTE15 excluded (13 sites)
 #   B  far sites removed (11 sites)
 # make_bat_moth_white_vs_red_panel(): bats vs. moths, from the storyboard bat and moth GLMMs
 #   (color x intensity + intensity x distance + color x distance + moon, non-forest, sky
-#   brightness, season, site RE). Okabe-Ito blue / vermilion.
+#   brightness, season, site RE). Okabe-Ito blue / orange.
 # make_guild_white_vs_red_panel(): the three call-frequency guilds, from the per-guild
 #   zero-inflated NB GLMMs fitted in 45_bat_guild_pct_panels.R (same structure); guild
 #   colors as in the guild figure; log y-axis labeled in % change (wide guild CIs).
@@ -13,11 +13,13 @@
 # each taxon / guild and panel). Panels share a y-axis.
 # Output: output/figures/fig_bat_moth_white_vs_red.png, fig_bat_guild_white_vs_red.png
 
+source("R/storyboard_sites.R")   # SB_FULL_DROP, SB_FAR_DROP, SB_LABELS
+source("R/pct_arrows.R")         # direction arrows next to the 0 line
+
 # shared engine: `fits` = list(full = list(<series> = model, ...), nofar = list(...))
 white_vs_red_plate <- function(fits, pal, bat_theme, title, subtitle, file,
                                log_y = FALSE, width = 11, height = 5.6,
-                               col_labels = c(full = "Full data (14 sites)",
-                                              nofar = "Far sites removed (11 sites)")) {
+                               col_labels = SB_LABELS, intensity_by_fill = FALSE) {
   library(emmeans)
   library(tidyverse)
   library(patchwork)
@@ -47,18 +49,41 @@ white_vs_red_plate <- function(fits, pal, bat_theme, title, subtitle, file,
     ggplot(tabs[[key]], aes(intensity, r, color = series, group = series)) +
       geom_hline(yintercept = base, color = "#999999", linewidth = 0.4) +
       geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.18, linewidth = 0.6, position = dodge) +
-      geom_point(size = 2.8, position = dodge) +
+      geom_point(size = 4, position = dodge) +
       geom_text(aes(y = hi, label = stars(p)), position = dodge, vjust = -0.15, size = 4.2,
                 color = "#222222", show.legend = FALSE) +
       scale_color_manual(values = pal, name = NULL) +
-      y_scale + coord_cartesian(ylim = lims) +
+      y_scale + coord_cartesian(ylim = lims, clip = "off") +
+      pct_arrows_y("Higher under\nwhite light", "Higher under\nred light", zero = base) +
       labs(title = col_labels[[key]], x = "Light intensity (%)", y = "% change, white vs red") +
       bat_theme +
       theme(plot.title = element_text(size = 11), axis.text = element_text(size = 10),
-            axis.title = element_text(size = 11))
+            axis.title = element_text(size = 11)) +
+      pct_arrow_margin_y()
   }
 
-  plate <- (panel(names(fits)[1]) | panel(names(fits)[2])) +
+  # intensity_by_fill: series on the x-axis, intensity as the purple ramp (SB_INT_FILL)
+  if (intensity_by_fill) panel <- function(key) {
+    idodge <- position_dodge(if (length(pal) > 2) 0.88 else 0.75)   # 3+ groups: spread the 5 points more
+    ggplot(tabs[[key]], aes(series, r, group = intensity)) +
+      geom_hline(yintercept = base, color = "#999999", linewidth = 0.4) +
+      geom_errorbar(aes(ymin = lo, ymax = hi), color = "#444444", width = 0.12, linewidth = 0.5,
+                    position = idodge) +
+      geom_point(aes(fill = intensity), shape = 21, color = "#222222", size = 4.4, stroke = 0.8,
+                 position = idodge) +
+      geom_text(aes(y = hi, label = stars(p)), position = idodge, vjust = -0.15, size = if (length(pal) > 2) 3.4 else 4.2,
+                color = "#222222", show.legend = FALSE) +
+      scale_fill_manual(values = SB_INT_FILL, name = "Light intensity (%)") +
+      y_scale + coord_cartesian(ylim = lims, clip = "off") +
+      pct_arrows_y("Higher under\nwhite light", "Higher under\nred light", zero = base) +
+      labs(title = col_labels[[key]], x = NULL, y = "% change, white vs red") +
+      bat_theme +
+      theme(plot.title = element_text(size = 11), axis.text = element_text(size = 10),
+            axis.title = element_text(size = 11)) +
+      pct_arrow_margin_y()
+  }
+
+  plate <- wrap_plots(lapply(names(fits), panel), nrow = 1) +
     plot_layout(guides = "collect") +
     plot_annotation(tag_levels = "A", title = title, subtitle = subtitle,
                     theme = theme(plot.title = element_text(face = "bold", size = 15),
@@ -75,18 +100,15 @@ white_vs_red_plate <- function(fits, pal, bat_theme, title, subtitle, file,
 }
 
 make_bat_moth_white_vs_red_panel <- function(bat_model, moth_model, site_night, insect_total_env,
-                                             bat_theme, far_sites = c("GRTE13", "GRTE14", "GRTE15"),
+                                             bat_theme, far_sites = SB_FAR_DROP,
                                              col_bat = "#0072B2", col_moth = "#D55E00",
                                              file = "output/figures/fig_bat_moth_white_vs_red.png") {
   library(tidyverse)
   add_dc <- . ~ . + color:dist_km
-  drop <- function(df) droplevels(filter(df, !site %in% far_sites))
-  fits <- list(
-    full  = list(Bat  = update(bat_model,  add_dc, data = site_night),
-                 Moth = update(moth_model, add_dc, data = insect_total_env)),
-    nofar = list(Bat  = update(bat_model,  add_dc, data = drop(site_night)),
-                 Moth = update(moth_model, add_dc, data = drop(insect_total_env)))
-  )
+  drop <- function(df, sites) droplevels(filter(df, !site %in% sites))
+  fits <- lapply(SB_SETS, function(sites)
+    list(Bat  = update(bat_model,  add_dc, data = drop(site_night, sites)),
+         Moth = update(moth_model, add_dc, data = drop(insect_total_env, sites))))
   white_vs_red_plate(
     fits, pal = c(Bat = col_bat, Moth = col_moth), bat_theme = bat_theme,
     title = "Bat vs. moth: white vs. red light at each intensity",
@@ -97,12 +119,13 @@ make_bat_moth_white_vs_red_panel <- function(bat_model, moth_model, site_night, 
 
 # `guild_fits`: the `models` element returned by make_bat_guild_pct_panels() (45_*.R)
 make_guild_white_vs_red_panel <- function(guild_fits, bat_theme,
-                                          file = "output/figures/fig_bat_guild_white_vs_red.png") {
+                                          file = "output/figures/fig_bat_guild_white_vs_red.png",
+                                          intensity_by_fill = FALSE) {
   # file = NULL: build only (e.g. for the combined guild + species figure in 48_*.R)
   white_vs_red_plate(
     guild_fits,
     pal = c("Low frequency" = "#0072B2", "Myev" = "#CC79A7", "High frequency" = "#9A7400"),
-    bat_theme = bat_theme, log_y = TRUE, width = 12, height = 5.8,
+    bat_theme = bat_theme, log_y = TRUE, width = 12, height = 5.8, intensity_by_fill = intensity_by_fill,
     title = "Bat guilds: white vs. red light at each intensity",
     subtitle = paste0("Each guild's zero-inflated NB GLMM (as in the guild % change figure), contrasts at the mean distance; ",
                       "95% CIs; log-scaled y-axis shared across panels.\n",

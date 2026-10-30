@@ -41,12 +41,12 @@ make_bat_guild_pct_panels <- function(cluster_night, bat_theme,
     fits, dist_range,
     pal = c("Low frequency" = "#0072B2", "Myev" = "#CC79A7", "High frequency" = "#9A7400"),
     lty = c("Low frequency" = "solid", "Myev" = "13", "High frequency" = "42"),
-    bat_theme = bat_theme, col_labels = col_labels,
+    bat_theme = bat_theme, col_labels = col_labels, color_by_light = TRUE, intensity_by_fill = TRUE,
     title    = title,
     subtitle = paste0("Each guild's zero-inflated negative binomial GLMM with color × intensity, intensity × distance ",
                       "and color × distance terms; 95% CIs. Rows share a log-scaled y-axis.\n",
-                      "Low frequency = Epfu, Lano, Laci; High frequency = Mylu, Myvo, Myci, Myca, Myyu. ",
-                      "Asterisks: estimate differs from 0 (* p < 0.05, ** p < 0.01, *** p < 0.001); C–F Holm-adjusted within each guild and panel."),
+                      "Low frequency = Epfu, Lano, Laci; High frequency = Mylu, Myvo, Myci, Myca, Myyu.\n",
+                      "Asterisks: estimate differs from 0 (* p < 0.05, ** p < 0.01, *** p < 0.001); per-intensity and per-color rows Holm-adjusted within each guild and panel."),
     file = file, log_y = TRUE)
   out$converged <- conv
   out

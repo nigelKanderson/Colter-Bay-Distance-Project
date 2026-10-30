@@ -189,6 +189,8 @@ message("Overall data rows: ", nrow(data_env),
         " detections)")
 ```
 
+Site sky brightness (`brightness_dark`, used in all models) is the **darkest** of each site's lights-off sky photos (minimum per-image mean DSU), so transient light in a single frame (e.g. headlights) cannot raise it; the 3-photo average is kept as `brightness_dark_mean`. Built by `python/run_sky_brightness.py`.
+
 ```{r sky_brightness, warning=FALSE, message=TRUE}
 source("R/09_add_sky_brightness.R")
 ```
@@ -1179,7 +1181,7 @@ hier_nodes <- function(drop_sites = NULL, p_adjust = "none", lv = hier_levels(dr
 }
 
 .SPX <- 1.6; .BOXW <- 1.15; .BOXH <- 0.56
-.PAL_D <- c("Away from lot" = "#2C7FB8", "Toward lot" = "#D95F02")
+.PAL_D <- c("Away from lot" = "#018571", "Toward lot" = "#8C510A")   # teal / brown: not used elsewhere in the storyboard
 hier_layout <- function(nd) {
   fam <- unique(na.omit(nd$Family)); sub <- unique(na.omit(nd$Subfamily))
   gen <- unique(na.omit(nd$Genus)); spp <- unique(na.omit(nd$Species_bin))
@@ -1241,10 +1243,11 @@ hier_plot <- function(res, title,
           legend.title = element_text(face = "bold", size = 9), legend.text = element_text(size = 9), plot.margin = margin(8, 14, 8, 8))
 }
 
-# trend: Arctia, the strongest opposite-direction (toward-lot) genus (p = 0.068 uncorrected),
-# drawn as a dashed trend box in the far-sites-removed BH figure
-for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)", trend = character(0)),
-                list(drop = far3, sfx = "_nofar", ttl = "Far sites removed (11 near sites)", trend = "Genus:Arctia"))) {
+# trend: optional "Level:Taxon" keys drawn as dashed non-significant trend boxes (none used;
+# Arctia, the strongest toward-lot genus, was p = 0.068 uncorrected, 0.16 BH-adjusted, and dropped)
+for (sc in list(list(drop = NULL, sfx = "_all14", ttl = "All sites (14 sites)", trend = character(0)),
+                list(drop = "GRTE15", sfx = "", ttl = "GRTE15 excluded (13 sites)", trend = character(0)),
+                list(drop = far3, sfx = "_nofar", ttl = "Far sites removed (11 near sites)", trend = character(0)))) {
   lv <- hier_levels(sc$drop)
   for (adj in c("none", "BH")) {
     res <- hier_nodes(p_adjust = adj, lv = lv, trend = if (adj == "BH") sc$trend else character(0))
@@ -1264,12 +1267,24 @@ for (sc in list(list(drop = NULL, sfx = "", ttl = "Full data (all 14 sites)", tr
 
 ### Moth hierarchy plate: full data and far sites removed (storyboard)
 
-Stacks the Benjamini–Hochberg-corrected full-data and far-sites-removed hierarchies above (`*_BH.png`, taxa with BH-adjusted p < 0.05 across all taxa tested in that dataset) into one two-panel storyboard figure (no refitting).
+Stacks the Benjamini–Hochberg-corrected all-sites, GRTE15-excluded and far-sites-removed hierarchies above (`*_BH.png`, taxa with BH-adjusted p \< 0.05 across all taxa tested in that dataset) into one two-panel storyboard figure (no refitting).
 
 ```{r moth_hierarchy_plate, warning=FALSE, message=FALSE}
 source("R/50_moth_hierarchy_panel.R")
 make_moth_hierarchy_panel()
 knitr::include_graphics("output/figures/fig_moth_hierarchy_full_nofar.png")
+```
+
+### Bat species hierarchy (storyboard)
+
+The bat counterpart of the moth hierarchy: all bats → call-frequency guild → species, one tree per storyboard site set (all 14 sites, GRTE15 excluded, far sites removed). Each tier is a zero-inflated negative binomial GLMM (taxon × distance + color + intensity + moon phase, non-forest cover, sky brightness, season, site random effect); the all-bats node is a single test (unadjusted, as in the bat vs moth figure); the 12 guild and species nodes are Benjamini–Hochberg-adjusted together within each dataset. Every node is drawn (solid colored box = significant, dashed gray = not). Fits are saved to `output/bat_species_hierarchy_fits.rds`.
+
+```{r bat_species_hierarchy, warning=FALSE, message=FALSE}
+source("R/53_bat_species_hierarchy_panel.R")
+bat_hier <- fit_bat_species_hierarchy(site_night, cluster_night, spp_night)
+saveRDS(bat_hier, "output/bat_species_hierarchy_fits.rds")
+make_bat_species_hierarchy(bat_hier)
+knitr::include_graphics("output/figures/fig_bat_species_hierarchy.png")
 ```
 
 ### Bayesian distance hierarchy (brms, partial pooling)
@@ -1395,7 +1410,7 @@ if (!.brms_ok) {
         Genus = c(hk("Subfamily", ND$Subfamily[i]), hk("Family", ND$Family[i])),
         Subfamily = c(hk("Family", ND$Family[i])), Family = NA)
       anc <- anc[!is.na(anc)]; if (length(anc)) ND$parent[i] <- anc[1] }
-    SPX <- 1.6; BOXW <- 1.15; BOXH <- 0.56; PAL <- c("Away from lot" = "#2C7FB8", "Toward lot" = "#D95F02")
+    SPX <- 1.6; BOXW <- 1.15; BOXH <- 0.56; PAL <- c("Away from lot" = "#018571", "Toward lot" = "#8C510A")
     fam <- unique(na.omit(ND$Family)); sub <- unique(na.omit(ND$Subfamily)); gen <- unique(na.omit(ND$Genus)); spl <- unique(na.omit(ND$Species_bin))
     ND$k1 <- match(ND$Family, fam); ND$k2 <- match(ND$Subfamily, sub); ND$k3 <- match(ND$Genus, gen); ND$k4 <- match(ND$Species_bin, spl)
     ND <- ND %>% mutate(across(c(k1, k2, k3, k4), ~tidyr::replace_na(., 0))); ND <- ND[order(ND$k1, ND$k2, ND$k3, ND$k4), ]

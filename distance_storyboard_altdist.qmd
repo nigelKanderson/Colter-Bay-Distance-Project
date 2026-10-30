@@ -1,0 +1,121 @@
+---
+title: "Artificial Light at Night, Bats and Moths"
+subtitle: "Distance to the Nearest Light-Source Site — Grand Teton National Park, 2022"
+author: "Nigel K. Anderson · American Museum of Natural History"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    toc-title: "Contents"
+    theme: cosmo
+    embed-resources: true
+editor: visual
+---
+
+## Distance Measure
+
+This version of the storyboard uses a **site-based distance**. GRTE01, GRTE16 and GRTE17 are treated as light-source sites (distance 0). GRTE05, 06, 08, 09, 10 and 11 are measured to GRTE16, and GRTE02, 03, 13, 14 and 15 to GRTE01. All distances are computed from the site coordinates (`data/site_dist_alt2.csv`):
+
+| Site | Measured to | Distance (km) |
+|---|---|---|
+| GRTE01, GRTE16, GRTE17 | (source) | 0 |
+| GRTE05 | GRTE16 | 0.13 |
+| GRTE06 | GRTE16 | 0.46 |
+| GRTE02 | GRTE01 | 0.57 |
+| GRTE03 | GRTE01 | 1.17 |
+| GRTE08 | GRTE16 | 1.21 |
+| GRTE09 | GRTE16 | 1.58 |
+| GRTE11 | GRTE16 | 1.65 |
+| GRTE10 | GRTE16 | 1.78 |
+| GRTE15, GRTE14, GRTE13 | GRTE01 | 6.70, 6.89, 6.96 |
+
+Everything else (models, site sets, sky brightness, multiple-testing corrections) is the same as in the main storyboard. With the far sites removed, the gradient now spans 0–1.8 km.
+
+## Bat vs. Moth: % Change Comparisons
+
+![Bat (blue circles, solid lines) vs. moth (orange circles, dashed lines) % change in detections; color-blind-safe Okabe–Ito colors. Columns, left to right: all 14 sites; all sites except GRTE15 (13 sites); far sites (GRTE13–15, \~7 km) removed (11 sites, 0–1.8 km). **A–C** distance: % change vs. the light-source sites (distance 0) along the gradient. **D–F** distance × intensity: % change per km at each intensity. **G–I** distance × color: % change per km under red and white light. Each taxon's negative binomial GLMM (color × intensity + intensity × distance + color × distance + moon phase, non-forest cover, sky brightness, season, site random effect; sky brightness = the darkest of each site's lights-off sky photos, mean DSU); 95% CIs; rows share a y-axis. Asterisks mark estimates that differ from 0 (\* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001; Wald tests, Holm-adjusted within each taxon and panel in D–I).](output/figures/altdist/fig_bat_moth_pct_panels.png){width=85%}
+
+**Distance (A–C).** With all 14 sites, both taxa appear to rise with distance (bats +100% and moths +84% at 7 km), but the bat rise is very uncertain (95% CI −36% to +522%) and is driven by GRTE15, the far site with by far the most bat activity. Excluding GRTE15 (13 sites), moth catches nearly doubled with distance (**+92%** at 7 km, p \< 0.001), while bats showed no trend (−14%, 95% CI −79% to +248%, p = 0.83). Within the 0–1.8 km gradient the two taxa diverge: bats **fall 72%** from the light-source sites to 1.8 km while moths **rise 52%** (p = 0.03). The bat decline is now only borderline significant (95% CI −92% to 0%, p = 0.051), compared with p = 0.03 when distance was measured from a single lot point.
+
+**Distance × intensity (D–F).** Across the full gradient (all 14 sites, or GRTE15 excluded), the per-km change is small at every intensity for both taxa (bats −6 to +13%/km, none significant; moths +6 to +17%/km at 10–70%, significant at 30–70% with all sites and at 50–70% without GRTE15, and −3 to −5%/km at 100%). Without the far sites, bats decline **39–59% per km** at every intensity, but no single intensity is significant after Holm adjustment. Moths increase significantly only at 50% and 70% (**+73% and +74% per km**).
+
+**Distance × color (G–I).** Bats show the same distance response under red and white light (+10 to +11%/km with all 14 sites and −2 to −3%/km without GRTE15, neither significant; −51%/km under both colors without the far sites, a consistent decline that is not significant under either color separately after Holm adjustment). Moths respond to distance only under **white** light (+17 to +19%/km across the full gradient, +61%/km without the far sites; red −1 to +2%/km). Adding the color × distance term improves the moth model (ΔAIC −13.1) but not the bat model (ΔAIC +1.9).
+
+## Bats: Call-Frequency Guilds
+
+![Bat call-frequency guilds: % change in detections. Low frequency (blue, solid) = big brown, silver-haired and hoary bats; Myev (pink, dotted) = long-eared myotis; high frequency (gold, dashed) = little brown, long-legged, small-footed, California and Yuma myotis. Columns, left to right: all 14 sites; all sites except GRTE15 (13 sites); far sites (GRTE13–15, \~7 km) removed (11 sites, 0–1.8 km). **A–C** distance: % change vs. the light-source sites. **D–F** distance × intensity: % change per km at each intensity. **G–I** distance × color: % change per km under red and white light. Each guild's zero-inflated negative binomial GLMM (color × intensity + intensity × distance + color × distance + moon phase, non-forest cover, sky brightness, season, site random effect); 95% CIs; log-scaled y-axis labeled in % change, shared within each row. Asterisks mark estimates that differ from 0 (\* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001; Wald tests, Holm-adjusted within each guild and panel in D–I).](output/figures/altdist/fig_bat_guild_pct_panels.png){width=85%}
+
+**High-frequency bats drive the decline away from the lights.** Within 0–1.8 km, the high-frequency guild (mostly little brown bats) falls **81%** from the light-source sites to 1.8 km (p = 0.004), declining 56–69% per km at every intensity and 59–62% per km under both red and white light (all significant after Holm adjustment). This is the guild behind the overall bat pattern in the bat vs. moth figure. Across the full gradient it shows no distance trend (+146% at 7 km with all 14 sites, p = 0.13; +2% without GRTE15, p = 0.98).
+
+**Long-eared myotis (Myev) shows no reliable distance trend once GRTE15 is excluded.** With all 14 sites it rises significantly toward the far sites (**+23 to +42% per km** at every intensity and under both colors; +640% at 7 km), but without GRTE15 its estimate is positive and very uncertain (+205% at 7 km, CI −41% to +1,475%, p = 0.18; +12 to +22% per km at each intensity, none significant), and within 0–1.8 km it trends the other way, also not significantly (−73% at 1.8 km, p = 0.09). The all-sites increase is therefore driven by GRTE15, where long-eared myotis are common.
+
+**Low-frequency bats show no clear distance trend.** Their estimates are mostly negative but not significant (−61% to −70% at 7 km, p = 0.22–0.25; −5 to −28% per km at each intensity, none significant after Holm adjustment), and within 0–1.8 km they are very uncertain (−8% at 1.8 km, CI −90% to +751%), likely because they are common both at the light-source sites and at some mid-gradient sites (e.g. GRTE10).
+
+**No guild's distance response depends on light color** — red and white estimates are nearly identical for every guild in all three datasets.
+
+## Moths: Taxa Responding to Distance
+
+![Moth taxa whose detections change significantly with distance to the nearest light-source site after correcting for multiple testing, arranged by taxonomic level (family → subfamily → genus → species). **A** all 14 sites; **B** all sites except GRTE15 (13 sites); **C** far sites removed (11 sites, 0–1.8 km). Every taxon with $\geq$ 30 site-nights (51 taxa per dataset) was tested for a distance slope (taxon × distance negative binomial GLMM); shown are taxa with Benjamini–Hochberg-adjusted p \< 0.05 across all 51 tests, each as a miniature of its model-predicted detections vs. distance (± 95% CI, auto-scaled within its box) and linked to its nearest significant ancestor. Asterisks from the adjusted p: \* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001. The dashed orange box in C marks a non-significant trend in the opposite direction (*Arctia*, more active toward the light-source sites; uncorrected p = 0.08).](output/figures/altdist/fig_moth_hierarchy.png){width=52%}
+
+**Every moth taxon that responds significantly to distance was more active away from the lights; none was significantly more active near them.** After correcting for the 51 taxa tested (Benjamini–Hochberg), the full gradient retains only **5** taxa, the same with all 14 sites (A) and without GRTE15 (B): the **lappet moths**, Lasiocampidae through Lasiocampinae and *Malacosoma* to the western tent caterpillar moth ***Malacosoma californica***, plus the owlet-moth subfamily **Pantheinae**. Within the 0–1.8 km gradient (C) the response is broad, with **15** of 19 taxa retained: **tiger moths** (Erebidae, Arctiinae, *Apantesis williamsii*), **lappet moths** (Lasiocampidae, Lasiocampinae, *Malacosoma*), **sphinx moths** (Sphingidae, Smerinthinae, *Smerinthus ophthalmica*), **prominents** (Notodontidae), **waves** (Sterrhinae, *Scopula*) and *Apamea inficita*. Compared with the single-lot-point distance, *Feltia* and *Malacosoma californica* no longer pass the correction within 0–1.8 km. One genus trends the other way: tiger moths of the genus ***Arctia*** were about **50% less common per km** away from the lights (more active near them), but this is not significant (p = 0.08 uncorrected) and is shown only as a trend; its subfamily, Arctiinae, as a whole goes the other way, driven by *Apantesis*. This matches the overall moth pattern in Figure 1: within the 0–1.8 km gradient, moth catches are lowest near the light-source sites.
+
+## White vs. Red Light and Predicted Detections
+
+![White vs. red light and predicted detections, from the same bat and moth GLMMs as the bat vs. moth % change figure (Figure 1). **A–C** % change in bat (blue) and moth (orange) detections under white vs. red light at each intensity (contrasts at the mean distance). **D–F** predicted bat detections per night and **G–I** predicted moths per sampling event under red (crimson) and white (gold) light (marginal means with other covariates at their averages and the mean distance). Columns, left to right: all 14 sites; all sites except GRTE15 (13 sites); far sites removed (11 sites). 95% CIs; y-axis shared within each row. Asterisks mark intensities where white and red differ (\* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001; Holm-adjusted across the five intensities within each taxon).](output/figures/altdist/fig_predicted_detections.png){width=80%}
+
+**White vs. red (A–C).** These comparisons are essentially unchanged by the new distance measure. **Bats** were **30–51% less active under white than red** at 30–70% intensity, but **43–52% more active under white at 100%** (all significant after Holm adjustment), with no difference at 10%; the pattern is nearly identical in all three datasets. **Moths** were caught far more on white than red nights at **100% intensity** (**+215 to +232%**, about three times as many; +195% without the far sites; all p \< 0.001), with no color difference at 10–70%. **Note:** at 100% intensity, moth catches did not change with distance (Figure 1, D–F: −3% to −6% per km), and the predicted detections (G–I) show that the white-vs-red difference at 100% comes from unusually **low** catches on red-100% nights rather than high catches on white-100% nights. A difference that is the same all along the gradient points to the particular red-100% nights having been poor moth nights, rather than to an effect of the light color itself.
+
+The predicted counts (D–I) show what lies behind these percentages. **Bats** were predicted at roughly **140–475 detections per night**. Under red light, activity rose to a peak at 50% (about 445–475 per night across the full gradient, 385 without the far sites) and fell back by 100% (about 170–205); under white light it stayed lower through 30–70% (140–275) and was highest at 100% (260–295). The white-below-red differences at 30–70% therefore reflect high activity on red nights, and the white-above-red difference at 100% reflects higher activity under white.
+
+**Moths** were predicted at roughly **47–96 specimens per sampling event** in most treatments, with no clear trend across intensity. The one exception is **red light at 100%**, at only about **22–23 per event**. This dip, not a rise under white light, is what produces the large white-vs-red difference at 100% in panels A–C.
+
+### Bat guilds and species: white vs. red light
+
+![Bat call-frequency guilds and species: % change in detections under white vs. red light. **A–C** each guild (low frequency blue, Myev pink, high frequency gold) at each intensity, from the guild zero-inflated negative binomial GLMMs above; log y-axis labeled in % change. **D–F** each species at 100% intensity and **G–I** at 50% intensity, from per-species GLMMs with the same structure (single-species detections only), colored by guild; log x-axis shared across D–I; n = detections at that intensity; hollow points are rare species (\< 150 detections at that intensity). Columns, left to right: all 14 sites; all sites except GRTE15 (13 sites); far sites removed (11 sites). Contrasts at the mean distance; 95% CIs. Asterisks mark differences from 0 (\* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001; Holm-adjusted across the five intensities within each guild in A–C, and across the 9 species in each panel in D–I).](output/figures/altdist/fig_bat_guild_species_white_vs_red.png){width=66%}
+
+**High-frequency bats carry most of the overall color pattern.** They were **30–51% less active under white than red** at 30–70% intensity and **57–72% more active under white at 100%** (all significant after Holm adjustment, except 50% without the far sites), matching the pattern for all bats combined.
+
+**Low-frequency bats** were about **40–50% less active under white** at 30% and 50% intensity, with no guild-level color difference at 10%, 70% or 100%. **Long-eared myotis (Myev)** differed by color only at 50% across the full gradient, where white had **44–56% fewer** detections (−36% without the far sites, not significant after adjustment).
+
+**At 100%, the white-light increase is driven by little brown bats** (D–F), which were **59–76% more active under white** and make up most bat detections; they are the only species significant after Holm adjustment across the 9 species. Long-legged myotis (**+44 to +52%**) and big brown bats (**+41 to +65%**) point the same way but are not individually significant after adjustment. Silver-haired and hoary bats, the other low-frequency species, showed **no color difference** (−2% to +22%), which is why the low-frequency guild as a whole looked flat at 100%. The rare species (small-footed, California and Yuma myotis) are too imprecise to interpret.
+
+**At 50%, most common species were less active under white than red** (G–I). Across the full gradient, hoary bats (**−62 to −63%**), long-eared myotis (**−44 to −56%**), long-legged myotis (**−39 to −42%**) and little brown bats (**−35 to −36%**) were significantly lower after Holm adjustment, and silver-haired bats pointed the same way (−35 to −37%; significant with all 14 sites). Without the far sites the same species point the same way (−30% to −60%), but only hoary bats remain significant. Big brown bats showed a smaller, non-significant drop (−13 to −19%). So the white-light dip at 50% in the guild panels (A–C) is shared across species, unlike the 100% increase, which is concentrated in little brown bats.
+
+## Bat and Moth Community Composition
+
+![Bat (9 species) and moth (9 families) community composition, for all 14 sites, all sites except GRTE15 (13 sites), and with the far sites removed (11 sites). Samples are site × color × intensity combinations (detections per night). **A** Share of community variation explained by each predictor on its own (marginal dbRDA, Bray–Curtis distance), bats (blue) vs. moths (orange); asterisks from permutation tests. **B** Which taxa respond: % change in each taxon per 1 SD of each predictor (white vs. red for color), from a negative binomial multivariate GLM (mvabund), with intensity (five levels) shown separately as deviance explained (gray). Asterisks from per-taxon tests adjusted across taxa; non-significant cells are faded because rare moth families give large but unreliable estimates. Euteliidae was not caught at the 11 near sites. \* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001.](output/figures/altdist/fig_community_panels.png){width=80%}
+
+**Light color does not change which bats or moths are present** (A): it explains about 1% of community variation in both taxa and all three datasets, and no single taxon responds to it (B). Color changed *how active* bats and moths were (Figures 4 and 5), not the mix of taxa.
+
+**Bat communities follow site setting, mainly near the lights.** Within 0–1.8 km, distance alone explains **14%** of bat community variation, % non-forest cover 5% and sky brightness 3% (total explained 31%). Within that gradient most species decline away from the light-source sites, including big brown bats, little brown bats, long-legged, small-footed, long-eared, California and Yuma myotis, while the silver-haired and hoary bats increase. Across the full gradient these effects are weaker: with all 14 sites the bat community follows forest cover (8%), distance (5%) and sky brightness (4%; total 18%), but without GRTE15 they shrink further (total 14%; distance 2%, non-forest 3%, sky brightness not significant), and only big brown bats respond to distance individually. Light intensity has only a weak effect on bat composition (p = 0.07 without the far sites), mostly through big brown bats.
+
+**Moth communities follow light intensity.** Intensity explains **17–19%** of moth community variation in all three datasets, more than any other predictor, carried by the owlet moths (Noctuidae), lappet moths (Lasiocampidae) and tiger moths (Erebidae), with smaller contributions from geometrids and sphinx moths. Moon phase (2–3%) and distance (2–5%) matter much less; within 0–1.8 km, distance is no longer significant for the moth community (p = 0.053). Because the intensity treatments were partly confounded with moon phase in the schedule (the 30% and 50% nights fell mostly near full moon), some of the intensity effect on moth composition may reflect moonlight or date rather than the light itself.
+
+## Summary
+
+**Distance to the nearest light-source site**
+
+- **Bats concentrate near the lights; moths are depleted there.** Within the 0–1.8 km gradient, bat activity fell **72%** from the light-source sites to 1.8 km while moth catches rose **52%** (Figure 1). With this distance measure the overall bat decline is borderline (p = 0.051), but the high-frequency guild, mostly little brown bats, declines clearly (**−81%** over 0–1.8 km, p = 0.004; significant at every intensity and under both colors after adjustment; Figure 2).
+- **Moths avoid the lights mainly under white light.** The moth distance gradient appears only on white-light nights (**+61% per km** within 0–1.8 km, vs. −1% under red; Figure 1).
+- **The moth response is broad across taxa.** After correcting for the 51 taxa tested, 15 moth taxa within 0–1.8 km (tiger, lappet and sphinx moths, prominents and waves) were more active away from the lights, and none significantly closer to them (Figure 3). The only opposite trend, in the tiger-moth genus *Arctia*, was not significant.
+
+**Light color and intensity**
+
+- **Bats:** activity was **30–51% lower under white than red light at 30–70% intensity**, but **43–52% higher under white at 100%** (Figure 4). The 100% increase came from little brown bats (the only species significant after adjustment), with long-legged myotis and big brown bats pointing the same way; silver-haired and hoary bats did not respond to color (Figure 5).
+- **Moths:** catches differed by color only at **100% intensity**, where white caught about **three times** as many as red. Predicted counts show this reflects unusually low catches on red-100% nights rather than more moths under white (Figure 4).
+
+**Community composition**
+
+- **Light color does not change which bats or moths are present** (about 1% of community variation in each; Figure 6). It changes how active they are.
+- **Bat communities follow site setting** (distance, forest cover and sky brightness), mainly within 0–1.8 km of the lights. **Moth communities follow light intensity** (17–19% of variation), led by owlet, lappet and tiger moths.
+
+**Comparison with the single-lot-point distance**
+
+- Measuring distance to the nearest light-source site leaves the color and intensity results essentially unchanged and keeps the direction and size of every distance effect. Within 0–1.8 km the overall bat decline weakens from p = 0.03 to p = 0.051 and the per-color bat declines are no longer close to significance; the high-frequency guild decline remains significant. Two moth taxa (*Feltia*, *Malacosoma californica*) no longer pass the multiple-testing correction, and distance no longer significantly structures the moth community within 0–1.8 km.
+
+**Caveats**
+
+- **Site selection:** GRTE15, a far site (\~7 km) with by far the highest bat activity (\~750 detections per night) and many long-eared myotis, is shown in the first column of each figure and excluded in the second; the far sites as a group (GRTE13–15) are removed in the third. GRTE15 alone produces the apparent all-sites rise in bats and long-eared myotis toward the far sites; without it, bats show no overall distance trend across the full gradient.
+- **Treatment schedule:** colors and intensities ran in fixed blocks of nights, and intensity partly overlapped with moon phase (30% and 50% nights fell mostly near full moon). Overall intensity effects and the moth color result at 100% may partly reflect those particular nights.
+- **Multiple comparisons:** where an effect is estimated at several intensities or colors, asterisks are Holm-adjusted within each taxon and panel (Figures 1, 2, 4 and 5), and across the 9 species for the species results; moth taxa (Figure 3) are Benjamini–Hochberg-corrected across the 51 taxa tested. Splitting an effect five ways costs power, so a consistent pattern across intensities can be real even where individual levels are not significant.

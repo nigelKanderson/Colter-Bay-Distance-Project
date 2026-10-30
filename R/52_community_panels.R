@@ -13,8 +13,10 @@
 #      deviance explained.
 # Output: output/figures/fig_community_panels.png; fits cached in output/community_fits.rds
 
+source("R/storyboard_sites.R")   # SB_FULL_DROP, SB_FAR_DROP, SB_LABELS
+
 fit_community_sets <- function(bat_data, moth_data, bat_theme, col_red, col_white,
-                               far_sites = c("GRTE13", "GRTE14", "GRTE15"), nBoot = 9999,
+                               far_sites = SB_FAR_DROP, nBoot = 9999,
                                cache = "output/community_fits.rds") {
   library(tidyverse)
   source("R/10_community_analysis.R")
@@ -22,13 +24,15 @@ fit_community_sets <- function(bat_data, moth_data, bat_theme, col_red, col_whit
                            coef = coef(r$mv_fit), mv_anova = r$mv_anova)
   run <- function(d, taxon, unit) keep(run_community_analysis(
     d, bat_theme, col_red, col_white, taxon = taxon, unit = unit, nBoot = nBoot))
-  drop <- function(d) droplevels(filter(d, !site %in% far_sites))
-  res <- list(
-    full  = list(Bats  = run(bat_data, "Bat", "Species"),
-                 Moths = run(moth_data, "Moth", "Family")),
-    nofar = list(Bats  = run(drop(bat_data), "Bat", "Species"),
-                 Moths = run(drop(moth_data), "Moth", "Family"))
-  )
+  drop <- function(d, sites) droplevels(filter(d, !site %in% sites))
+  # reuse any site sets already in the cache; fit only the missing ones
+  res <- if (file.exists(cache)) readRDS(cache) else list()
+  sets <- SB_SETS; sets$nofar <- far_sites
+  for (k in setdiff(names(sets), names(res))) {
+    res[[k]] <- list(Bats  = run(drop(bat_data, sets[[k]]), "Bat", "Species"),
+                     Moths = run(drop(moth_data, sets[[k]]), "Moth", "Family"))
+  }
+  res <- res[intersect(names(SB_SETS), names(res))]
   dir.create(dirname(cache), recursive = TRUE, showWarnings = FALSE)
   saveRDS(res, cache)
   res
@@ -41,7 +45,7 @@ make_community_panels <- function(res, bat_theme, file = "output/figures/fig_com
   pred_lab <- c(color = "Light color", intensity = "Light intensity", dist_km = "Distance",
                 mean_phase = "Moon phase", pct_nonforest = "% non-forest",
                 brightness_dark = "Sky brightness")
-  ds_lab   <- c(full = "Full data (14 sites)", nofar = "Far sites removed (11 sites)")
+  ds_lab   <- SB_LABELS
   tx_pal   <- c(Bats = "#0072B2", Moths = "#D55E00")
   stars    <- function(p) case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "")
   bat_names  <- c(Epfu = "big brown", Lano = "silver-haired", Laci = "hoary", Myev = "long-eared myotis",
@@ -64,10 +68,10 @@ make_community_panels <- function(res, bat_theme, file = "output/figures/fig_com
   dodge <- position_dodge(0.6)
   pA <- ggplot(imp, aes(pct, term, color = taxon)) +
     geom_linerange(aes(xmin = 0, xmax = pct), linewidth = 0.6, position = dodge, alpha = 0.5) +
-    geom_point(size = 3, position = dodge) +
+    geom_point(size = 4.2, position = dodge) +
     # asterisks just past each dot; where the bat and moth dots are close, aligned past the longer one
     geom_text(data = imp %>% group_by(dataset, term) %>%
-                mutate(xl = if (diff(range(pct)) < 1.5) max(pct) + 0.25 else pct + 0.25) %>% ungroup(),
+                mutate(xl = if (diff(range(pct)) < 1.5) max(pct) + 0.55 else pct + 0.55) %>% ungroup(),
               aes(x = xl, label = stars(p), group = taxon), position = dodge, hjust = 0, vjust = 0.75, size = 3.6,
               color = "#222222", show.legend = FALSE) +
     geom_text(data = r2_lab, aes(x = Inf, y = -Inf, label = lab), inherit.aes = FALSE,
@@ -136,7 +140,7 @@ make_community_panels <- function(res, bat_theme, file = "output/figures/fig_com
           legend.position = "right", legend.title = element_text(size = 9))
 
   int <- resp %>% filter(term == "intensity") %>%
-    mutate(col = factor(ifelse(as.integer(dataset) == 1, "Full data", "Far removed"), c("Full data", "Far removed")),
+    mutate(col = factor(SB_SHORT[names(SB_LABELS)[match(as.character(dataset), SB_LABELS)]], SB_SHORT),
            sig = !is.na(p) & p < 0.05)
   pB2 <- ggplot(int, aes(col, label, fill = dev)) +
     geom_tile(aes(alpha = sig), color = "white", linewidth = 0.8) +
@@ -152,7 +156,8 @@ make_community_panels <- function(res, bat_theme, file = "output/figures/fig_com
           axis.line = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank(),
           legend.position = "right", legend.title = element_text(size = 9))
 
-  plate <- (pA / (pB1 + pB2 + plot_layout(widths = c(5, 1.1)))) +
+  nds <- length(unique(imp$dataset))
+  plate <- (pA / (pB1 + pB2 + plot_layout(widths = c(5, 1.1) * c(1, max(nds, 2) / 2)))) +
     plot_layout(heights = c(1, 2.2)) +
     plot_annotation(
       tag_levels = list(c("A", "B", "")),
@@ -167,6 +172,6 @@ make_community_panels <- function(res, bat_theme, file = "output/figures/fig_com
     theme(plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 13, height = 14, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(6.5 * nds + 1, 13), height = 14, dpi = 300, bg = "white")
   list(plate = plate, importance = imp, responses = resp)
 }

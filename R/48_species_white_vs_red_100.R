@@ -1,7 +1,7 @@
 # 48_species_white_vs_red_100.R
 # White vs. red light at a given intensity (100%, and 50% for the combined figure), by bat
 # species (forest plot):
-#   A  full data (14 sites)      B  far sites removed (11 sites)
+#   A  GRTE15 excluded (13 sites)      B  far sites removed (11 sites)
 # Each focal species gets its own GLMM on the zero-filled species-night data (`spp_night`,
 # single-species detections only), same structure as the guild models:
 #   detections ~ color x intensity + intensity x distance + color x distance
@@ -14,6 +14,9 @@
 # Output: output/figures/fig_species_white_vs_red_100.png; combined guild + species figure:
 #         output/figures/fig_bat_guild_species_white_vs_red.png
 
+source("R/storyboard_sites.R")   # SB_FULL_DROP, SB_FAR_DROP, SB_LABELS
+source("R/pct_arrows.R")         # direction arrows next to the 0 line
+
 species_guild <- c(Epfu = "Low frequency", Lano = "Low frequency", Laci = "Low frequency",
                    Myev = "Myev",
                    Mylu = "High frequency", Myvo = "High frequency", Myci = "High frequency",
@@ -23,14 +26,14 @@ species_common <- c(Epfu = "big brown", Lano = "silver-haired", Laci = "hoary",
                     Myci = "small-footed myotis", Myca = "California myotis", Myyu = "Yuma myotis")
 
 # one row per dataset x species x intensity (white vs red contrast at each of `intensities`)
-fit_species_white_vs_red_100 <- function(spp_night, far_sites = c("GRTE13", "GRTE14", "GRTE15"),
+fit_species_white_vs_red_100 <- function(spp_night, far_sites = SB_FAR_DROP,
                                          intensities = c("50", "100")) {
   library(glmmTMB)
   library(emmeans)
   library(tidyverse)
   f <- detections ~ color * intensity + intensity * dist_km + color * dist_km +
     mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site)
-  sets <- list(full = spp_night, nofar = droplevels(filter(spp_night, !site %in% far_sites)))
+  sets <- lapply(SB_SETS, function(s) droplevels(filter(spp_night, !site %in% s)))
   imap_dfr(sets, function(d0, ds) map_dfr(names(species_guild), function(sp) {
     d  <- droplevels(filter(d0, species == sp))
     zi <- any(d$detections == 0)
@@ -56,7 +59,7 @@ species_white_vs_red_panels <- function(res, bat_theme, level = "100", rare_n = 
   stars <- function(p) case_when(p < 0.001 ~ "***", p < 0.01 ~ "**", p < 0.05 ~ "*", TRUE ~ "")
 
   # species order: by guild (as in the legend), then by total detections (most at top)
-  ord <- res %>% filter(dataset == "full") %>% distinct(species, guild, detections) %>%
+  ord <- res %>% filter(dataset == names(SB_SETS)[1]) %>% distinct(species, guild, detections) %>%
     mutate(guild = factor(guild, names(pal))) %>% arrange(desc(guild), detections) %>% pull(species)
   d <- res %>% filter(converged, intensity == level) %>%
     group_by(dataset) %>% mutate(p_raw = p, p = p.adjust(p, "holm")) %>% ungroup() %>%   # Holm across species
@@ -79,7 +82,7 @@ species_white_vs_red_panels <- function(res, bat_theme, level = "100", rare_n = 
     ggplot(dd, aes(r, label, color = guild)) +
       geom_vline(xintercept = 1, color = "#999999", linewidth = 0.4) +
       geom_errorbar(aes(xmin = lo, xmax = hi), width = 0.25, linewidth = 0.6, orientation = "y") +
-      geom_point(aes(shape = rare), size = 2.8, stroke = 1, fill = "white") +
+      geom_point(aes(shape = rare), size = 4, stroke = 1, fill = "white") +
       geom_text(aes(x = hi, label = stars(p)), hjust = -0.25, vjust = 0.75, size = 4.2,
                 color = "#222222", show.legend = FALSE) +
       geom_text(aes(x = xl[2], label = n_lab), hjust = 1, size = 3, color = "#666666",
@@ -89,23 +92,26 @@ species_white_vs_red_panels <- function(res, bat_theme, level = "100", rare_n = 
       scale_shape_manual(values = c(`FALSE` = 16, `TRUE` = 21),
                          breaks = "TRUE", labels = paste0("rare (< ", rare_n, " detections at that intensity)"),
                          name = NULL) +
-      coord_cartesian(xlim = xl) +
+      coord_cartesian(xlim = xl, clip = "off") +
+      pct_arrows_x("Higher under white", "Higher under red", zero = 1) +   # log x: 0% = ratio 1
       labs(title = ttl, x = paste0("% change at ", level, "% intensity, white vs red"), y = NULL) +
       bat_theme +
       theme(plot.title = element_text(size = 11), axis.text = element_text(size = 10),
             axis.title = element_text(size = 11),
             panel.grid.major.y = element_blank(),
-            panel.grid.major.x = element_line(color = "#EBEBEB", linewidth = 0.4))
+            panel.grid.major.x = element_line(color = "#EBEBEB", linewidth = 0.4)) +
+      pct_arrow_margin_x()
   }
 
-  list(full = panel("full", "Full data (14 sites)"), nofar = panel("nofar", "Far sites removed (11 sites)"))
+  ks <- intersect(names(SB_SETS), unique(res$dataset))
+  setNames(lapply(ks, function(k) panel(k, SB_LABELS[[k]])), ks)
 }
 
 plot_species_white_vs_red_100 <- function(res, bat_theme, rare_n = 150,
                                           file = "output/figures/fig_species_white_vs_red_100.png") {
   library(patchwork)
   pn <- species_white_vs_red_panels(res, bat_theme, level = "100", rare_n = rare_n)
-  plate <- (pn$full | pn$nofar) +
+  plate <- wrap_plots(pn, nrow = 1) +
     plot_layout(guides = "collect") +
     plot_annotation(
       tag_levels = "A",
@@ -118,7 +124,7 @@ plot_species_white_vs_red_100 <- function(res, bat_theme, rare_n = 150,
     theme(legend.position = "top", plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 13, height = 5.8, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(6.5 * length(pn), 12), height = 5.8, dpi = 300, bg = "white")
   plate
 }
 
@@ -130,32 +136,32 @@ make_guild_species_white_vs_red <- function(guild_fits, res, bat_theme,
   library(tidyverse)
   library(patchwork)
   source("R/47_bat_moth_white_vs_red_panel.R")
-  gp <- make_guild_white_vs_red_panel(guild_fits, bat_theme, file = NULL)$panels
-  no_col <- function(pn) map(pn, ~ .x + guides(color = "none"))   # guild colors already in the legend from A-B
-  sp  <- no_col(species_white_vs_red_panels(res, bat_theme, level = "100"))
+  # top row: guilds on the x-axis, intensity as the purple ramp; the guild color legend comes
+  # from the species rows
+  gp <- make_guild_white_vs_red_panel(guild_fits, bat_theme, file = NULL, intensity_by_fill = TRUE)$panels
+  no_col <- function(pn) map(pn, ~ .x + guides(color = "none"))   # guild colors already in the legend
+  sp  <- species_white_vs_red_panels(res, bat_theme, level = "100")
   sp50 <- no_col(species_white_vs_red_panels(res, bat_theme, level = "50"))
   retitle <- function(p, ttl) p + labs(title = ttl)
 
-  plate <- (retitle(gp$full,  "Guilds, all intensities · Full data (14 sites)") |
-            retitle(gp$nofar, "Guilds, all intensities · Far sites removed (11 sites)")) /
-           (retitle(sp$full,  "Species at 100% intensity · Full data (14 sites)") |
-            retitle(sp$nofar, "Species at 100% intensity · Far sites removed (11 sites)")) /
-           (retitle(sp50$full,  "Species at 50% intensity · Full data (14 sites)") |
-            retitle(sp50$nofar, "Species at 50% intensity · Far sites removed (11 sites)")) +
+  ks <- names(gp)
+  row <- function(pl, what) lapply(ks, function(k) retitle(pl[[k]], paste(what, "·", SB_LABELS[[k]])))
+  plate <- wrap_plots(c(row(gp, "Guilds, all intensities"), row(sp, "Species at 100% intensity"),
+                        row(sp50, "Species at 50% intensity")), ncol = length(ks)) +
     plot_layout(guides = "collect", heights = c(1, 1.15, 1.15)) +
     plot_annotation(
       tag_levels = "A",
       title = "Bat guilds and species: white vs. red light",
-      subtitle = paste0("A–B: each guild's zero-inflated NB GLMM, white vs. red at each intensity (log y-axis). ",
-                        "C–F: each species' GLMM (single-species detections only), white vs. red at 100% (C–D)\n",
-                        "and 50% (E–F) intensity (log x-axis; n = detections at that intensity; hollow = rare, < 150). ",
+      subtitle = paste0("Top row: each guild's zero-inflated NB GLMM, white vs. red at each intensity (points shaded pale to deep purple for 10% to 100%; log y-axis). ",
+                        "Lower rows: each species' GLMM (single-species detections only), white vs. red at 100% (middle row)\n",
+                        "and 50% (bottom row) intensity (log x-axis; n = detections at that intensity; hollow = rare, < 150). ",
                         "Contrasts at the mean distance; 95% CIs. Asterisks: differs from 0 ",
-                        "(* p < 0.05, ** p < 0.01, *** p < 0.001; Holm-adjusted across intensities within each guild (A–B)\nand across the 9 species in each panel (C–F))."),
+                        "(* p < 0.05, ** p < 0.01, *** p < 0.001; Holm-adjusted across intensities within each guild (top row)\nand across the 9 species in each species panel)."),
       theme = theme(plot.title = element_text(face = "bold", size = 15),
                     plot.subtitle = element_text(size = 10, color = "#555555"))) &
     theme(legend.position = "top", plot.tag = element_text(face = "bold", size = 14))
 
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
-  ggsave(file, plate, width = 13, height = 16.5, dpi = 300, bg = "white")
+  ggsave(file, plate, width = max(7.5 * length(ks), 14), height = 16.5, dpi = 300, bg = "white")
   plate
 }
