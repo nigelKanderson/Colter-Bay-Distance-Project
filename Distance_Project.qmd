@@ -1128,7 +1128,7 @@ hier_level <- function(level, drop_sites = NULL, exclude_rx = NULL, min_sn = 30)
   m <- NULL
   for (rhs in cand) {
     mi <- tryCatch(suppressWarnings(glmmTMB(
-      as.formula(paste("detections ~ taxon * dist_km + color + intensity +", rhs, "+ (1 | site)")),
+      as.formula(paste("detections ~ taxon * dist_km + color + intensity +", rhs, "+ (1 | site) + (1 | date)")),   # night RE: treatment set per night
       data = grid, ziformula = ~1, family = nbinom2())), error = function(e) NULL)
     if (is.null(m) && !is.null(mi)) m <- mi
     if (.stbl(mi)) { m <- mi; break }
@@ -1137,10 +1137,26 @@ hier_level <- function(level, drop_sites = NULL, exclude_rx = NULL, min_sn = 30)
   s <- as.data.frame(emtrends(m, ~ taxon, var = "dist_km"))
   sumry <- tibble(taxon = as.character(s$taxon), est = s$dist_km.trend,
                   p = 2 * pnorm(-abs(s$dist_km.trend / s$SE)))
+  # red vs white curves: the same model plus color x distance terms, per taxon where that
+  # converges (else one shared color x distance term); node selection and p stay with `m`
+  mc <- NULL
+  for (add in c(". ~ . + color:dist_km + taxon:color + taxon:color:dist_km", ". ~ . + color:dist_km")) {
+    mi <- tryCatch(suppressWarnings(update(m, as.formula(add))), error = function(e) NULL)
+    if (.stbl(mi)) { mc <- mi; break }
+  }
+  if (is.null(mc)) mc <- m
+  sc <- as.data.frame(emtrends(mc, ~ taxon | color, var = "dist_km")) %>%
+    select(taxon, color, dist_km.trend) %>% mutate(taxon = as.character(taxon)) %>%
+    tidyr::pivot_wider(names_from = color, values_from = dist_km.trend, names_prefix = "est_")
+  sumry <- left_join(sumry, sc, by = "taxon")
   dg <- seq(min(grid$dist_km), max(grid$dist_km), length.out = 40)
-  cv <- as.data.frame(emmeans(m, ~ taxon | dist_km, at = list(dist_km = dg), type = "response")) %>%
-    transmute(taxon = as.character(taxon), dist_km, response, lower = asymp.LCL, upper = asymp.UCL)
-  list(sumry = sumry, curves = cv)
+  cv <- as.data.frame(emmeans(mc, ~ taxon * color | dist_km, at = list(dist_km = dg), type = "response")) %>%
+    transmute(taxon = as.character(taxon), color = as.character(color), dist_km, response,
+              lower = asymp.LCL, upper = asymp.UCL)
+  # one overall curve per taxon from `m` (averaged over color and intensity), color = "all"
+  cv_all <- as.data.frame(emmeans(m, ~ taxon | dist_km, at = list(dist_km = dg), type = "response")) %>%
+    transmute(taxon = as.character(taxon), color = "all", dist_km, response, lower = asymp.LCL, upper = asymp.UCL)
+  list(sumry = sumry, curves = bind_rows(cv, cv_all))
 }
 
 hier_levels <- function(drop_sites = NULL) {
@@ -1182,6 +1198,7 @@ hier_nodes <- function(drop_sites = NULL, p_adjust = "none", lv = hier_levels(dr
 
 .SPX <- 1.6; .BOXW <- 1.15; .BOXH <- 0.56
 .PAL_D <- c("Away from lot" = "#018571", "Toward lot" = "#8C510A")   # teal / brown: not used elsewhere in the storyboard
+.LIGHT <- c(R = "#B2182B", W = "#333333"); .LIGHT_LTY <- c(R = "solid", W = "22")   # inset lines: red / white light
 hier_layout <- function(nd) {
   fam <- unique(na.omit(nd$Family)); sub <- unique(na.omit(nd$Subfamily))
   gen <- unique(na.omit(nd$Genus)); spp <- unique(na.omit(nd$Species_bin))
@@ -1195,9 +1212,19 @@ hier_layout <- function(nd) {
   roots <- nd$key[is.na(nd$parent)]; roots <- roots[order(match(roots, nd$key))]; for (r in roots) assign_x(r)
   nd$x <- env$x[nd$key] * .SPX; nd
 }
+# lines = "color": red and white curves per node; "overall": one curve per node (from the model without
+# color x distance, averaged over color) in the node's direction color, gray text = overall % change per km
 hier_plot <- function(res, title,
-                      subtitle = "each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor") {
-  nd <- res$nd; curves <- res$curves; tiers <- data.frame(y = 4:1)
+                      subtitle = "each inset = model-predicted detections vs distance under red (solid red) and white (dashed dark) light (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor",
+                      lines = c("color", "overall")) {
+  lines <- match.arg(lines)
+  nd <- res$nd; tiers <- data.frame(y = 4:1)
+  curves <- if (lines == "overall") filter(res$curves, color == "all") else filter(res$curves, color != "all")
+  ink <- if (lines == "overall") c(all = "#222222") else .LIGHT
+  ink_lty <- if (lines == "overall") c(all = "solid") else .LIGHT_LTY
+  # single-line trees: Okabe-Ito blue / orange for direction (the red/white trees keep teal / brown,
+  # since blue / orange mean bat / moth in the other storyboards)
+  pal_d <- if (lines == "overall") c("Away from lot" = "#0072B2", "Toward lot" = "#E69F00") else .PAL_D
   if (nrow(nd) == 0) return(   # empty tree: same frame and styling as a populated one
     ggplot() +
       geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
@@ -1217,22 +1244,30 @@ hier_plot <- function(res, title,
       rng = ifelse(hi - lo <= 0, 1, hi - lo), xr = (dist_km - min(dist_km)) / (max(dist_km) - min(dist_km)),
       X = nx + (xr - 0.5) * .BOXW, Yl = ny + ((response - lo) / rng - 0.5) * .BOXH,
       Ylo = ny + ((lower - lo) / rng - 0.5) * .BOXH, Yhi = ny + ((upper - lo) / rng - 0.5) * .BOXH) %>%
-    ungroup() %>% arrange(key, X)
+    ungroup() %>% arrange(key, color, X) %>% mutate(grp = paste(key, color))
   box <- nd %>% transmute(key, dir, trend, xmin = x - .BOXW/2, xmax = x + .BOXW/2, ymin = y - .BOXH/2, ymax = y + .BOXH/2)
   seg <- nd %>% filter(!is.na(parent)) %>% left_join(nd %>% select(parent = key, px = x, py = y), by = "parent")
   lab <- nd %>% mutate(italic = ifelse(lev %in% c("Genus", "Species_bin"), "italic", "plain"),
                        lab2 = ifelse(trend, sprintf("%s (trend, p = %.2f)", taxon, p_raw), paste0(taxon, " ", stars)),
-                       ly = y - .BOXH/2 - 0.11)
+                       ly = y - .BOXH/2 - 0.11,
+                       pct = if (lines == "overall") sprintf("%+.0f%% /km", (exp(est) - 1) * 100) else
+                         sprintf("red %+.0f%% · white %+.0f%% /km", (exp(est_R) - 1) * 100, (exp(est_W) - 1) * 100))
   ggplot() +
     geom_hline(data = tiers, aes(yintercept = y), color = "#F2F2F2", linewidth = 10) +
-    { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py, xend = x, yend = y, linetype = trend), color = "#C4C4C4", linewidth = 0.45) } +
+    { if (nrow(seg)) geom_segment(data = seg, aes(x = px, y = py - .BOXH/2 - 0.36, xend = x, yend = y + .BOXH/2, linetype = trend), color = "#C4C4C4", linewidth = 0.45) } +
     geom_rect(data = box, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, color = dir, linetype = trend), fill = "white", linewidth = 0.5) +
     scale_linetype_manual(values = c(`FALSE` = "solid", `TRUE` = "22"), guide = "none") +
-    geom_ribbon(data = cv, aes(x = X, ymin = Ylo, ymax = Yhi, group = key, fill = dir), alpha = 0.22) +
-    geom_line(data = cv, aes(x = X, y = Yl, group = key, color = dir), linewidth = 0.7) +
+    { if (lines == "overall") list(   # single curve drawn in its node's direction color
+        geom_ribbon(data = cv, aes(x = X, ymin = Ylo, ymax = Yhi, group = grp, fill = dir), alpha = 0.18, show.legend = FALSE),
+        geom_line(data = cv, aes(x = X, y = Yl, group = grp, color = dir), linewidth = 0.8, show.legend = FALSE))
+      else lapply(names(ink), function(k) list(   # red then white light
+        geom_ribbon(data = filter(cv, color == k), aes(x = X, ymin = Ylo, ymax = Yhi, group = grp), fill = ink[[k]], alpha = 0.10),
+        geom_line(data = filter(cv, color == k), aes(x = X, y = Yl, group = grp), color = ink[[k]],
+                  linetype = ink_lty[[k]], linewidth = 0.7))) } +
     geom_text(data = lab, aes(x = x, y = ly, label = lab2, fontface = italic), size = 2.7, vjust = 1, color = "#222222") +
-    scale_color_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
-    scale_fill_manual(values = .PAL_D, name = "More active:", drop = FALSE) +
+    geom_text(data = lab, aes(x = x, y = ly - 0.14, label = pct), size = 2.3, vjust = 1, color = "#666666") +
+    scale_color_manual(values = pal_d, name = "More active:", drop = FALSE) +
+    scale_fill_manual(values = pal_d, name = "More active:", drop = FALSE) +
     scale_y_continuous(breaks = 4:1, labels = c("Family", "Subfamily", "Genus", "Species"), limits = c(0.3, 4.7)) +
     # keep box proportions in sparse trees: x-range spans at least ~7 node slots
     coord_cartesian(xlim = c(min(nd$x) - .BOXW, max(max(nd$x) + .BOXW, min(nd$x) + 6.5 * .SPX)), clip = "off") +
@@ -1253,13 +1288,22 @@ for (sc in list(list(drop = NULL, sfx = "_all14", ttl = "All sites (14 sites)", 
     res <- hier_nodes(p_adjust = adj, lv = lv, trend = if (adj == "BH") sc$trend else character(0))
     ttl <- paste0("Moth significant-taxa hierarchy (distance) — ", sc$ttl,
                   if (adj == "BH") ", BH-corrected" else "")
-    sub <- paste0("each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; nodes link to nearest significant ancestor",
+    sub <- paste0("each inset = model-predicted detections vs distance under red (solid red) and white (dashed dark) light (0–max km, auto-scaled) ± 95% CI;\n",
+                  "box color = direction of the overall distance slope; gray text = % change per km under each color; nodes link to nearest significant ancestor",
                   if (adj == "BH") paste0("\nshown: taxa with Benjamini–Hochberg-adjusted p < 0.05 across all taxa tested (asterisks from adjusted p)",
                                           if (length(sc$trend)) "; dashed box = non-significant trend (uncorrected p)" else "") else "")
     p <- hier_plot(res, ttl, sub)
     nleaf <- if (nrow(res$nd)) sum(!(res$nd$key %in% res$nd$parent)) else 1
     ggsave(sprintf("output/figures/moth_sig_hierarchy_distance%s%s.png", sc$sfx, if (adj == "BH") "_BH" else ""), p,
            width = max(13, nleaf * 1.9), height = 8.5, dpi = 300, bg = "white", limitsize = FALSE)
+    if (adj == "BH") {   # single-line version (overall_v1 storyboard)
+      sub1 <- paste0("each inset = model-predicted detections vs distance (0–max km, auto-scaled) ± 95% CI; ",
+                     "box color = direction of the distance slope; gray text = % change per km\n",
+                     "nodes link to nearest significant ancestor; shown: taxa with Benjamini–Hochberg-adjusted p < 0.05 across all taxa tested (asterisks from adjusted p)")
+      ggsave(sprintf("output/figures/moth_sig_hierarchy_distance%s_BH_overall.png", sc$sfx),
+             hier_plot(res, ttl, sub1, lines = "overall"),
+             width = max(13, nleaf * 1.9), height = 8.5, dpi = 300, bg = "white", limitsize = FALSE)
+    }
     print(p)
   }
 }
@@ -1968,4 +2012,13 @@ Binomial GLM asking whether the reduced attitude scores discriminate red vs. whi
 
 ```{r people_exposure_glm, warning=FALSE, message=FALSE}
 source("R/27_people_exposure_glm.R")
+```
+
+## Sky Brightness Heat Map (White Lights On)
+
+Heat map of sky brightness with the parking-lot lights on (white, 100%): `brightness_white100`, the mean DSU of each station's three fisheye sky photos (one transient-light photo at GRTE11 excluded in `python/run_sky_brightness.py`), interpolated between the stations within 2.1 km of the lot by inverse-distance weighting on log DSU and clipped to 300 m around them. The parking lot spans GRTE01, GRTE16 and GRTE17 (dashed outline). The far stations (GRTE13–15) are not interpolated. GRTE09 and GRTE10 have no white-light photos, so their lights-off values (`brightness_dark`) stand in (marked \*), since stations this far from the lot change little with the lights on. The surface is an estimate between eleven points.
+
+```{r white_light_heatmap, warning=FALSE, message=FALSE}
+source("R/57_white_light_heatmap.R")
+knitr::include_graphics("output/figures/fig_white_light_heatmap.png")
 ```

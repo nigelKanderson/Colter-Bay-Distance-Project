@@ -1,0 +1,154 @@
+---
+title: "Statistics for the Overall Findings Storyboard (overall_v1)"
+subtitle: "Colter Bay, Grand Teton National Park, 2022"
+author: "Nigel K. Anderson · American Museum of Natural History"
+date: today
+format:
+  pdf:
+    geometry: margin=0.7in
+    fontsize: 10pt
+    papersize: letter
+    tbl-cap-location: top
+  html:
+    embed-resources: true
+    theme: cosmo
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(tidyverse); library(knitr)
+S <- readRDS("output/overall_v1_stats.rds")
+fp  <- function(p) ifelse(p < 0.001, "< 0.001", sprintf("%.3f", p))
+fpc <- function(x) sprintf("%+.0f%%", x)
+ci  <- function(lo, hi) sprintf("%+.0f to %+.0f%%", lo, hi)
+tab <- function(d, cap, ...) kable(d, booktabs = TRUE, caption = cap, linesep = "", ...)
+slope_tab <- function(d, cap) tab(d %>% transmute(Light = color, `% per km` = fpc(pct_per_km), `95% CI` = ci(lo, hi),
+                                                  z = sprintf("%.2f", z), p = fp(p)), cap, align = "lrrrr")
+model_tab <- function(d) tab(d %>% transmute(Model = model, `Obs.` = n_obs, Stations = n_sites, Family = family,
+                                             `Converged` = ifelse(converged, "yes", "no")),
+                             "Models (negative binomial GLMMs; random intercepts for site and night).", align = "lrrll")
+```
+
+All percentages are back-transformed from the log scale: % change in detections per km away from the parking lot, or % difference under white vs. red light. 95% CIs are Wald intervals; p-values are Wald z-tests. "Holm" and "BH" mark p-values adjusted across the five intensities (Holm) or across the taxa tested (Benjamini–Hochberg). Light color and intensity were set experimentally; distance is observational.
+
+## Model formulas
+
+All models are fitted with `glmmTMB` (negative binomial, `nbinom2`). `site` and `date` (night) are random intercepts; light `color` (R/W) and `intensity` (10, 30, 50, 70, 100%) are factors; `dist_km` = distance from the parking lot; `jd_c` = day of year, centered.
+
+**Figures 1B–C, 2 and 5B–C** — one model per taxon (Figures 1–2: 11 stations; Figure 5: 13 stations, GRTE15 excluded). Figure 1 uses the color × distance slopes; Figure 2 uses the intensity × distance slopes (A–B) and the color × intensity contrasts (C–D).
+
+```{r formulas, results = "asis"}
+fmt <- function(f) {   # treatment terms first, then covariates, then random effects; wrapped at ~85 characters
+  parts <- strsplit(f, " ~ ", fixed = TRUE)[[1]]
+  terms <- trimws(strsplit(parts[2], " + ", fixed = TRUE)[[1]])
+  ord <- c(grep(":", terms, value = TRUE), intersect(c("color", "intensity", "dist_km"), terms),
+           setdiff(terms[!grepl(":|\\|", terms)], c("color", "intensity", "dist_km")), grep("\\|", terms, value = TRUE))
+  lines <- character(0); cur <- paste(parts[1], "~")
+  for (t in ord) {
+    add <- if (grepl("~$", cur)) paste(cur, t) else paste(cur, "+", t)
+    if (nchar(add) > 85) { lines <- c(lines, cur); cur <- paste("  +", t) } else cur <- add
+  }
+  paste(c(lines, cur), collapse = "\n")
+}
+cat("Bats (total detections per site-night; no zero-inflation):\n\n```\n", fmt(S$fig1$models$formula[1]), "\n```\n\n", sep = "")
+cat("Moths (specimens per trap night; no zero-inflation):\n\n```\n", fmt(S$fig1$models$formula[2]), "\n```\n\n", sep = "")
+```
+
+**Figure 3 — bat hierarchy** (zero-inflated, `ziformula = ~1`; zero-filled site-nights). All bats uses total detections; guilds and species use their own detections with `taxon` = guild or species. Every tier converged with the full covariate set.
+
+```
+All bats:          total_det ~ dist_km + color + intensity + mean_phase + pct_nonforest
+                     + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)
+Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
+                     + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)
+```
+
+**Figure 4 — moth hierarchy** (zero-inflated, `ziformula = ~1`; one model per taxonomic level over the taxa with at least 30 site-nights, zero-filled trap nights). If a level's model did not converge, covariates were dropped in this order: non-forest cover, sky brightness, season², moon phase.
+
+```
+detections ~ taxon * dist_km + color + intensity + mean_phase + pct_nonforest
+  + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)
+```
+
+In both hierarchies a node's slope and p-value come from the taxon-specific `dist_km` slope (`emtrends`); curves are averaged over color and intensity.
+
+## Figure 1A and 5A: Station sky brightness
+
+```{r sky}
+tab(S$sky %>% transmute(Station = paste0(site, ifelse(lot, " (lot)", "")), `Distance (km)` = sprintf("%.2f", dist_km),
+                        `Lights off (DSU)` = sprintf("%.1f", lights_off),
+                        `White 100% (DSU)` = ifelse(white100_filled, "—", sprintf("%.1f", white100)),
+                        `Mapped (DSU)` = paste0(sprintf("%.1f", white100_map), ifelse(white100_filled, "*", "")),
+                        `In Figure 1` = ifelse(far, "no (far)", "yes")),
+    "Sky brightness from the fisheye photos (dark sky units). Lights off = darkest lights-off photo (as used in the models); white 100% = mean of three photos (GRTE11 p1 excluded: transient light). Distance from the reference point at GRTE17.",
+    align = "lrrrrl")
+```
+
+\* No white-light photos; the lights-off value is mapped instead. GRTE15 appears in neither map. The surface in the maps is inverse-distance-weighted interpolation of log DSU (power 2), clipped to 300 m around the stations.
+
+## Figure 1B–C: Distance slopes by light color (11 stations, 0–2.1 km)
+
+```{r f1}
+model_tab(S$fig1$models)
+```
+
+Both models: color × intensity, intensity × distance, color × distance, moon phase, non-forest cover, sky brightness (lights off), season (day of year, linear + quadratic), and random intercepts for site and night (date). The night effect makes nights, not site-nights, the replicates for the light treatments, which were set night by night. Full formulas: see *Model formulas* above.
+
+```{r f1s}
+slope_tab(S$fig1$bat_slopes, "Figure 1B — bats: % change in detections per km under each light color (not adjusted).")
+slope_tab(S$fig1$moth_slopes, "Figure 1C — moths: % change in specimens per km under each light color (not adjusted).")
+```
+
+## Figure 2: Effects at each light intensity (same models as Figure 1)
+
+```{r f2}
+int_tab <- function(d, est, cap) tab(d %>% transmute(Intensity = intensity, Estimate = fpc(.data[[est]]), `95% CI` = ci(lo, hi),
+                                                     z = sprintf("%.2f", z), p = fp(p), `p (Holm)` = fp(p_holm)), cap, align = "lrrrrr")
+int_tab(S$fig2$bat_dist,  "pct_per_km",       "Figure 2A — bats: % change in detections per km away from the lot, by intensity.")
+int_tab(S$fig2$moth_dist, "pct_per_km",       "Figure 2B — moths: % change in specimens per km away from the lot, by intensity.")
+int_tab(S$fig2$bat_wvr,   "pct_white_vs_red", "Figure 2C — bats: % difference under white vs. red light, by intensity (at the mean distance).")
+int_tab(S$fig2$moth_wvr,  "pct_white_vs_red", "Figure 2D — moths: % difference under white vs. red light, by intensity (at the mean distance).")
+```
+
+Red-light nights at 100% intensity: moth traps 4 nights (12–13 July, 5–6 August 2022), bat detectors 6 nights (11–13 July, 4–6 August); they include the July full moon and the two wettest nights of the study.
+
+## Figure 3: Bat distance hierarchy (11 stations)
+
+```{r f3}
+tab(S$fig3 %>% transmute(Tier = tier, Taxon = taxon, `% per km` = fpc(pct_per_km), `95% CI` = ci(lo, hi),
+                         z = sprintf("%.2f", z), `p (raw)` = fp(p_raw), `p (adj.)` = fp(p_adj)),
+    "Figure 3 — distance slope at each node. All bats: single test (unadjusted); guilds and species: Benjamini–Hochberg across the 12 nodes.",
+    align = "llrrrrr")
+```
+
+Zero-inflated negative binomial GLMMs of detections per site-night (all bats = total; guild and species = their detections, zero-filled) with taxon × distance, light color, intensity, moon phase, non-forest cover, sky brightness, season, and random intercepts for site and night. Covariates were dropped in order if a model did not converge; covariates used: all bats — `r unique(S$fig3$covariates[S$fig3$tier == "All bats"])`; guilds — `r unique(S$fig3$covariates[S$fig3$tier == "Guild"])`; species — `r unique(S$fig3$covariates[S$fig3$tier == "Species"])`.
+
+## Figure 4: Moth distance hierarchy (11 stations)
+
+```{r f4}
+sig <- S$fig4 %>% filter(significant)
+tab(sig %>% transmute(Level = level, Taxon = taxon, `% per km` = fpc(pct_per_km), `p (raw)` = fp(p_raw), `p (BH)` = fp(p_BH)),
+    sprintf("Figure 4 — the %d taxa shown: Benjamini–Hochberg-adjusted p < 0.05 across all %d taxa tested.", nrow(sig), nrow(S$fig4)),
+    align = "llrrr")
+```
+
+Taxon × distance zero-inflated negative binomial GLMM at each taxonomic level (taxa with at least 30 site-nights), with light color, intensity, moon phase, non-forest cover, sky brightness, season, and random intercepts for site and night.
+
+```{r f4all}
+tab(S$fig4 %>% filter(!significant) %>% transmute(Level = level, Taxon = taxon, `% per km` = fpc(pct_per_km),
+                                                   `p (raw)` = fp(p_raw), `p (BH)` = fp(p_BH)),
+    "All other taxa tested (not significant after adjustment).", align = "llrrr", longtable = TRUE)
+```
+
+## Figure 5B–C: Distance slopes with the far stations (13 stations, 0–7.5 km; GRTE15 excluded)
+
+```{r f5}
+model_tab(S$fig5$models)
+slope_tab(S$fig5$bat_slopes, "Figure 5B — bats: % change in detections per km under each light color (not adjusted).")
+slope_tab(S$fig5$moth_slopes, "Figure 5C — moths: % change in specimens per km under each light color (not adjusted).")
+```
+
+Same model structure as Figure 1B–C, fitted on the 13 stations.

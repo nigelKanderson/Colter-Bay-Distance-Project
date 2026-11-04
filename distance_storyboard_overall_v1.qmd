@@ -1,0 +1,28 @@
+---
+format:
+  pdf:
+    geometry: margin=0.7in
+    fig-pos: "H"
+    papersize: letter
+  html:
+    embed-resources: true
+    theme: cosmo
+---
+
+![Sky brightness and the distance gradient at the lit Colter Bay parking lot (stations GRTE01, GRTE16, GRTE17), Grand Teton National Park, 2022; bats on acoustic detectors and moths in light traps while the lot's lights were switched night by night between red and white and among five intensities (10–100%). **B–C** use the 11 stations within 0–2.1 km of the lot (negative binomial GLMMs with light color × intensity, color × distance, moon phase, non-forest cover, sky brightness, season, and random effects for site and night, since light color and intensity were set night by night and all stations on a night share its treatment, moon and weather; light color and intensity were set experimentally, while the distance pattern is observational). **A** Sky brightness with the lot's white lights on at 100%: mean of each station's three fisheye sky photos (dark sky units, DSU; value after each name), interpolated between stations by inverse-distance weighting on log DSU and clipped to 300 m around them; dashed outline = parking lot (GRTE01, GRTE16, GRTE17); \* GRTE09 and GRTE10 have no white-light photos, so their lights-off values are used (stations this far from the lot change little with the lights on). The far stations, not shown, measured 3.0 (GRTE13), 9.6 (GRTE14) and 3.6 DSU (GRTE15). **B** Predicted bat detections per night and **C** predicted moths per trap night along the gradient under red (solid) and white (dashed) light, ± 95% CI; ticks on the x-axis mark the stations. Asterisks on the line labels test that color's change with distance (\* p \< 0.05, \*\*\* p \< 0.001).](output/figures/overall_v1/fig1_overview.png){width=100%}
+
+\newpage
+
+![Distance and color effects at each light intensity, from the same models as Figure 1B–C. **A** Bats and **B** moths: % change in detections per km away from the lot at each intensity. **C** Bats and **D** moths: % difference in detections under white vs. red light at each intensity (at the mean distance). Points shaded from pale to deep purple for 10% to 100% intensity; filled points differ from zero (Holm-adjusted across the five intensities), open points do not; \* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001; 95% CIs. † 100% (shaded): the red-light nights at 100% included the July full moon and the two wettest nights of the study; the moth white vs. red difference rests on four red-light trap nights (six bat-recording nights).](output/figures/overall_v1/fig2_intensity.png){width=88%}
+
+\newpage
+
+![Bat distance responses by tier (all bats → call-frequency guild → species), 11 stations within 2.1 km of the lot. Each inset is model-predicted bat detections per night vs. distance, ± 95% CI (auto-scaled), drawn in its box's color; gray text under each node is its % change per km. Solid colored box = significant (all bats: single test; guilds and species: Benjamini–Hochberg-adjusted across the 12 nodes); orange = more active toward the lot; dashed gray = not significant (gray curve); \* p \< 0.05, \*\* p \< 0.01. Zero-inflated negative binomial GLMMs of detections per site-night with light color, intensity, moon phase, non-forest cover, sky brightness, season, and random effects for site and night.](output/figures/overall_v1/fig3_bat_hierarchy.png){width=100%}
+
+\newpage
+
+![Moth taxa with a significant distance slope, 11 stations within 2.1 km of the lot: Benjamini–Hochberg-adjusted p \< 0.05 across the 51 taxa tested (taxa with ≥ 30 site-nights), each linked to its nearest significant ancestor. Each inset is model-predicted moths vs. distance, ± 95% CI (auto-scaled), drawn in its box's color; gray text = % change per km; blue box = more active away from the lot; \* p \< 0.05, \*\* p \< 0.01, \*\*\* p \< 0.001 (adjusted). Taxon × distance zero-inflated negative binomial GLMM with light color, intensity, moon phase, non-forest cover, sky brightness, season, and random effects for site and night.](output/figures/overall_v1/fig4_moth_hierarchy.png){width=100%}
+
+\newpage
+
+![As Figure 1, but with the far stations included (13 stations, 0–7.5 km; GRTE15 excluded). **A** Sky brightness with the white lights on (as Figure 1A); inset: the two far stations, about 6.5 km south near Signal Mountain, colored on the same scale (not interpolated). **B** Predicted bat detections per night and **C** predicted moths per trap night along the full gradient under red (solid) and white (dashed) light, ± 95% CI; ticks on the x-axis mark the stations. Asterisks on the line labels test that color's change with distance (\*\*\* p \< 0.001); n.s. = not significant.](output/figures/overall_v1/fig5_overview_far.png){width=100%}

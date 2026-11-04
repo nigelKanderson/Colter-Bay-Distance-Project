@@ -20,8 +20,8 @@ make_nofar_distance_figure <- function(panels, bat_hier,
   pA <- ttl(panels[[1]], "Bat vs. moth: % change along the distance gradient") + labs(tag = "A")
   moth <- as.raster(magick::image_read(moth_png))
   pB <- wrap_elements(full = grid::rasterGrob(moth, interpolate = TRUE)) + labs(tag = "B")
-  sub <- paste0("each inset = model-predicted bat detections per night vs distance (0–max km, auto-scaled) ± 95% CI; ",
-                "gray text = % change per km\nsolid colored box = p < 0.05 (all bats: single test; guilds and species: ",
+  sub <- paste0("each inset = model-predicted bat detections per night vs distance under red (solid red) and white (dashed dark) light (0–max km, auto-scaled) ± 95% CI; ",
+                "gray text = % change per km under each color\nsolid colored box = p < 0.05 (all bats: single test; guilds and species: ",
                 "Benjamini–Hochberg-adjusted across those 12 nodes); dashed gray box = not significant")
   hr <- bat_hier[[1]]; hr$sumry <- bat_hier_adjust(hr$sumry)
   pC <- bat_hier_plot(hr, "Bat species hierarchy (distance) — Far sites removed (11 sites)", sub) + labs(tag = "C")
