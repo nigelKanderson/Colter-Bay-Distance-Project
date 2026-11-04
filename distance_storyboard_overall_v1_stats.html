@@ -2208,24 +2208,24 @@ vertical-align: -.125em;
 <p>All percentages are back-transformed from the log scale: % change in detections per km away from the parking lot, or % difference under white vs. red light. 95% CIs are Wald intervals; p-values are Wald z-tests. “Holm” and “BH” mark p-values adjusted across the five intensities (Holm) or across the taxa tested (Benjamini–Hochberg). Light color and intensity were set experimentally; distance is observational.</p>
 <section id="model-formulas" class="level2">
 <h2 class="anchored" data-anchor-id="model-formulas">Model formulas</h2>
-<p>All models are fitted with <code>glmmTMB</code> (negative binomial, <code>nbinom2</code>). <code>site</code> and <code>date</code> (night) are random intercepts; light <code>color</code> (R/W) and <code>intensity</code> (10, 30, 50, 70, 100%) are factors; <code>dist_km</code> = distance from the parking lot; <code>jd_c</code> = day of year, centered.</p>
+<p>All models are fitted with <code>glmmTMB</code> (negative binomial, <code>nbinom2</code>). <code>site</code> is a random intercept; light <code>color</code> (R/W) and <code>intensity</code> (10, 30, 50, 70, 100%) are factors; <code>dist_km</code> = distance from the parking lot; <code>jd_c</code> = day of year, centered.</p>
 <p><strong>Figures 1B–C, 2 and 5B–C</strong> — one model per taxon (Figures 1–2: 11 stations; Figure 5: 13 stations, GRTE15 excluded). Figure 1 uses the color × distance slopes; Figure 2 uses the intensity × distance slopes (A–B) and the color × intensity contrasts (C–D).</p>
 <p>Bats (total detections per site-night; no zero-inflation):</p>
 <pre><code>total_det ~ color:intensity + intensity:dist_km + color:dist_km + color + intensity
   + dist_km + mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2)
-  + (1 | site) + (1 | date)</code></pre>
+  + (1 | site)</code></pre>
 <p>Moths (specimens per trap night; no zero-inflation):</p>
 <pre><code>detections ~ color:intensity + intensity:dist_km + color:dist_km + color + intensity
   + dist_km + mean_phase + pct_nonforest + jd_c + I(jd_c^2) + brightness_dark
-  + (1 | site) + (1 | date)</code></pre>
+  + (1 | site)</code></pre>
 <p><strong>Figure 3 — bat hierarchy</strong> (zero-inflated, <code>ziformula = ~1</code>; zero-filled site-nights). All bats uses total detections; guilds and species use their own detections with <code>taxon</code> = guild or species. Every tier converged with the full covariate set.</p>
 <pre><code>All bats:          total_det ~ dist_km + color + intensity + mean_phase + pct_nonforest
-                     + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)
+                     + brightness_dark + jd_c + I(jd_c^2) + (1 | site)
 Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
-                     + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)</code></pre>
+                     + pct_nonforest + brightness_dark + jd_c + I(jd_c^2) + (1 | site)</code></pre>
 <p><strong>Figure 4 — moth hierarchy</strong> (zero-inflated, <code>ziformula = ~1</code>; one model per taxonomic level over the taxa with at least 30 site-nights, zero-filled trap nights). If a level’s model did not converge, covariates were dropped in this order: non-forest cover, sky brightness, season², moon phase.</p>
 <pre><code>detections ~ taxon * dist_km + color + intensity + mean_phase + pct_nonforest
-  + brightness_dark + jd_c + I(jd_c^2) + (1 | site) + (1 | date)</code></pre>
+  + brightness_dark + jd_c + I(jd_c^2) + (1 | site)</code></pre>
 <p>In both hierarchies a node’s slope and p-value come from the taxon-specific <code>dist_km</code> slope (<code>emtrends</code>); curves are averaged over color and intensity.</p>
 </section>
 <section id="figure-1a-and-5a-station-sky-brightness" class="level2">
@@ -2376,7 +2376,7 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Models (negative binomial GLMMs; random intercepts for site and night).</caption>
+<caption>Models (negative binomial GLMMs; site random intercept).</caption>
 <colgroup>
 <col style="width: 54%">
 <col style="width: 7%">
@@ -2412,7 +2412,7 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 </table>
 </div>
 </div>
-<p>Both models: color × intensity, intensity × distance, color × distance, moon phase, non-forest cover, sky brightness (lights off), season (day of year, linear + quadratic), and random intercepts for site and night (date). The night effect makes nights, not site-nights, the replicates for the light treatments, which were set night by night. Full formulas: see <em>Model formulas</em> above.</p>
+<p>Both models: color × intensity, intensity × distance, color × distance, moon phase, non-forest cover, sky brightness (lights off), season (day of year, linear + quadratic) and a site random intercept. Full formulas: see <em>Model formulas</em> above.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -2429,15 +2429,15 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Red</td>
-<td style="text-align: right;">-56%</td>
-<td style="text-align: right;">-79 to -9%</td>
-<td style="text-align: right;">-2.20</td>
-<td style="text-align: right;">0.028</td>
+<td style="text-align: right;">-53%</td>
+<td style="text-align: right;">-77 to -7%</td>
+<td style="text-align: right;">-2.16</td>
+<td style="text-align: right;">0.030</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">White</td>
-<td style="text-align: right;">-54%</td>
-<td style="text-align: right;">-78 to -6%</td>
+<td style="text-align: right;">-53%</td>
+<td style="text-align: right;">-76 to -5%</td>
 <td style="text-align: right;">-2.12</td>
 <td style="text-align: right;">0.034</td>
 </tr>
@@ -2459,16 +2459,16 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Red</td>
-<td style="text-align: right;">+4%</td>
-<td style="text-align: right;">-21 to +38%</td>
-<td style="text-align: right;">0.30</td>
-<td style="text-align: right;">0.761</td>
+<td style="text-align: right;">+3%</td>
+<td style="text-align: right;">-21 to +33%</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">0.843</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">White</td>
-<td style="text-align: right;">+62%</td>
-<td style="text-align: right;">+24 to +112%</td>
-<td style="text-align: right;">3.55</td>
+<td style="text-align: right;">+63%</td>
+<td style="text-align: right;">+27 to +109%</td>
+<td style="text-align: right;">3.87</td>
 <td style="text-align: right;">&lt; 0.001</td>
 </tr>
 </tbody>
@@ -2495,43 +2495,43 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">10%</td>
-<td style="text-align: right;">-55%</td>
-<td style="text-align: right;">-78 to -6%</td>
-<td style="text-align: right;">-2.13</td>
-<td style="text-align: right;">0.033</td>
-<td style="text-align: right;">0.099</td>
+<td style="text-align: right;">-50%</td>
+<td style="text-align: right;">-75 to -0%</td>
+<td style="text-align: right;">-1.97</td>
+<td style="text-align: right;">0.049</td>
+<td style="text-align: right;">0.105</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30%</td>
-<td style="text-align: right;">-44%</td>
-<td style="text-align: right;">-73 to +18%</td>
-<td style="text-align: right;">-1.52</td>
-<td style="text-align: right;">0.128</td>
-<td style="text-align: right;">0.128</td>
+<td style="text-align: right;">-42%</td>
+<td style="text-align: right;">-72 to +18%</td>
+<td style="text-align: right;">-1.51</td>
+<td style="text-align: right;">0.132</td>
+<td style="text-align: right;">0.132</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">50%</td>
-<td style="text-align: right;">-55%</td>
-<td style="text-align: right;">-78 to -4%</td>
-<td style="text-align: right;">-2.08</td>
-<td style="text-align: right;">0.038</td>
-<td style="text-align: right;">0.099</td>
+<td style="text-align: right;">-53%</td>
+<td style="text-align: right;">-77 to -5%</td>
+<td style="text-align: right;">-2.11</td>
+<td style="text-align: right;">0.035</td>
+<td style="text-align: right;">0.105</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">70%</td>
-<td style="text-align: right;">-60%</td>
-<td style="text-align: right;">-81 to -16%</td>
-<td style="text-align: right;">-2.43</td>
-<td style="text-align: right;">0.015</td>
-<td style="text-align: right;">0.068</td>
+<td style="text-align: right;">-56%</td>
+<td style="text-align: right;">-78 to -11%</td>
+<td style="text-align: right;">-2.30</td>
+<td style="text-align: right;">0.021</td>
+<td style="text-align: right;">0.086</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">100%</td>
-<td style="text-align: right;">-60%</td>
-<td style="text-align: right;">-81 to -17%</td>
-<td style="text-align: right;">-2.47</td>
-<td style="text-align: right;">0.014</td>
-<td style="text-align: right;">0.068</td>
+<td style="text-align: right;">-61%</td>
+<td style="text-align: right;">-80 to -20%</td>
+<td style="text-align: right;">-2.59</td>
+<td style="text-align: right;">0.010</td>
+<td style="text-align: right;">0.048</td>
 </tr>
 </tbody>
 </table>
@@ -2552,42 +2552,42 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">10%</td>
-<td style="text-align: right;">-11%</td>
-<td style="text-align: right;">-42 to +37%</td>
-<td style="text-align: right;">-0.52</td>
-<td style="text-align: right;">0.600</td>
+<td style="text-align: right;">-4%</td>
+<td style="text-align: right;">-35 to +41%</td>
+<td style="text-align: right;">-0.21</td>
+<td style="text-align: right;">0.831</td>
 <td style="text-align: right;">1.000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30%</td>
-<td style="text-align: right;">+24%</td>
-<td style="text-align: right;">-18 to +87%</td>
-<td style="text-align: right;">1.01</td>
-<td style="text-align: right;">0.312</td>
-<td style="text-align: right;">0.936</td>
+<td style="text-align: right;">+25%</td>
+<td style="text-align: right;">-16 to +85%</td>
+<td style="text-align: right;">1.11</td>
+<td style="text-align: right;">0.266</td>
+<td style="text-align: right;">0.797</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">50%</td>
-<td style="text-align: right;">+84%</td>
-<td style="text-align: right;">+24 to +173%</td>
-<td style="text-align: right;">3.02</td>
+<td style="text-align: right;">+76%</td>
+<td style="text-align: right;">+21 to +155%</td>
+<td style="text-align: right;">2.98</td>
 <td style="text-align: right;">0.003</td>
-<td style="text-align: right;">0.010</td>
+<td style="text-align: right;">0.011</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">70%</td>
-<td style="text-align: right;">+69%</td>
-<td style="text-align: right;">+22 to +136%</td>
-<td style="text-align: right;">3.13</td>
-<td style="text-align: right;">0.002</td>
-<td style="text-align: right;">0.009</td>
+<td style="text-align: right;">+74%</td>
+<td style="text-align: right;">+27 to +138%</td>
+<td style="text-align: right;">3.45</td>
+<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">0.003</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">100%</td>
-<td style="text-align: right;">+9%</td>
-<td style="text-align: right;">-26 to +60%</td>
-<td style="text-align: right;">0.43</td>
-<td style="text-align: right;">0.665</td>
+<td style="text-align: right;">-1%</td>
+<td style="text-align: right;">-30 to +39%</td>
+<td style="text-align: right;">-0.08</td>
+<td style="text-align: right;">0.936</td>
 <td style="text-align: right;">1.000</td>
 </tr>
 </tbody>
@@ -2609,43 +2609,43 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">10%</td>
-<td style="text-align: right;">+10%</td>
-<td style="text-align: right;">-29 to +69%</td>
-<td style="text-align: right;">0.42</td>
-<td style="text-align: right;">0.677</td>
-<td style="text-align: right;">0.677</td>
+<td style="text-align: right;">+6%</td>
+<td style="text-align: right;">-18 to +36%</td>
+<td style="text-align: right;">0.44</td>
+<td style="text-align: right;">0.657</td>
+<td style="text-align: right;">0.657</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30%</td>
-<td style="text-align: right;">-54%</td>
-<td style="text-align: right;">-74 to -18%</td>
-<td style="text-align: right;">-2.63</td>
-<td style="text-align: right;">0.009</td>
-<td style="text-align: right;">0.043</td>
+<td style="text-align: right;">-51%</td>
+<td style="text-align: right;">-66 to -31%</td>
+<td style="text-align: right;">-4.03</td>
+<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">&lt; 0.001</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">50%</td>
 <td style="text-align: right;">-40%</td>
-<td style="text-align: right;">-62 to -4%</td>
-<td style="text-align: right;">-2.15</td>
-<td style="text-align: right;">0.032</td>
-<td style="text-align: right;">0.126</td>
+<td style="text-align: right;">-55 to -20%</td>
+<td style="text-align: right;">-3.54</td>
+<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">0.002</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">70%</td>
-<td style="text-align: right;">-35%</td>
-<td style="text-align: right;">-58 to +0%</td>
-<td style="text-align: right;">-1.96</td>
-<td style="text-align: right;">0.050</td>
-<td style="text-align: right;">0.151</td>
+<td style="text-align: right;">-34%</td>
+<td style="text-align: right;">-49 to -16%</td>
+<td style="text-align: right;">-3.28</td>
+<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0.003</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">100%</td>
-<td style="text-align: right;">+52%</td>
-<td style="text-align: right;">-4 to +139%</td>
-<td style="text-align: right;">1.80</td>
-<td style="text-align: right;">0.072</td>
-<td style="text-align: right;">0.151</td>
+<td style="text-align: right;">+51%</td>
+<td style="text-align: right;">+16 to +97%</td>
+<td style="text-align: right;">3.03</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.005</td>
 </tr>
 </tbody>
 </table>
@@ -2666,43 +2666,43 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">10%</td>
-<td style="text-align: right;">-4%</td>
-<td style="text-align: right;">-52 to +92%</td>
-<td style="text-align: right;">-0.12</td>
-<td style="text-align: right;">0.904</td>
+<td style="text-align: right;">-3%</td>
+<td style="text-align: right;">-47 to +76%</td>
+<td style="text-align: right;">-0.11</td>
+<td style="text-align: right;">0.909</td>
 <td style="text-align: right;">1.000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">30%</td>
-<td style="text-align: right;">-37%</td>
-<td style="text-align: right;">-68 to +26%</td>
-<td style="text-align: right;">-1.31</td>
-<td style="text-align: right;">0.191</td>
-<td style="text-align: right;">0.764</td>
+<td style="text-align: right;">-41%</td>
+<td style="text-align: right;">-67 to +6%</td>
+<td style="text-align: right;">-1.76</td>
+<td style="text-align: right;">0.078</td>
+<td style="text-align: right;">0.310</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">50%</td>
-<td style="text-align: right;">-22%</td>
-<td style="text-align: right;">-57 to +44%</td>
-<td style="text-align: right;">-0.78</td>
-<td style="text-align: right;">0.433</td>
-<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">-27%</td>
+<td style="text-align: right;">-55 to +20%</td>
+<td style="text-align: right;">-1.23</td>
+<td style="text-align: right;">0.219</td>
+<td style="text-align: right;">0.658</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">70%</td>
-<td style="text-align: right;">+13%</td>
-<td style="text-align: right;">-32 to +89%</td>
-<td style="text-align: right;">0.48</td>
-<td style="text-align: right;">0.631</td>
+<td style="text-align: right;">+5%</td>
+<td style="text-align: right;">-30 to +58%</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: right;">0.817</td>
 <td style="text-align: right;">1.000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">100%</td>
-<td style="text-align: right;">+154%</td>
-<td style="text-align: right;">+45 to +344%</td>
-<td style="text-align: right;">3.27</td>
-<td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.005</td>
+<td style="text-align: right;">+190%</td>
+<td style="text-align: right;">+87 to +351%</td>
+<td style="text-align: right;">4.74</td>
+<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">&lt; 0.001</td>
 </tr>
 </tbody>
 </table>
@@ -2740,132 +2740,132 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tr class="odd">
 <td style="text-align: left;">All bats</td>
 <td style="text-align: left;">All bats</td>
-<td style="text-align: right;">-56%</td>
-<td style="text-align: right;">-79 to -10%</td>
-<td style="text-align: right;">-2.23</td>
-<td style="text-align: right;">0.026</td>
-<td style="text-align: right;">0.026</td>
+<td style="text-align: right;">-53%</td>
+<td style="text-align: right;">-76 to -10%</td>
+<td style="text-align: right;">-2.29</td>
+<td style="text-align: right;">0.022</td>
+<td style="text-align: right;">0.022</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Guild</td>
 <td style="text-align: left;">Low frequency</td>
 <td style="text-align: right;">-32%</td>
-<td style="text-align: right;">-70 to +53%</td>
-<td style="text-align: right;">-0.94</td>
-<td style="text-align: right;">0.348</td>
-<td style="text-align: right;">0.417</td>
+<td style="text-align: right;">-69 to +48%</td>
+<td style="text-align: right;">-0.97</td>
+<td style="text-align: right;">0.334</td>
+<td style="text-align: right;">0.401</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Guild</td>
 <td style="text-align: left;">Myev</td>
-<td style="text-align: right;">-47%</td>
-<td style="text-align: right;">-76 to +21%</td>
-<td style="text-align: right;">-1.51</td>
-<td style="text-align: right;">0.132</td>
-<td style="text-align: right;">0.198</td>
+<td style="text-align: right;">-45%</td>
+<td style="text-align: right;">-75 to +21%</td>
+<td style="text-align: right;">-1.49</td>
+<td style="text-align: right;">0.136</td>
+<td style="text-align: right;">0.204</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Guild</td>
 <td style="text-align: left;">High frequency</td>
-<td style="text-align: right;">-62%</td>
-<td style="text-align: right;">-83 to -14%</td>
-<td style="text-align: right;">-2.32</td>
-<td style="text-align: right;">0.021</td>
-<td style="text-align: right;">0.062</td>
+<td style="text-align: right;">-60%</td>
+<td style="text-align: right;">-81 to -12%</td>
+<td style="text-align: right;">-2.30</td>
+<td style="text-align: right;">0.022</td>
+<td style="text-align: right;">0.065</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Epfu</td>
 <td style="text-align: right;">-79%</td>
-<td style="text-align: right;">-92 to -48%</td>
-<td style="text-align: right;">-3.36</td>
+<td style="text-align: right;">-91 to -48%</td>
+<td style="text-align: right;">-3.40</td>
 <td style="text-align: right;">&lt; 0.001</td>
 <td style="text-align: right;">0.005</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Laci</td>
-<td style="text-align: right;">+12%</td>
-<td style="text-align: right;">-55 to +182%</td>
-<td style="text-align: right;">0.25</td>
-<td style="text-align: right;">0.805</td>
-<td style="text-align: right;">0.805</td>
+<td style="text-align: right;">+15%</td>
+<td style="text-align: right;">-53 to +180%</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">0.758</td>
+<td style="text-align: right;">0.758</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Lano</td>
-<td style="text-align: right;">+16%</td>
-<td style="text-align: right;">-54 to +192%</td>
-<td style="text-align: right;">0.32</td>
-<td style="text-align: right;">0.746</td>
-<td style="text-align: right;">0.805</td>
+<td style="text-align: right;">+18%</td>
+<td style="text-align: right;">-51 to +187%</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">0.712</td>
+<td style="text-align: right;">0.758</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Myca</td>
-<td style="text-align: right;">-81%</td>
-<td style="text-align: right;">-93 to -47%</td>
-<td style="text-align: right;">-3.21</td>
+<td style="text-align: right;">-80%</td>
+<td style="text-align: right;">-92 to -47%</td>
+<td style="text-align: right;">-3.23</td>
 <td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.005</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Myci</td>
-<td style="text-align: right;">-57%</td>
-<td style="text-align: right;">-83 to +9%</td>
-<td style="text-align: right;">-1.78</td>
+<td style="text-align: right;">-56%</td>
+<td style="text-align: right;">-82 to +9%</td>
+<td style="text-align: right;">-1.77</td>
 <td style="text-align: right;">0.076</td>
 <td style="text-align: right;">0.152</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Myev</td>
-<td style="text-align: right;">-47%</td>
-<td style="text-align: right;">-79 to +33%</td>
-<td style="text-align: right;">-1.35</td>
-<td style="text-align: right;">0.176</td>
-<td style="text-align: right;">0.235</td>
+<td style="text-align: right;">-45%</td>
+<td style="text-align: right;">-78 to +34%</td>
+<td style="text-align: right;">-1.33</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">0.247</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Mylu</td>
-<td style="text-align: right;">-61%</td>
-<td style="text-align: right;">-84 to -2%</td>
-<td style="text-align: right;">-2.00</td>
+<td style="text-align: right;">-60%</td>
+<td style="text-align: right;">-83 to -1%</td>
+<td style="text-align: right;">-1.99</td>
 <td style="text-align: right;">0.046</td>
-<td style="text-align: right;">0.110</td>
+<td style="text-align: right;">0.111</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Myvo</td>
-<td style="text-align: right;">-79%</td>
-<td style="text-align: right;">-92 to -47%</td>
-<td style="text-align: right;">-3.31</td>
+<td style="text-align: right;">-78%</td>
+<td style="text-align: right;">-91 to -46%</td>
+<td style="text-align: right;">-3.30</td>
 <td style="text-align: right;">&lt; 0.001</td>
 <td style="text-align: right;">0.005</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Myyu</td>
-<td style="text-align: right;">-54%</td>
-<td style="text-align: right;">-82 to +20%</td>
+<td style="text-align: right;">-53%</td>
+<td style="text-align: right;">-81 to +19%</td>
 <td style="text-align: right;">-1.59</td>
-<td style="text-align: right;">0.111</td>
-<td style="text-align: right;">0.191</td>
+<td style="text-align: right;">0.112</td>
+<td style="text-align: right;">0.192</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>Zero-inflated negative binomial GLMMs of detections per site-night (all bats = total; guild and species = their detections, zero-filled) with taxon × distance, light color, intensity, moon phase, non-forest cover, sky brightness, season, and random intercepts for site and night. Covariates were dropped in order if a model did not converge; covariates used: all bats — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2); guilds — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2); species — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2).</p>
+<p>Zero-inflated negative binomial GLMMs of detections per site-night (all bats = total; guild and species = their detections, zero-filled) with taxon × distance, light color, intensity, moon phase, non-forest cover, sky brightness, season and a site random intercept. Covariates were dropped in order if a model did not converge; covariates used: all bats — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2); guilds — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2); species — mean_phase + pct_nonforest + brightness_dark + jd_c + I(jd_c^2).</p>
 </section>
 <section id="figure-4-moth-distance-hierarchy-11-stations" class="level2">
 <h2 class="anchored" data-anchor-id="figure-4-moth-distance-hierarchy-11-stations">Figure 4: Moth distance hierarchy (11 stations)</h2>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Figure 4 — the 18 taxa shown: Benjamini–Hochberg-adjusted p &lt; 0.05 across all 51 taxa tested.</caption>
+<caption>Figure 4 — the 17 taxa shown: Benjamini–Hochberg-adjusted p &lt; 0.05 across all 51 taxa tested.</caption>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Level</th>
@@ -2879,134 +2879,127 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tr class="odd">
 <td style="text-align: left;">Family</td>
 <td style="text-align: left;">Erebidae</td>
-<td style="text-align: right;">+115%</td>
+<td style="text-align: right;">+100%</td>
 <td style="text-align: right;">&lt; 0.001</td>
 <td style="text-align: right;">&lt; 0.001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Family</td>
 <td style="text-align: left;">Lasiocampidae</td>
-<td style="text-align: right;">+94%</td>
+<td style="text-align: right;">+105%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">&lt; 0.001</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Family</td>
 <td style="text-align: left;">Sphingidae</td>
 <td style="text-align: right;">+102%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.001</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Subfamily</td>
-<td style="text-align: left;">Arctiinae</td>
-<td style="text-align: right;">+117%</td>
-<td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: left;">Family</td>
+<td style="text-align: left;">Notodontidae</td>
+<td style="text-align: right;">+66%</td>
+<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.043</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Smerinthinae</td>
-<td style="text-align: right;">+159%</td>
+<td style="text-align: right;">+168%</td>
 <td style="text-align: right;">&lt; 0.001</td>
 <td style="text-align: right;">&lt; 0.001</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">Subfamily</td>
+<td style="text-align: left;">Arctiinae</td>
+<td style="text-align: right;">+113%</td>
+<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">&lt; 0.001</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Sterrhinae</td>
-<td style="text-align: right;">+164%</td>
+<td style="text-align: right;">+170%</td>
 <td style="text-align: right;">&lt; 0.001</td>
 <td style="text-align: right;">&lt; 0.001</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Lasiocampinae</td>
-<td style="text-align: right;">+83%</td>
+<td style="text-align: right;">+108%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.001</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Smerinthus</td>
-<td style="text-align: right;">+202%</td>
+<td style="text-align: right;">+153%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">0.002</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Apantesis</td>
-<td style="text-align: right;">+167%</td>
+<td style="text-align: right;">+148%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">0.002</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Scopula</td>
-<td style="text-align: right;">+177%</td>
-<td style="text-align: right;">&lt; 0.001</td>
+<td style="text-align: right;">+149%</td>
 <td style="text-align: right;">0.002</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Malacosoma</td>
-<td style="text-align: right;">+126%</td>
-<td style="text-align: right;">0.001</td>
-<td style="text-align: right;">0.005</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Feltia</td>
-<td style="text-align: right;">+143%</td>
-<td style="text-align: right;">0.003</td>
 <td style="text-align: right;">0.009</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Xestia</td>
-<td style="text-align: right;">+158%</td>
-<td style="text-align: right;">0.006</td>
-<td style="text-align: right;">0.018</td>
-</tr>
 <tr class="even">
 <td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Euxoa</td>
-<td style="text-align: right;">+95%</td>
-<td style="text-align: right;">0.007</td>
-<td style="text-align: right;">0.022</td>
+<td style="text-align: left;">Malacosoma</td>
+<td style="text-align: right;">+122%</td>
+<td style="text-align: right;">0.003</td>
+<td style="text-align: right;">0.010</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Species</td>
-<td style="text-align: left;">Smerinthus ophthalmica</td>
-<td style="text-align: right;">+201%</td>
-<td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Feltia</td>
+<td style="text-align: right;">+108%</td>
+<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.043</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Apamea inficita</td>
-<td style="text-align: right;">+205%</td>
+<td style="text-align: right;">+188%</td>
 <td style="text-align: right;">&lt; 0.001</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.004</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
-<td style="text-align: left;">Apantesis williamsii</td>
-<td style="text-align: right;">+164%</td>
-<td style="text-align: right;">0.002</td>
+<td style="text-align: left;">Smerinthus ophthalmica</td>
+<td style="text-align: right;">+154%</td>
+<td style="text-align: right;">0.001</td>
 <td style="text-align: right;">0.006</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
+<td style="text-align: left;">Apantesis williamsii</td>
+<td style="text-align: right;">+141%</td>
+<td style="text-align: right;">0.003</td>
+<td style="text-align: right;">0.011</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Species</td>
 <td style="text-align: left;">Malacosoma californica</td>
-<td style="text-align: right;">+127%</td>
+<td style="text-align: right;">+133%</td>
 <td style="text-align: right;">0.009</td>
-<td style="text-align: right;">0.026</td>
+<td style="text-align: right;">0.029</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>Taxon × distance zero-inflated negative binomial GLMM at each taxonomic level (taxa with at least 30 site-nights), with light color, intensity, moon phase, non-forest cover, sky brightness, season, and random intercepts for site and night.</p>
+<p>Taxon × distance zero-inflated negative binomial GLMM at each taxonomic level (taxa with at least 30 site-nights), with light color, intensity, moon phase, non-forest cover, sky brightness, season and a site random intercept.</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -3023,234 +3016,241 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Family</td>
-<td style="text-align: left;">Notodontidae</td>
-<td style="text-align: right;">+63%</td>
-<td style="text-align: right;">0.024</td>
-<td style="text-align: right;">0.058</td>
+<td style="text-align: left;">Noctuidae</td>
+<td style="text-align: right;">+34%</td>
+<td style="text-align: right;">0.071</td>
+<td style="text-align: right;">0.157</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Family</td>
-<td style="text-align: left;">Noctuidae</td>
-<td style="text-align: right;">+39%</td>
-<td style="text-align: right;">0.049</td>
-<td style="text-align: right;">0.103</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">Family</td>
 <td style="text-align: left;">Geometridae</td>
-<td style="text-align: right;">+13%</td>
-<td style="text-align: right;">0.480</td>
-<td style="text-align: right;">0.544</td>
+<td style="text-align: right;">+4%</td>
+<td style="text-align: right;">0.819</td>
+<td style="text-align: right;">0.836</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Noctuinae</td>
-<td style="text-align: right;">+35%</td>
-<td style="text-align: right;">0.071</td>
-<td style="text-align: right;">0.139</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Subfamily</td>
-<td style="text-align: left;">Sphinginae</td>
-<td style="text-align: right;">-44%</td>
-<td style="text-align: right;">0.105</td>
-<td style="text-align: right;">0.191</td>
+<td style="text-align: right;">+37%</td>
+<td style="text-align: right;">0.067</td>
+<td style="text-align: right;">0.157</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Subfamily</td>
-<td style="text-align: left;">Erebinae</td>
-<td style="text-align: right;">+41%</td>
-<td style="text-align: right;">0.133</td>
-<td style="text-align: right;">0.219</td>
+<td style="text-align: left;">Sphinginae</td>
+<td style="text-align: right;">-42%</td>
+<td style="text-align: right;">0.114</td>
+<td style="text-align: right;">0.199</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">Subfamily</td>
+<td style="text-align: left;">Erebinae</td>
+<td style="text-align: right;">+35%</td>
+<td style="text-align: right;">0.175</td>
+<td style="text-align: right;">0.279</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Pantheinae</td>
 <td style="text-align: right;">-30%</td>
-<td style="text-align: right;">0.249</td>
-<td style="text-align: right;">0.343</td>
+<td style="text-align: right;">0.251</td>
+<td style="text-align: right;">0.366</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">Subfamily</td>
 <td style="text-align: left;">Ennominae</td>
-<td style="text-align: right;">-17%</td>
-<td style="text-align: right;">0.286</td>
-<td style="text-align: right;">0.365</td>
+<td style="text-align: right;">-15%</td>
+<td style="text-align: right;">0.325</td>
+<td style="text-align: right;">0.417</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Euxoa</td>
+<td style="text-align: right;">+81%</td>
+<td style="text-align: right;">0.021</td>
+<td style="text-align: right;">0.060</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Leucania</td>
-<td style="text-align: right;">+82%</td>
-<td style="text-align: right;">0.019</td>
-<td style="text-align: right;">0.052</td>
+<td style="text-align: left;">Xestia</td>
+<td style="text-align: right;">+111%</td>
+<td style="text-align: right;">0.028</td>
+<td style="text-align: right;">0.076</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Apamea</td>
-<td style="text-align: right;">+72%</td>
-<td style="text-align: right;">0.021</td>
-<td style="text-align: right;">0.054</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Spilosoma</td>
-<td style="text-align: right;">+98%</td>
-<td style="text-align: right;">0.029</td>
-<td style="text-align: right;">0.068</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Drasteria</td>
-<td style="text-align: right;">+82%</td>
-<td style="text-align: right;">0.033</td>
-<td style="text-align: right;">0.073</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Egira</td>
-<td style="text-align: right;">+45%</td>
-<td style="text-align: right;">0.101</td>
-<td style="text-align: right;">0.191</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Agrotis</td>
-<td style="text-align: right;">+47%</td>
-<td style="text-align: right;">0.131</td>
-<td style="text-align: right;">0.219</td>
+<td style="text-align: right;">+58%</td>
+<td style="text-align: right;">0.058</td>
+<td style="text-align: right;">0.148</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Arctia</td>
-<td style="text-align: right;">-37%</td>
-<td style="text-align: right;">0.209</td>
-<td style="text-align: right;">0.324</td>
+<td style="text-align: right;">-48%</td>
+<td style="text-align: right;">0.069</td>
+<td style="text-align: right;">0.157</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Pero</td>
-<td style="text-align: right;">-31%</td>
-<td style="text-align: right;">0.205</td>
-<td style="text-align: right;">0.324</td>
+<td style="text-align: left;">Leucania</td>
+<td style="text-align: right;">+59%</td>
+<td style="text-align: right;">0.080</td>
+<td style="text-align: right;">0.169</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Polia</td>
-<td style="text-align: right;">+41%</td>
-<td style="text-align: right;">0.230</td>
-<td style="text-align: right;">0.339</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Sphinx</td>
-<td style="text-align: right;">-37%</td>
-<td style="text-align: right;">0.239</td>
-<td style="text-align: right;">0.339</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Orthosia</td>
-<td style="text-align: right;">+36%</td>
-<td style="text-align: right;">0.271</td>
-<td style="text-align: right;">0.354</td>
+<td style="text-align: left;">Spilosoma</td>
+<td style="text-align: right;">+72%</td>
+<td style="text-align: right;">0.086</td>
+<td style="text-align: right;">0.176</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Trichordestra</td>
-<td style="text-align: right;">-21%</td>
-<td style="text-align: right;">0.354</td>
-<td style="text-align: right;">0.430</td>
+<td style="text-align: right;">-36%</td>
+<td style="text-align: right;">0.098</td>
+<td style="text-align: right;">0.193</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Pero</td>
+<td style="text-align: right;">-37%</td>
+<td style="text-align: right;">0.109</td>
+<td style="text-align: right;">0.199</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Sphinx</td>
+<td style="text-align: right;">-47%</td>
+<td style="text-align: right;">0.112</td>
+<td style="text-align: right;">0.199</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Drasteria</td>
+<td style="text-align: right;">+42%</td>
+<td style="text-align: right;">0.217</td>
+<td style="text-align: right;">0.336</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">Genus</td>
 <td style="text-align: left;">Panthea</td>
-<td style="text-align: right;">-17%</td>
-<td style="text-align: right;">0.597</td>
-<td style="text-align: right;">0.621</td>
+<td style="text-align: right;">-32%</td>
+<td style="text-align: right;">0.263</td>
+<td style="text-align: right;">0.373</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Agrotis</td>
+<td style="text-align: right;">+29%</td>
+<td style="text-align: right;">0.327</td>
+<td style="text-align: right;">0.417</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Genus</td>
-<td style="text-align: left;">Macaria</td>
-<td style="text-align: right;">+6%</td>
-<td style="text-align: right;">0.800</td>
-<td style="text-align: right;">0.800</td>
+<td style="text-align: left;">Polia</td>
+<td style="text-align: right;">+34%</td>
+<td style="text-align: right;">0.319</td>
+<td style="text-align: right;">0.417</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Species</td>
-<td style="text-align: left;">Spilosoma vagans</td>
-<td style="text-align: right;">+92%</td>
-<td style="text-align: right;">0.062</td>
-<td style="text-align: right;">0.126</td>
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Macaria</td>
+<td style="text-align: right;">-19%</td>
+<td style="text-align: right;">0.375</td>
+<td style="text-align: right;">0.466</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Egira</td>
+<td style="text-align: right;">+16%</td>
+<td style="text-align: right;">0.518</td>
+<td style="text-align: right;">0.587</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Genus</td>
+<td style="text-align: left;">Orthosia</td>
+<td style="text-align: right;">+6%</td>
+<td style="text-align: right;">0.836</td>
+<td style="text-align: right;">0.836</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
-<td style="text-align: left;">Egira curialis</td>
-<td style="text-align: right;">+50%</td>
-<td style="text-align: right;">0.130</td>
-<td style="text-align: right;">0.219</td>
+<td style="text-align: left;">Spilosoma vagans</td>
+<td style="text-align: right;">+71%</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">0.199</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Sphinx vashti</td>
-<td style="text-align: right;">-40%</td>
-<td style="text-align: right;">0.237</td>
-<td style="text-align: right;">0.339</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Species</td>
-<td style="text-align: left;">Macaria adonis</td>
-<td style="text-align: right;">+40%</td>
-<td style="text-align: right;">0.257</td>
-<td style="text-align: right;">0.344</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Species</td>
-<td style="text-align: left;">Agrotis vancouverensis</td>
-<td style="text-align: right;">+36%</td>
-<td style="text-align: right;">0.343</td>
-<td style="text-align: right;">0.427</td>
+<td style="text-align: right;">-47%</td>
+<td style="text-align: right;">0.139</td>
+<td style="text-align: right;">0.229</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Trichordestra liquida</td>
-<td style="text-align: right;">-21%</td>
-<td style="text-align: right;">0.447</td>
-<td style="text-align: right;">0.531</td>
+<td style="text-align: right;">-30%</td>
+<td style="text-align: right;">0.243</td>
+<td style="text-align: right;">0.364</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Species</td>
+<td style="text-align: left;">Panthea virginarius</td>
+<td style="text-align: right;">-33%</td>
+<td style="text-align: right;">0.302</td>
+<td style="text-align: right;">0.416</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Species</td>
+<td style="text-align: left;">Agrotis vancouverensis</td>
+<td style="text-align: right;">+28%</td>
+<td style="text-align: right;">0.457</td>
+<td style="text-align: right;">0.534</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Apamea devastator</td>
-<td style="text-align: right;">+27%</td>
-<td style="text-align: right;">0.459</td>
-<td style="text-align: right;">0.532</td>
+<td style="text-align: right;">+30%</td>
+<td style="text-align: right;">0.442</td>
+<td style="text-align: right;">0.534</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
+<td style="text-align: left;">Egira curialis</td>
+<td style="text-align: right;">+22%</td>
+<td style="text-align: right;">0.461</td>
+<td style="text-align: right;">0.534</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Species</td>
 <td style="text-align: left;">Pero behrensaria</td>
-<td style="text-align: right;">-22%</td>
-<td style="text-align: right;">0.498</td>
-<td style="text-align: right;">0.552</td>
+<td style="text-align: right;">-19%</td>
+<td style="text-align: right;">0.562</td>
+<td style="text-align: right;">0.623</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Species</td>
+<td style="text-align: left;">Macaria adonis</td>
+<td style="text-align: right;">+11%</td>
+<td style="text-align: right;">0.699</td>
+<td style="text-align: right;">0.758</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Species</td>
 <td style="text-align: left;">Leucania commoides</td>
-<td style="text-align: right;">+23%</td>
-<td style="text-align: right;">0.539</td>
-<td style="text-align: right;">0.585</td>
+<td style="text-align: right;">+10%</td>
+<td style="text-align: right;">0.778</td>
+<td style="text-align: right;">0.827</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Species</td>
-<td style="text-align: left;">Panthea virginarius</td>
-<td style="text-align: right;">-21%</td>
-<td style="text-align: right;">0.551</td>
-<td style="text-align: right;">0.585</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Species</td>
 <td style="text-align: left;">Apamea unanimis</td>
-<td style="text-align: right;">+17%</td>
-<td style="text-align: right;">0.609</td>
-<td style="text-align: right;">0.621</td>
+<td style="text-align: right;">+8%</td>
+<td style="text-align: right;">0.806</td>
+<td style="text-align: right;">0.836</td>
 </tr>
 </tbody>
 </table>
@@ -3262,7 +3262,7 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<caption>Models (negative binomial GLMMs; random intercepts for site and night).</caption>
+<caption>Models (negative binomial GLMMs; site random intercept).</caption>
 <colgroup>
 <col style="width: 54%">
 <col style="width: 7%">
@@ -3312,17 +3312,17 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Red</td>
-<td style="text-align: right;">-1%</td>
-<td style="text-align: right;">-20 to +22%</td>
-<td style="text-align: right;">-0.10</td>
-<td style="text-align: right;">0.922</td>
+<td style="text-align: right;">-2%</td>
+<td style="text-align: right;">-20 to +20%</td>
+<td style="text-align: right;">-0.18</td>
+<td style="text-align: right;">0.859</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">White</td>
 <td style="text-align: right;">-2%</td>
-<td style="text-align: right;">-20 to +22%</td>
-<td style="text-align: right;">-0.15</td>
-<td style="text-align: right;">0.881</td>
+<td style="text-align: right;">-20 to +19%</td>
+<td style="text-align: right;">-0.23</td>
+<td style="text-align: right;">0.816</td>
 </tr>
 </tbody>
 </table>
@@ -3342,16 +3342,16 @@ Guilds / species:  detections ~ taxon * dist_km + color + intensity + mean_phase
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Red</td>
-<td style="text-align: right;">+4%</td>
-<td style="text-align: right;">-4 to +12%</td>
-<td style="text-align: right;">0.95</td>
-<td style="text-align: right;">0.343</td>
+<td style="text-align: right;">+1%</td>
+<td style="text-align: right;">-5 to +9%</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;">0.706</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">White</td>
-<td style="text-align: right;">+17%</td>
-<td style="text-align: right;">+9 to +25%</td>
-<td style="text-align: right;">4.37</td>
+<td style="text-align: right;">+19%</td>
+<td style="text-align: right;">+12 to +27%</td>
+<td style="text-align: right;">5.32</td>
 <td style="text-align: right;">&lt; 0.001</td>
 </tr>
 </tbody>
