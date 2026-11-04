@@ -3,7 +3,7 @@
 # Statistics behind each figure of distance_storyboard_overall_v1.qmd, as tables for the
 # companion document distance_storyboard_overall_v1_stats.qmd:
 #   fig1  station sky brightness (lights off / white 100%); bat and moth distance slopes by color
-#         (11 stations within 2.1 km; same refits as R/56, incl. the night random effect)
+#         (11 stations within 2.1 km; same refits as R/56)
 #   fig2  per-intensity distance slopes and white-vs-red contrasts (Holm across the 5 intensities)
 #   fig3  bat hierarchy nodes (output/bat_species_hierarchy_fits.rds, far sites removed)
 #   fig4  moth hierarchy: every taxon tested and the BH-significant nodes
@@ -22,7 +22,7 @@ make_overall_v1_stats <- function(bat_model, moth_model, site_night, insect_tota
 
   refit <- function(m, d, drop) {
     d <- droplevels(filter(d, !site %in% drop))
-    update(m, . ~ . + color:dist_km + (1 | date), data = d)   # as make_manager_summary(night_re = TRUE)
+    update(m, . ~ . + color:dist_km, data = d)   # as make_manager_summary() (site random effect only)
   }
   info <- function(m, resp) tibble(model = resp, n_obs = nobs(m), n_sites = n_distinct(m$frame$site),
                                    formula = paste(deparse(formula(m), width.cutoff = 500), collapse = " "),

@@ -9,8 +9,7 @@
 # brown = toward the lot); a non-significant one is a dashed gray box.
 # Models per tier, as in the moth hierarchy: zero-inflated NB GLMM
 #   detections ~ taxon * dist_km + color + intensity + moon phase + non-forest + sky brightness
-#                + season (jd_c + jd_c^2) + (1 | site) + (1 | date)
-# (night random effect: light color/intensity were set per night, so nights are the treatment replicates)
+#                + season (jd_c + jd_c^2) + (1 | site)
 # (the all-bats tier has a single taxon, so no taxon terms); covariates are dropped in order if
 # a model doesn't converge. Node significance comes from that model; the red and white curves and
 # slopes come from the same model plus color x distance terms (per taxon where that converges,
@@ -40,7 +39,7 @@ bat_hier_fit <- function(dat, taxa = NULL) {
   m <- NULL; used <- NA
   for (rhs in cand) {
     mi <- tryCatch(suppressWarnings(glmmTMB(
-      as.formula(paste(lhs, "+ color + intensity +", rhs, "+ (1 | site) + (1 | date)")),   # night: treatment set per night
+      as.formula(paste(lhs, "+ color + intensity +", rhs, "+ (1 | site)")),
       data = dat, ziformula = ~1, family = nbinom2())), error = function(e) NULL)
     if (is.null(m) && !is.null(mi)) { m <- mi; used <- rhs }
     if (stbl(mi)) { m <- mi; used <- rhs; break }

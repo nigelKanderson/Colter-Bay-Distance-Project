@@ -19,13 +19,13 @@
 source("R/storyboard_sites.R")   # SB_FAR_DROP, SB_INT_FILL
 
 make_manager_summary <- function(bat_model, moth_model, site_night, insect_total_env,
-                                 drop_sites = SB_FAR_DROP, night_re = TRUE, col_bat = "#0072B2",
+                                 drop_sites = SB_FAR_DROP, night_re = FALSE, col_bat = "#0072B2",
                                  file = "output/figures/fig_manager_summary.png") {
   library(tidyverse); library(glmmTMB); library(emmeans); library(patchwork)
   drop <- function(df) droplevels(filter(df, !site %in% drop_sites))
   bat_dat <- drop(site_night); moth_dat <- drop(insect_total_env)
-  # night random effect: light color/intensity were set per night, so the stations on one night share
-  # the treatment (and moon, weather); (1 | date) makes nights, not site-nights, the treatment replicates
+  # night_re = TRUE adds a night random effect, (1 | date): light color/intensity were set per night, so the
+  # stations on one night share the treatment (and moon, weather). Off for now (site random effect only).
   add <- if (night_re) . ~ . + color:dist_km + (1 | date) else . ~ . + color:dist_km
   bat  <- update(bat_model,  add, data = bat_dat)
   moth <- update(moth_model, add, data = moth_dat)
@@ -155,9 +155,9 @@ make_manager_summary <- function(bat_model, moth_model, site_night, insect_total
     "Filled points differ from zero; open points do not. * p < 0.05, ** p < 0.01, *** p < 0.001 (A, B: each line's change with distance; C–F: adjusted across the five intensities).\n",
     "Light color and intensity were set experimentally, night by night; ",
     "the distance pattern is observational, since sites farther from the lot also differ in habitat. ",
-    "A night random effect accounts for conditions shared by all sites on a night (moon, weather).\n",
-    "† 100% (shaded): the red-light nights at 100% included the July full moon and the two wettest nights of the study; ",
-    "the moth white vs. red difference rests on four red-light trap nights.")
+    "Results hold after accounting for overnight temperature and rain.\n",
+    "† 100% (shaded): the red-light nights at 100% included the July full moon and the two wettest nights of the study ",
+    "(moths: four trap nights; bats: six recording nights), and the bat white vs. red difference runs against the pattern at lower intensities.")
 
   plate <- (pA | pB) / (pC | pD) / (pE | pF) +
     plot_annotation(

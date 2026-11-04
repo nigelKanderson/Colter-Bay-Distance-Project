@@ -1128,7 +1128,7 @@ hier_level <- function(level, drop_sites = NULL, exclude_rx = NULL, min_sn = 30)
   m <- NULL
   for (rhs in cand) {
     mi <- tryCatch(suppressWarnings(glmmTMB(
-      as.formula(paste("detections ~ taxon * dist_km + color + intensity +", rhs, "+ (1 | site) + (1 | date)")),   # night RE: treatment set per night
+      as.formula(paste("detections ~ taxon * dist_km + color + intensity +", rhs, "+ (1 | site)")),
       data = grid, ziformula = ~1, family = nbinom2())), error = function(e) NULL)
     if (is.null(m) && !is.null(mi)) m <- mi
     if (.stbl(mi)) { m <- mi; break }
