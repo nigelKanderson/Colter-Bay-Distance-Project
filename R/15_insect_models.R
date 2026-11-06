@@ -34,6 +34,7 @@ run_insect_general_model <- function(insect_env, bat_theme, intensity_pal,
     detections ~
       color * intensity +
       intensity * dist_km +
+      color:dist_km +          # distance gradient may differ between red and white light
       mean_phase +
       pct_nonforest +
       jd_c + I(jd_c^2) +

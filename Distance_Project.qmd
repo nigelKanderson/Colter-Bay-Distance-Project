@@ -286,11 +286,14 @@ library(glmmTMB)
 
 # Overall activity model at the site-night level (one row per site x night).
 # Total detections per night ~ treatment + covariates, with a site random effect.
+# color x distance: lets the distance gradient differ between red and white light
+# (the same term as the storyboard figures, so the main analysis and storyboards share one model).
 # No ziformula: nightly totals have no structural zeros.
 simple_model1 <- glmmTMB(
   total_det ~
     color * intensity +
     dist_km * intensity +
+    color*dist_km +
     mean_phase +
     pct_nonforest +
     brightness_dark +
@@ -1754,7 +1757,7 @@ bm_effects$forest_df
 
 ### Bat vs. moth % change plate (storyboard)
 
-Six-panel bat vs. moth comparison for the storyboard: distance, distance × intensity and distance × color, each for the full data and with the three far (\~7 km) sites removed. Each taxon's general model is refit with an added color × distance term (needed for the distance × color row), so all panels come from one model per taxon and dataset.
+Six-panel bat vs. moth comparison for the storyboard: distance, distance × intensity and distance × color, each for the full data and with the three far (\~7 km) sites removed. Each taxon's general model (which includes a color × distance term, needed for the distance × color row) is refit on each site set, so all panels come from one model per taxon and dataset.
 
 ```{r bat_moth_pct_panels, warning=FALSE, message=FALSE, fig.width=13, fig.height=12.5}
 source("R/42_bat_moth_pct_panels.R")
@@ -1762,9 +1765,9 @@ bm_pct <- make_bat_moth_pct_panels(simple_model1, insect_general$model,
                                    site_night, insect_total_env, bat_theme)
 bm_pct$plate
 
-# does the added color x distance term earn its place? (negative = better)
-c(bat  = AIC(bm_pct$models$full$Bat)  - AIC(simple_model1),
-  moth = AIC(bm_pct$models$full$Moth) - AIC(insect_general$model))
+# does the color x distance term earn its place? AIC with minus without it (negative = better)
+c(bat  = AIC(simple_model1)        - AIC(update(simple_model1,        . ~ . - color:dist_km)),
+  moth = AIC(insect_general$model) - AIC(update(insect_general$model, . ~ . - color:dist_km)))
 ```
 
 ### White vs. red and predicted detections (storyboard)

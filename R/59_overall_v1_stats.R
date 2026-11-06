@@ -9,6 +9,8 @@
 #   fig4  moth hierarchy: every taxon tested and the BH-significant nodes
 #         (output/overall_v1_moth_hierarchy_stats.rds, from the `moth_sig_hierarchy` chunk)
 #   fig5  as fig1 with the far stations, GRTE15 excluded (13 stations)
+#   tests interaction tests (joint Wald chi-square, emmeans::joint_tests) for figures 1-2 and 5, plus the
+#         distance slope averaged over color (the one to report when color x distance is not significant)
 # Output: output/overall_v1_stats.rds
 # =============================================================================
 
@@ -41,6 +43,14 @@ make_overall_v1_stats <- function(bat_model, moth_model, site_night, insect_tota
     transmute(intensity = paste0(intensity, "%"), pct_white_vs_red = pct(estimate),
               lo = pct(asymp.LCL), hi = pct(asymp.UCL), z = z.ratio, p = p.value, p_holm = p.adjust(p.value, "holm"))
 
+  # interaction tests: does the distance slope differ by color / intensity; does white vs red differ by intensity
+  joint <- function(m, taxon) as.data.frame(joint_tests(m)) %>%
+    filter(`model term` %in% c("dist_km", "color:intensity", "color:dist_km", "intensity:dist_km")) %>%
+    transmute(taxon, term = `model term`, df = df1, chisq = F.ratio * df1, p = p.value)
+  common <- function(m, taxon) as.data.frame(test(emtrends(m, ~ 1, var = "dist_km"))) %>%
+    transmute(taxon, pct_per_km = pct(dist_km.trend), lo = pct(dist_km.trend - 1.96 * SE),
+              hi = pct(dist_km.trend + 1.96 * SE), z = z.ratio, p = p.value)
+
   # ---- station sky brightness ---------------------------------------------------
   sky <- read_csv("data/sky_brightness_measurements.csv", show_col_types = FALSE) %>%
     transmute(site, lights_off = brightness_dark,
@@ -58,7 +68,9 @@ make_overall_v1_stats <- function(bat_model, moth_model, site_night, insect_tota
     b <- refit(bat_model, site_night, drop); m <- refit(moth_model, insect_total_env, drop)
     out[[set]] <- list(models = bind_rows(info(b, "Bats: total detections per site-night"),
                                           info(m, "Moths: specimens per trap night")),
-                       bat_slopes = slopes(b), moth_slopes = slopes(m))
+                       bat_slopes = slopes(b), moth_slopes = slopes(m),
+                       joint = bind_rows(joint(b, "Bats"), joint(m, "Moths")),
+                       common = bind_rows(common(b, "Bats"), common(m, "Moths")))
     if (set == "nofar") out$fig2 <- list(bat_dist = by_int_dist(b), moth_dist = by_int_dist(m),
                                          bat_wvr = by_int_wvr(b), moth_wvr = by_int_wvr(m))
   }

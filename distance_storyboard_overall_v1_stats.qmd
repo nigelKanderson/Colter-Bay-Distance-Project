@@ -34,6 +34,77 @@ model_tab <- function(d) tab(d %>% transmute(Model = model, `Obs.` = n_obs, Stat
 
 All percentages are back-transformed from the log scale: % change in detections per km away from the parking lot, or % difference under white vs. red light. 95% CIs are Wald intervals; p-values are Wald z-tests. "Holm" and "BH" mark p-values adjusted across the five intensities (Holm) or across the taxa tested (Benjamini–Hochberg). Light color and intensity were set experimentally; distance is observational.
 
+```{r report-helpers}
+jt  <- function(set, tax, term) { r <- S[[set]]$joint %>% filter(taxon == tax, term == !!term)
+  sprintf("$\\chi^2_{%d}$ = %.2f, p %s", r$df, r$chisq, ifelse(r$p < 0.001, "< 0.001", paste("=", sprintf("%.3f", r$p)))) }
+pp  <- function(p) ifelse(p < 0.001, "p < 0.001", sprintf("p = %.3f", p))
+sl  <- function(d, col = NULL) { r <- if (is.null(col)) d else d[d$color == col, ]
+  sprintf("%+.0f%% per km, 95%% CI %+.0f to %+.0f%%, %s", r$pct_per_km, r$lo, r$hi, pp(r$p)) }
+F2  <- S$fig2
+rng <- function(x) sprintf("%.0f–%.0f%%", min(abs(x)), max(abs(x)))
+bw  <- F2$bat_wvr %>% filter(intensity %in% c("30%", "50%", "70%"))
+mw  <- F2$moth_wvr %>% filter(intensity != "100%")
+md  <- F2$moth_dist %>% filter(p_holm < 0.05)
+f4s <- S$fig4 %>% filter(significant) %>% arrange(p_BH)
+```
+
+## Reading and reporting the results
+
+Each figure answers a question at two levels, and they should be reported in that order:
+
+1. **The interaction test**: does the effect differ between conditions (light colors, intensities)? This is one joint Wald $\chi^2$ test per model term, from the same model as the figure.
+2. **The effects the figure plots**: the distance slope or white-vs-red difference within each condition, as % change with 95% CI and its (adjusted) p-value.
+
+The asterisks in the figures belong to level 2: each tests whether *that* condition's effect differs from zero. They do not test whether conditions differ from each other. A starred and an unstarred condition are only "different" when the interaction test says so; when it does not, describe the effect as shared across conditions.
+
+```{r joint-table, results = "asis"}
+jtab <- bind_rows(mutate(S$fig1$joint, set = "11 stations (Figures 1–2)"),
+                  mutate(S$fig5$joint, set = "13 stations (Figure 5)")) %>%
+  mutate(question = recode(term,
+           dist_km = "Distance slope, averaged over color and intensity",
+           `color:dist_km` = "Does the distance slope differ between red and white?",
+           `intensity:dist_km` = "Does the distance slope differ among intensities?",
+           `color:intensity` = "Does the white vs. red difference depend on intensity?"),
+         fig = recode(term, dist_km = "1B–C / 5B–C", `color:dist_km` = "1B–C / 5B–C",
+                      `intensity:dist_km` = "2A–B", `color:intensity` = "2C–D"),
+         term = factor(term, c("dist_km", "color:dist_km", "intensity:dist_km", "color:intensity"))) %>%
+  arrange(set, term, taxon)
+blank <- function(x) ifelse(x == lag(x, default = ""), "", x)
+for (st in unique(jtab$set))
+  print(tab(jtab %>% filter(set == st) %>%
+              transmute(Figure = blank(fig), Question = blank(question), Taxon = taxon,
+                        `Chi-sq (df)` = sprintf("%.2f (%d)", chisq, df), p = fp(p)),
+            paste0("Interaction tests, ", st, ": joint Wald chi-square tests (emmeans::joint\\_tests) from the models behind the figures."),
+            align = "lllrr"))
+```
+
+### Methods paragraph (template)
+
+> Bat detections per site-night and moth specimens per trap night were modeled with negative binomial GLMMs (glmmTMB, nbinom2) including light color × intensity, intensity × distance, color × distance, moon phase, non-forest cover, sky brightness (lights off), day of year (linear and quadratic) and a random intercept for station. Light color and intensity were assigned by night; distance from the lit parking lot is observational. We tested each interaction with a joint Wald $\chi^2$ test and then estimated distance slopes and white-vs-red contrasts within each condition (emmeans), back-transformed to % change per km or % difference. P-values across the five intensities were Holm-adjusted. For the taxonomic hierarchies, zero-inflated negative binomial GLMMs with a taxon × distance interaction were fitted at each level, and p-values were adjusted across taxa with the Benjamini–Hochberg procedure.
+
+### Example results, figure by figure
+
+**Figure 1B — bats (color × distance not significant, so report one shared slope).** Bat detections declined with distance from the lot (`r sl(S$fig1$common %>% filter(taxon == "Bats"))`), and the decline did not differ between red and white light (color × distance `r jt("fig1", "Bats", "color:dist_km")`). *Avoid:* reporting the red and white slopes as two separate findings.
+
+**Figure 1C — moths (color × distance significant, so report each color).** The moth distance gradient depended on light color (`r jt("fig1", "Moths", "color:dist_km")`): under white light, catches rose away from the lot (`r sl(S$fig1$moth_slopes, "White")`), whereas under red light there was no gradient (`r sl(S$fig1$moth_slopes, "Red")`).
+
+**Figure 2A — bats (intensity × distance not significant, so describe consistency).** The bat decline with distance did not differ significantly among intensities (`r jt("fig1", "Bats", "intensity:dist_km")`); slopes ranged from `r sprintf("%+.0f", max(F2$bat_dist$pct_per_km))` to `r sprintf("%+.0f", min(F2$bat_dist$pct_per_km))`% per km at every intensity. *Avoid:* "bats declined only at 100%"; the 100% slope is the one individually clear of zero after Holm adjustment, not one that differs from the others.
+
+**Figure 2B — moths (intensity × distance significant, so per-intensity results can be interpreted).** The moth gradient depended on intensity (`r jt("fig1", "Moths", "intensity:dist_km")`): catches rose away from the lot at `r paste(sprintf("%s (%+.0f%% per km, Holm %s)", md$intensity, md$pct_per_km, pp(md$p_holm)), collapse = " and ")`, with no clear gradient at the other intensities.
+
+**Figure 2C–D (color × intensity significant for both, so report each intensity's contrast).** The white vs. red difference depended on intensity for bats (`r jt("fig1", "Bats", "color:intensity")`) and moths (`r jt("fig1", "Moths", "color:intensity")`). Bats were `r rng(bw$pct_white_vs_red)` less active under white than red light at 30–70% intensity (all Holm p at most `r sprintf("%.3f", max(bw$p_holm))`), with no difference at 10%. Moths showed no color difference at 10–70% (all Holm p at least `r sprintf("%.2f", min(mw$p_holm))`). At 100%, the differences reverse for bats (`r sprintf("%+.0f%%", F2$bat_wvr$pct_white_vs_red[5])`) and are large for moths (`r sprintf("%+.0f%%", F2$moth_wvr$pct_white_vs_red[5])`); report these with the caveat that the red-light 100% nights include the July full moon and the two wettest nights of the study.
+
+**Figures 3–4 (hierarchies): report the count tested, the count significant, and each node's slope with its adjusted p.** Of `r nrow(S$fig4)` moth taxa tested, `r nrow(f4s)` changed significantly with distance after Benjamini–Hochberg correction, all increasing away from the lot (e.g. `r f4s$taxon[1]`, `r sprintf("%+.0f%% per km", f4s$pct_per_km[1])`, adjusted `r pp(f4s$p_BH[1])`). For bats, give the all-bats slope (single test) and the guild and species slopes BH-adjusted across the 12 nodes (Figure 3 table).
+
+**Figure 5 (sensitivity analysis with the far stations).** Including the two far stations (0–7.5 km), the bat gradient disappeared (`r sl(S$fig5$common %>% filter(taxon == "Bats"))`), while moths still increased away from the lot under white light (`r sl(S$fig5$moth_slopes, "White")`) but not under red (`r sl(S$fig5$moth_slopes, "Red")`; color × distance `r jt("fig5", "Moths", "color:dist_km")`).
+
+### General rules
+
+- Lead with the effect size and its 95% CI; the p-value comes second.
+- Never infer that two conditions differ because one is significant and the other is not; cite the interaction test.
+- State the adjustment for every family of tests: Holm across the five intensities, BH across hierarchy nodes or taxa, none for single tests.
+- Distance is observational ("associated with distance from the lot"); light color and intensity were randomized by night, so causal wording is appropriate for them.
+
 ## Model formulas
 
 All models are fitted with `glmmTMB` (negative binomial, `nbinom2`). `site` is a random intercept; light `color` (R/W) and `intensity` (10, 30, 50, 70, 100%) are factors; `dist_km` = distance from the parking lot; `jd_c` = day of year, centered.
